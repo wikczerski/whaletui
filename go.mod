@@ -3,7 +3,7 @@ module github.com/user/d5r
 go 1.25.0
 
 require (
-	github.com/docker/docker v28.0.0+incompatible
+	github.com/docker/docker v28.3.3+incompatible
 	github.com/gdamore/tcell/v2 v2.6.0
 	github.com/rivo/tview v0.0.0-20231126152417-33a1d271f2b6
 	github.com/spf13/cobra v1.9.1
@@ -12,6 +12,8 @@ require (
 
 require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
+	github.com/containerd/errdefs v1.0.0 // indirect
+	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
@@ -26,6 +28,7 @@ require (
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
+	github.com/moby/sys/atomicwriter v0.1.0 // indirect
 	github.com/moby/term v0.5.2 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
