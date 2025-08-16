@@ -1,0 +1,98 @@
+package views
+
+import (
+	"context"
+
+	"github.com/gdamore/tcell/v2"
+	"github.com/user/d5r/internal/models"
+	"github.com/user/d5r/internal/ui/builders"
+	"github.com/user/d5r/internal/ui/handlers"
+	"github.com/user/d5r/internal/ui/interfaces"
+)
+
+type ContainersView struct {
+	*BaseView[models.Container]
+	executor *handlers.OperationExecutor
+	handlers *handlers.ActionHandlers
+}
+
+func NewContainersView(ui interfaces.UIInterface) *ContainersView {
+	headers := []string{"ID", "Name", "Image", "Status", "State", "Ports", "Created"}
+	baseView := NewBaseView[models.Container](ui, "containers", headers)
+
+	cv := &ContainersView{
+		BaseView: baseView,
+		executor: handlers.NewOperationExecutor(ui),
+		handlers: handlers.NewActionHandlers(ui),
+	}
+
+	// Set up callbacks
+	cv.ListItems = cv.listContainers
+	cv.FormatRow = cv.formatContainerRow
+	cv.GetRowColor = cv.getStateColor
+	cv.GetItemID = func(c models.Container) string { return c.ID }
+	cv.GetItemName = func(c models.Container) string { return c.Name }
+	cv.HandleKeyPress = cv.handleContainerKey
+	cv.ShowDetails = cv.showContainerDetails
+	cv.GetActions = cv.getContainerActions
+
+	return cv
+}
+
+func (cv *ContainersView) listContainers(ctx context.Context) ([]models.Container, error) {
+	services := cv.ui.GetServices()
+	if services == nil || services.ContainerService == nil {
+		return []models.Container{}, nil
+	}
+	return services.ContainerService.ListContainers(ctx)
+}
+
+func (cv *ContainersView) formatContainerRow(container models.Container) []string {
+	// Store the row color in a way that BaseView can access it
+	// We'll need to modify BaseView to handle colors
+	return []string{
+		container.ID,
+		container.Name,
+		container.Image,
+		container.Status,
+		container.State,
+		container.Ports,
+		builders.FormatTime(container.Created),
+	}
+}
+
+func (cv *ContainersView) getContainerActions() map[rune]string {
+	return map[rune]string{
+		's': "Start",
+		'S': "Stop",
+		'r': "Restart",
+		'd': "Delete",
+		'l': "View Logs",
+		'i': "Inspect",
+	}
+}
+
+func (cv *ContainersView) handleContainerKey(key rune, container models.Container) {
+	services := cv.ui.GetServices()
+	cv.handlers.HandleContainerAction(key, container.ID, container.Name, services.ContainerService, func() { cv.Refresh() })
+}
+
+func (cv *ContainersView) getStateColor(container models.Container) tcell.Color {
+	switch container.State {
+	case "running":
+		return tcell.ColorGreen
+	case "exited":
+		return tcell.ColorRed
+	case "created":
+		return tcell.ColorYellow
+	default:
+		return tcell.ColorWhite
+	}
+}
+
+func (cv *ContainersView) showContainerDetails(container models.Container) {
+	ctx := context.Background()
+	services := cv.ui.GetServices()
+	inspectData, err := services.ContainerService.InspectContainer(ctx, container.ID)
+	cv.ShowItemDetails(container, inspectData, err)
+}

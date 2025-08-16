@@ -1,0 +1,22 @@
+package services
+
+import "github.com/user/d5r/internal/docker"
+
+// ServiceFactory creates and manages all services
+type ServiceFactory struct {
+	ContainerService  ContainerService
+	ImageService      ImageService
+	VolumeService     VolumeService
+	NetworkService    NetworkService
+	DockerInfoService DockerInfoService
+}
+
+func NewServiceFactory(client *docker.Client) *ServiceFactory {
+	return &ServiceFactory{
+		ContainerService:  NewContainerService(client),
+		ImageService:      NewImageService(client),
+		VolumeService:     NewVolumeService(client),
+		NetworkService:    NewNetworkService(client),
+		DockerInfoService: NewDockerInfoService(client),
+	}
+}

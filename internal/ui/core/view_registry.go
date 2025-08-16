@@ -1,0 +1,80 @@
+package core
+
+import "github.com/rivo/tview"
+
+// ViewInfo holds information about a UI view
+type ViewInfo struct {
+	Name     string
+	Title    string
+	Shortcut rune
+	View     tview.Primitive
+	Refresh  func()
+	Actions  string
+}
+
+// ViewRegistry manages all available views and their metadata
+type ViewRegistry struct {
+	views       map[string]*ViewInfo
+	currentView string
+}
+
+// NewViewRegistry creates a new view registry
+func NewViewRegistry() *ViewRegistry {
+	return &ViewRegistry{
+		views: make(map[string]*ViewInfo),
+	}
+}
+
+// Register adds a view to the registry
+func (vr *ViewRegistry) Register(name, title string, shortcut rune, view tview.Primitive, refresh func(), actions string) {
+	vr.views[name] = &ViewInfo{
+		Name:     name,
+		Title:    title,
+		Shortcut: shortcut,
+		View:     view,
+		Refresh:  refresh,
+		Actions:  actions,
+	}
+}
+
+// Get returns view info by name
+func (vr *ViewRegistry) Get(name string) *ViewInfo {
+	return vr.views[name]
+}
+
+// GetCurrent returns the current view info
+func (vr *ViewRegistry) GetCurrent() *ViewInfo {
+	return vr.views[vr.currentView]
+}
+
+// SetCurrent sets the current view
+func (vr *ViewRegistry) SetCurrent(name string) {
+	if _, exists := vr.views[name]; exists {
+		vr.currentView = name
+	}
+}
+
+// GetCurrentName returns the current view name
+func (vr *ViewRegistry) GetCurrentName() string {
+	return vr.currentView
+}
+
+// GetAll returns all views
+func (vr *ViewRegistry) GetAll() map[string]*ViewInfo {
+	return vr.views
+}
+
+// Exists checks if a view exists
+func (vr *ViewRegistry) Exists(name string) bool {
+	_, exists := vr.views[name]
+	return exists
+}
+
+// GetViewNames returns all view names
+func (vr *ViewRegistry) GetViewNames() []string {
+	names := make([]string, 0, len(vr.views))
+	for name := range vr.views {
+		names = append(names, name)
+	}
+	return names
+}

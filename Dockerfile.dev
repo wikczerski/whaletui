@@ -1,0 +1,29 @@
+# Development Dockerfile for D5r
+FROM golang:1.25.0-alpine AS dev
+
+RUN apk add --no-cache \
+    git \
+    make \
+    bash \
+    curl \
+    jq \
+    && rm -rf /var/cache/apk/*
+
+RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && \
+    go install golang.org/x/vuln/cmd/govulncheck@latest
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN mkdir -p bin
+
+ENV GOOS=linux
+ENV GOARCH=amd64
+ENV CGO_ENABLED=0
+ENV GO111MODULE=on
+
+CMD ["sh"]
