@@ -1,0 +1,91 @@
+package app
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/wikczerski/D5r/internal/config"
+	"github.com/wikczerski/D5r/internal/docker"
+	"github.com/wikczerski/D5r/internal/logger"
+	"github.com/wikczerski/D5r/internal/services"
+	"github.com/wikczerski/D5r/internal/ui/core"
+)
+
+type App struct {
+	cfg      *config.Config
+	docker   *docker.Client
+	services *services.ServiceFactory
+	ui       *core.UI
+	ctx      context.Context
+	cancel   context.CancelFunc
+	log      *logger.Logger
+}
+
+func New(cfg *config.Config) (*App, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("config cannot be nil")
+	}
+
+	log := logger.GetLogger()
+	log.SetPrefix("App")
+
+	client, err := docker.New(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("docker client creation failed: %w", err)
+	}
+
+	services := services.NewServiceFactory(client)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	ui, err := core.New(services)
+	if err != nil {
+		cancel()
+		client.Close()
+		return nil, fmt.Errorf("UI creation failed: %w", err)
+	}
+
+	return &App{
+		cfg:      cfg,
+		docker:   client,
+		services: services,
+		ui:       ui,
+		ctx:      ctx,
+		cancel:   cancel,
+		log:      log,
+	}, nil
+}
+
+func (a *App) Run() error {
+	ticker := time.NewTicker(time.Duration(a.cfg.RefreshInterval) * time.Second)
+	defer ticker.Stop()
+
+	go a.refreshLoop(ticker)
+
+	uiDone := make(chan error, 1)
+	go func() { uiDone <- a.ui.Start() }()
+
+	select {
+	case err := <-uiDone:
+		return err
+	case <-a.ui.GetShutdownChan():
+		return nil
+	}
+}
+
+func (a *App) refreshLoop(ticker *time.Ticker) {
+	for {
+		select {
+		case <-a.ctx.Done():
+			return
+		case <-ticker.C:
+			a.ui.Refresh()
+		}
+	}
+}
+
+func (a *App) Shutdown() {
+	a.cancel()
+	a.ui.Stop()
+	a.docker.Close()
+}

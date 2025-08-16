@@ -1,0 +1,86 @@
+package handlers
+
+import (
+	"context"
+	"time"
+
+	"github.com/rivo/tview"
+	"github.com/wikczerski/D5r/internal/ui/interfaces"
+)
+
+// OperationExecutor handles common async operations with error handling and refresh
+type OperationExecutor struct {
+	ui           interfaces.UIInterface
+	refreshDelay time.Duration
+}
+
+// NewOperationExecutor creates a new operation executor
+func NewOperationExecutor(ui interfaces.UIInterface) *OperationExecutor {
+	return &OperationExecutor{
+		ui:           ui,
+		refreshDelay: 500 * time.Millisecond,
+	}
+}
+
+// Execute runs an operation asynchronously with error handling and refresh
+func (oe *OperationExecutor) Execute(operation func() error, onRefresh func()) {
+	go func() {
+		if err := operation(); err != nil {
+			app := oe.ui.GetApp().(*tview.Application)
+			app.QueueUpdateDraw(func() {
+				oe.ui.ShowError(err)
+			})
+			return
+		}
+
+		time.Sleep(oe.refreshDelay)
+		app := oe.ui.GetApp().(*tview.Application)
+		app.QueueUpdateDraw(func() {
+			if onRefresh != nil {
+				onRefresh()
+			}
+		})
+	}()
+}
+
+// ExecuteWithConfirmation shows a confirmation dialog before executing an operation
+func (oe *OperationExecutor) ExecuteWithConfirmation(message string, operation func() error, onRefresh func()) {
+	oe.ui.ShowConfirm(message, func(confirmed bool) {
+		if !confirmed {
+			return
+		}
+		oe.Execute(operation, onRefresh)
+	})
+}
+
+// Common operation patterns
+func (oe *OperationExecutor) DeleteOperation(resourceType, resourceID, resourceName string, deleteFunc func(context.Context, string, bool) error, onRefresh func()) {
+	message := "Delete " + resourceType + " " + resourceName + "?"
+	operation := func() error {
+		return deleteFunc(context.Background(), resourceID, true)
+	}
+	oe.ExecuteWithConfirmation(message, operation, onRefresh)
+}
+
+func (oe *OperationExecutor) StartOperation(resourceType, resourceID string, startFunc func(context.Context, string) error, onRefresh func()) {
+	operation := func() error {
+		return startFunc(context.Background(), resourceID)
+	}
+	oe.Execute(operation, onRefresh)
+}
+
+func (oe *OperationExecutor) StopOperation(resourceType, resourceID string, stopFunc func(context.Context, string, *time.Duration) error, onRefresh func()) {
+	operation := func() error {
+		timeout := 10 * time.Second
+		return stopFunc(context.Background(), resourceID, &timeout)
+	}
+	oe.Execute(operation, onRefresh)
+}
+
+func (oe *OperationExecutor) RestartOperation(resourceType, resourceID string, restartFunc func(context.Context, string, *time.Duration) error, onRefresh func()) {
+	operation := func() error {
+		timeout := 10 * time.Second
+		return restartFunc(context.Background(), resourceID, &timeout)
+	}
+	oe.Execute(operation, onRefresh)
+}

@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  d5r:
+    build: .
+    container_name: d5r-app
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - LOG_LEVEL=DEBUG
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./logs:/app/logs
+    depends_on:
+      - test-container
+    networks:
+      - d5r-network
+
+  # Test container for development
+  test-container:
+    image: nginx:alpine
+    container_name: d5r-test-nginx
+    ports:
+      - "8080:80"
+    networks:
+      - d5r-network
+
+  # Test container for development
+  test-container-2:
+    image: redis:alpine
+    container_name: d5r-test-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - d5r-network
+
+networks:
+  d5r-network:
+    driver: bridge
+
+volumes:
+  logs:

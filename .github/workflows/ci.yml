@@ -1,0 +1,198 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        go-version: [1.25.0]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download Go modules
+        run: go mod download
+
+      - name: Verify Go modules
+        run: |
+          echo "Verifying Go modules..."
+          go mod verify
+          go list -m all | head -10
+          echo "Go modules verified successfully"
+
+      - name: Verify Go environment
+        run: |
+          echo "Go environment details:"
+          go env GOPATH
+          go env GOMODCACHE
+          go env GOPROXY
+          echo "Go environment verification complete"
+
+      - name: Run tests
+        run: go test -v ./...
+
+      - name: Verify Go version compatibility
+        run: |
+          echo "Go version: $(go version)"
+          echo "Go module version: $(go list -m -f '{{.GoVersion}}')"
+          echo "Ensuring golangci-lint compatibility with Go 1.25"
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.25.0'
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download Go modules
+        run: go mod download
+
+      - name: Verify Go modules
+        run: |
+          echo "Verifying Go modules..."
+          go mod verify
+          go list -m all | head -10
+          echo "Go modules verified successfully"
+
+      - name: Install and verify golangci-lint
+        run: |
+          echo "Installing golangci-lint on Linux system..."
+          
+          # Method 1: Try direct installation with retry
+          for i in {1..3}; do
+            echo "Attempt $i: Installing golangci-lint via go install..."
+            if go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; then
+              echo "Successfully installed golangci-lint via go install"
+              break
+            fi
+            echo "Attempt $i failed, waiting $((i*10)) seconds before retry..."
+            sleep $((i*10))
+          done
+          
+          # Method 2: If go install fails, try downloading pre-built binary
+          if ! command -v golangci-lint &> /dev/null; then
+            echo "go install failed, trying pre-built binary..."
+            # Get latest version
+            LATEST_VERSION=$(curl -s https://api.github.com/repos/golangci/golangci-lint/releases/latest | grep '"tag_name":' | cut -d'"' -f4)
+            echo "Latest version: $LATEST_VERSION"
+            
+            # Download and install binary
+            curl -L -o golangci-lint.tar.gz "https://github.com/golangci/golangci-lint/releases/download/${LATEST_VERSION}/golangci-lint-${LATEST_VERSION}-linux-amd64.tar.gz"
+            tar -xzf golangci-lint.tar.gz
+            chmod +x golangci-lint-${LATEST_VERSION}-linux-amd64/golangci-lint
+            sudo mv golangci-lint-${LATEST_VERSION}-linux-amd64/golangci-lint /usr/local/bin/
+            rm -rf golangci-lint.tar.gz golangci-lint-${LATEST_VERSION}-linux-amd64
+          fi
+          
+          # Verify installation
+          if command -v golangci-lint &> /dev/null; then
+            echo "golangci-lint version: $(golangci-lint --version)"
+            echo "Go version used to build golangci-lint: $(golangci-lint --version | grep -o 'go[0-9.]*')"
+          else
+            echo "ERROR: Failed to install golangci-lint after all attempts"
+            exit 1
+          fi
+
+      - name: Run linter
+        run: golangci-lint run --timeout=5m
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.25.0'
+
+      - name: Configure Go environment for better network resilience
+        run: |
+          # Set Go environment variables to improve network connectivity
+          go env -w GOPROXY=https://proxy.golang.org,https://goproxy.cn,direct
+          go env -w GOSUMDB=sum.golang.org
+          go env -w GONOSUMDB=
+          go env -w GOPRIVATE=
+          echo "Go environment configured for better network resilience"
+
+      - name: Install govulncheck with retry and fallback
+        run: |
+          # Try multiple installation methods with retry logic
+          echo "Attempting to install govulncheck..."
+          
+          # Method 1: Try direct installation with retry
+          for i in {1..3}; do
+            echo "Attempt $i: Installing govulncheck via go install..."
+            if timeout 120 go install golang.org/x/vuln/cmd/govulncheck@latest; then
+              echo "Successfully installed govulncheck via go install"
+              break
+            fi
+            echo "Attempt $i failed, waiting $((i*10)) seconds before retry..."
+            sleep $((i*10))
+          done
+          
+          # Method 2: If go install fails, try downloading pre-built binary
+          if ! command -v govulncheck &> /dev/null; then
+            echo "go install failed, trying pre-built binary..."
+            # Get latest version
+            LATEST_VERSION=$(curl -s https://api.github.com/repos/golang/vuln/releases/latest | grep '"tag_name":' | cut -d'"' -f4)
+            echo "Latest version: $LATEST_VERSION"
+            
+            # Download and install binary
+            curl -L -o govulncheck.tar.gz "https://github.com/golang/vuln/releases/download/${LATEST_VERSION}/govulncheck_linux_amd64.tar.gz"
+            tar -xzf govulncheck.tar.gz
+            chmod +x govulncheck
+            sudo mv govulncheck /usr/local/bin/
+            rm govulncheck.tar.gz
+          fi
+          
+          # Verify installation
+          if command -v govulncheck &> /dev/null; then
+            echo "govulncheck version: $(govulncheck -version)"
+          else
+            echo "ERROR: Failed to install govulncheck after all attempts"
+            exit 1
+          fi
+
+      - name: Run security scan
+        run: |
+          echo "Running govulncheck security scan..."
+          govulncheck ./...
