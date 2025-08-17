@@ -22,11 +22,11 @@ func (m *MockVolumeService) ListVolumes(_ context.Context) ([]models.Volume, err
 	return m.volumes, m.listErr
 }
 
-func (m *MockVolumeService) InspectVolume(_ context.Context, name string) (map[string]any, error) {
+func (m *MockVolumeService) InspectVolume(_ context.Context, _ string) (map[string]any, error) {
 	return m.inspectData, m.inspectErr
 }
 
-func (m *MockVolumeService) RemoveVolume(ctx context.Context, name string, force bool) error {
+func (m *MockVolumeService) RemoveVolume(_ context.Context, name string, force bool) error {
 	return nil
 }
 

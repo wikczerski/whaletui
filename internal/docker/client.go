@@ -247,13 +247,7 @@ func (c *Client) GetContainerLogs(ctx context.Context, id string) (string, error
 	if err != nil {
 		return "", fmt.Errorf("container logs failed %s: %w", id, err)
 	}
-	defer func() {
-		if err := logs.Close(); err != nil {
-			// This is a cleanup operation during container logs retrieval
-			// The error is not critical for the main operation
-			// We could log this if we had access to a logger in this context
-		}
-	}()
+	defer logs.Close()
 
 	var logLines []string
 	buffer := make([]byte, 1024)
@@ -375,13 +369,7 @@ func (c *Client) GetContainerStats(ctx context.Context, id string) (map[string]a
 	if err != nil {
 		return nil, fmt.Errorf("failed to get container stats: %w", err)
 	}
-	defer func() {
-		if err := stats.Body.Close(); err != nil {
-			// This is a cleanup operation during container stats retrieval
-			// The error is not critical for the main operation
-			// We could log this if we had access to a logger in this context
-		}
-	}()
+	defer stats.Body.Close()
 
 	var statsJSON map[string]any
 	if err := json.NewDecoder(stats.Body).Decode(&statsJSON); err != nil {

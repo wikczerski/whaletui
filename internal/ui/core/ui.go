@@ -317,7 +317,7 @@ func (ui *UI) ShowConfirm(message string, onConfirm func(bool)) {
 }
 
 // UpdateStatusBar updates the status bar with the given message
-func (ui *UI) UpdateStatusBar(message string) {
+func (ui *UI) UpdateStatusBar(_ string) {
 	ui.updateStatusBar()
 }
 

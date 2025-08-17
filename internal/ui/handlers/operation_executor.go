@@ -63,7 +63,7 @@ func (oe *OperationExecutor) DeleteOperation(resourceType, resourceID, resourceN
 }
 
 // StartOperation handles resource startup
-func (oe *OperationExecutor) StartOperation(_ string, resourceID string, startFunc func(context.Context, string) error, onRefresh func()) {
+func (oe *OperationExecutor) StartOperation(_, resourceID string, startFunc func(context.Context, string) error, onRefresh func()) {
 	operation := func() error {
 		return startFunc(context.Background(), resourceID)
 	}
@@ -71,7 +71,7 @@ func (oe *OperationExecutor) StartOperation(_ string, resourceID string, startFu
 }
 
 // StopOperation handles resource shutdown
-func (oe *OperationExecutor) StopOperation(_ string, resourceID string, stopFunc func(context.Context, string, *time.Duration) error, onRefresh func()) {
+func (oe *OperationExecutor) StopOperation(_, resourceID string, stopFunc func(context.Context, string, *time.Duration) error, onRefresh func()) {
 	operation := func() error {
 		timeout := 10 * time.Second
 		return stopFunc(context.Background(), resourceID, &timeout)
@@ -80,7 +80,7 @@ func (oe *OperationExecutor) StopOperation(_ string, resourceID string, stopFunc
 }
 
 // RestartOperation handles resource restart
-func (oe *OperationExecutor) RestartOperation(_ string, resourceID string, restartFunc func(context.Context, string, *time.Duration) error, onRefresh func()) {
+func (oe *OperationExecutor) RestartOperation(_, resourceID string, restartFunc func(context.Context, string, *time.Duration) error, onRefresh func()) {
 	operation := func() error {
 		timeout := 10 * time.Second
 		return restartFunc(context.Background(), resourceID, &timeout)

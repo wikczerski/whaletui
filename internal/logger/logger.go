@@ -101,7 +101,6 @@ func (l *Logger) log(level LogLevel, format string, args ...any) {
 	}
 
 	l.mu.Lock()
-	defer l.mu.Unlock()
 
 	prefix := ""
 	if l.logPrefix != "" {
@@ -125,6 +124,8 @@ func (l *Logger) log(level LogLevel, format string, args ...any) {
 	if level == FATAL {
 		l.mu.Unlock() // Unlock before exit
 		os.Exit(1)
+	} else {
+		l.mu.Unlock()
 	}
 }
 

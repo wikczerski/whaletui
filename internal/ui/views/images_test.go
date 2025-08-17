@@ -21,7 +21,7 @@ func (m *MockImageService) ListImages(_ context.Context) ([]models.Image, error)
 	return m.images, m.listErr
 }
 
-func (m *MockImageService) InspectImage(ctx context.Context, id string) (map[string]any, error) {
+func (m *MockImageService) InspectImage(_ context.Context, id string) (map[string]any, error) {
 	return nil, m.inspectErr
 }
 

@@ -18,7 +18,7 @@ type MockNetworkService struct {
 	listErr     error
 }
 
-func (m *MockNetworkService) ListNetworks(ctx context.Context) ([]models.Network, error) {
+func (m *MockNetworkService) ListNetworks(_ context.Context) ([]models.Network, error) {
 	return m.networks, m.listErr
 }
 

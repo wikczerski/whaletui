@@ -168,7 +168,7 @@ func setLogLevel(log *logger.Logger, level string) {
 }
 
 // runThemeCommand handles theme-related commands
-func runThemeCommand(cmd *cobra.Command, args []string) error {
+func runThemeCommand(_ *cobra.Command, _ []string) error {
 	log := logger.GetLogger()
 	log.SetPrefix("Theme")
 
