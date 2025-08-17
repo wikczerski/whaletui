@@ -25,7 +25,7 @@ func (m *MockImageService) InspectImage(_ context.Context, _ string) (map[string
 	return nil, m.inspectErr
 }
 
-func (m *MockImageService) RemoveImage(_ context.Context, id string, force bool) error {
+func (m *MockImageService) RemoveImage(_ context.Context, _ string, _ bool) error {
 	return nil
 }
 

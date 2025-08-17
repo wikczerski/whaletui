@@ -22,11 +22,11 @@ func (m *MockNetworkService) ListNetworks(_ context.Context) ([]models.Network, 
 	return m.networks, m.listErr
 }
 
-func (m *MockNetworkService) InspectNetwork(_ context.Context, id string) (map[string]any, error) {
+func (m *MockNetworkService) InspectNetwork(_ context.Context, _ string) (map[string]any, error) {
 	return m.inspectData, m.inspectErr
 }
 
-func (m *MockNetworkService) RemoveNetwork(_ context.Context, id string) error {
+func (m *MockNetworkService) RemoveNetwork(_ context.Context, _ string) error {
 	return nil
 }
 
