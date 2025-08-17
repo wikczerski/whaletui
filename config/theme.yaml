@@ -1,0 +1,34 @@
+colors:
+    header: yellow
+    border: white
+    text: white
+    background: default
+    success: green
+    warning: yellow
+    error: red
+    info: blue
+shell:
+    border: yellow
+    title: yellow
+    text: white
+    background: black
+    cmd:
+        label: green
+        border: green
+        text: white
+        background: black
+        placeholder: gray
+containerExec:
+    label: yellow
+    border: yellow
+    text: white
+    background: darkgray
+    placeholder: gray
+    title: yellow
+commandMode:
+    label: yellow
+    border: yellow
+    text: white
+    background: darkgray
+    placeholder: gray
+    title: yellow

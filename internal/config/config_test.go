@@ -32,11 +32,19 @@ func TestLoad_NewConfig(t *testing.T) {
 	originalHome := os.Getenv("HOME")
 	originalUserProfile := os.Getenv("USERPROFILE")
 
-	os.Setenv("HOME", tempHome)
-	os.Setenv("USERPROFILE", tempHome)
+	if err := os.Setenv("HOME", tempHome); err != nil {
+		t.Fatalf("Failed to set HOME env var: %v", err)
+	}
+	if err := os.Setenv("USERPROFILE", tempHome); err != nil {
+		t.Fatalf("Failed to set USERPROFILE env var: %v", err)
+	}
 	defer func() {
-		os.Setenv("HOME", originalHome)
-		os.Setenv("USERPROFILE", originalUserProfile)
+		if err := os.Setenv("HOME", originalHome); err != nil {
+			t.Errorf("Failed to restore HOME env var: %v", err)
+		}
+		if err := os.Setenv("USERPROFILE", originalUserProfile); err != nil {
+			t.Errorf("Failed to restore USERPROFILE env var: %v", err)
+		}
 	}()
 
 	cfg, err := Load()
@@ -55,11 +63,19 @@ func TestLoad_ExistingConfig(t *testing.T) {
 	originalHome := os.Getenv("HOME")
 	originalUserProfile := os.Getenv("USERPROFILE")
 
-	os.Setenv("HOME", tempHome)
-	os.Setenv("USERPROFILE", tempHome)
+	if err := os.Setenv("HOME", tempHome); err != nil {
+		t.Fatalf("Failed to set HOME env var: %v", err)
+	}
+	if err := os.Setenv("USERPROFILE", tempHome); err != nil {
+		t.Fatalf("Failed to set USERPROFILE env var: %v", err)
+	}
 	defer func() {
-		os.Setenv("HOME", originalHome)
-		os.Setenv("USERPROFILE", originalUserProfile)
+		if err := os.Setenv("HOME", originalHome); err != nil {
+			t.Errorf("Failed to restore HOME env var: %v", err)
+		}
+		if err := os.Setenv("USERPROFILE", originalUserProfile); err != nil {
+			t.Errorf("Failed to restore USERPROFILE env var: %v", err)
+		}
 	}()
 
 	configDir := filepath.Join(tempHome, ".dockerk9s")
@@ -92,11 +108,19 @@ func TestLoad_InvalidConfig(t *testing.T) {
 	originalHome := os.Getenv("HOME")
 	originalUserProfile := os.Getenv("USERPROFILE")
 
-	os.Setenv("HOME", tempHome)
-	os.Setenv("USERPROFILE", tempHome)
+	if err := os.Setenv("HOME", tempHome); err != nil {
+		t.Fatalf("Failed to set HOME env var: %v", err)
+	}
+	if err := os.Setenv("USERPROFILE", tempHome); err != nil {
+		t.Fatalf("Failed to set USERPROFILE env var: %v", err)
+	}
 	defer func() {
-		os.Setenv("HOME", originalHome)
-		os.Setenv("USERPROFILE", originalUserProfile)
+		if err := os.Setenv("HOME", originalHome); err != nil {
+			t.Errorf("Failed to restore HOME env var: %v", err)
+		}
+		if err := os.Setenv("USERPROFILE", originalUserProfile); err != nil {
+			t.Errorf("Failed to restore USERPROFILE env var: %v", err)
+		}
 	}()
 
 	configDir := filepath.Join(tempHome, ".dockerk9s")

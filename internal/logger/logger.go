@@ -99,10 +99,16 @@ func (l *Logger) log(level LogLevel, format string, args ...any) {
 	message = strings.TrimSuffix(message, "\n")
 
 	if level == INFO {
-		fmt.Fprintf(l.output, "%s%s\n", prefix, message)
+		if _, err := fmt.Fprintf(l.output, "%s%s\n", prefix, message); err != nil {
+			// Log to stderr if we can't write to the configured output
+			fmt.Fprintf(os.Stderr, "Failed to write log message: %v\n", err)
+		}
 	} else {
 		timestamp := time.Now().Format("15:04:05")
-		fmt.Fprintf(l.output, "%s [%s] %s%s\n", timestamp, levelNames[level], prefix, message)
+		if _, err := fmt.Fprintf(l.output, "%s [%s] %s%s\n", timestamp, levelNames[level], prefix, message); err != nil {
+			// Log to stderr if we can't write to the configured output
+			fmt.Fprintf(os.Stderr, "Failed to write log message: %v\n", err)
+		}
 	}
 
 	if level == FATAL {

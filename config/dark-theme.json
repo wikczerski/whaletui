@@ -1,0 +1,41 @@
+{
+  "colors": {
+    "header": "#00FF00",
+    "border": "#444444",
+    "text": "#E0E0E0",
+    "background": "black",
+    "success": "#00FF00",
+    "warning": "#FFFF00",
+    "error": "#FF0000",
+    "info": "#0080FF"
+  },
+  "shell": {
+    "border": "#444444",
+    "title": "#00FF00",
+    "text": "#E0E0E0",
+    "background": "black",
+    "cmd": {
+      "label": "#00FF00",
+      "border": "#444444",
+      "text": "#E0E0E0",
+      "background": "black",
+      "placeholder": "#666666"
+    }
+  },
+  "containerExec": {
+    "label": "#00FF00",
+    "border": "#444444",
+    "text": "#E0E0E0",
+    "background": "#222222",
+    "placeholder": "#666666",
+    "title": "#00FF00"
+  },
+  "commandMode": {
+    "label": "#00FF00",
+    "border": "#444444",
+    "text": "#E0E0E0",
+    "background": "#222222",
+    "placeholder": "#666666",
+    "title": "#00FF00"
+  }
+}

@@ -48,7 +48,7 @@ func TestUI_ViewManagement(t *testing.T) {
 }
 
 func TestUI_ComponentInitialization(t *testing.T) {
-	ui, err := New(nil)
+	ui, err := New(nil, "")
 	require.NoError(t, err)
 	require.NotNil(t, ui)
 
@@ -65,7 +65,7 @@ func TestUI_ComponentInitialization(t *testing.T) {
 }
 
 func TestUI_ShutdownChannel(t *testing.T) {
-	ui, err := New(nil)
+	ui, err := New(nil, "")
 	require.NoError(t, err)
 	require.NotNil(t, ui)
 
@@ -81,7 +81,7 @@ func TestUI_ShutdownChannel(t *testing.T) {
 }
 
 func TestUI_LoggerInitialization(t *testing.T) {
-	ui, err := New(nil)
+	ui, err := New(nil, "")
 	require.NoError(t, err)
 	require.NotNil(t, ui)
 
@@ -89,7 +89,7 @@ func TestUI_LoggerInitialization(t *testing.T) {
 }
 
 func TestUI_CommandInputInitialization(t *testing.T) {
-	ui, err := New(nil)
+	ui, err := New(nil, "")
 	require.NoError(t, err)
 	require.NotNil(t, ui)
 
@@ -100,7 +100,7 @@ func TestUI_CommandInputInitialization(t *testing.T) {
 }
 
 func TestUI_PagesSetup(t *testing.T) {
-	ui, err := New(nil)
+	ui, err := New(nil, "")
 	require.NoError(t, err)
 	require.NotNil(t, ui)
 
@@ -109,7 +109,7 @@ func TestUI_PagesSetup(t *testing.T) {
 }
 
 func TestUI_MainLayout(t *testing.T) {
-	ui, err := New(nil)
+	ui, err := New(nil, "")
 	require.NoError(t, err)
 	require.NotNil(t, ui)
 
@@ -117,7 +117,7 @@ func TestUI_MainLayout(t *testing.T) {
 }
 
 func TestUI_ViewContainer(t *testing.T) {
-	ui, err := New(nil)
+	ui, err := New(nil, "")
 	require.NoError(t, err)
 	require.NotNil(t, ui)
 
@@ -128,7 +128,7 @@ func TestUI_ViewContainer(t *testing.T) {
 }
 
 func TestUI_StatusBar(t *testing.T) {
-	ui, err := New(nil)
+	ui, err := New(nil, "")
 	require.NoError(t, err)
 	require.NotNil(t, ui)
 
@@ -139,7 +139,7 @@ func TestUI_StatusBar(t *testing.T) {
 }
 
 func TestUI_CurrentViewTracking(t *testing.T) {
-	ui, err := New(nil)
+	ui, err := New(nil, "")
 	require.NoError(t, err)
 	require.NotNil(t, ui)
 
@@ -158,7 +158,7 @@ func TestUI_CurrentViewTracking(t *testing.T) {
 }
 
 func TestUI_ViewReferences(t *testing.T) {
-	ui, err := New(nil)
+	ui, err := New(nil, "")
 	require.NoError(t, err)
 	require.NotNil(t, ui)
 
@@ -185,7 +185,7 @@ func TestUI_ServiceFactoryIntegration(t *testing.T) {
 }
 
 func TestUI_CommandModeState(t *testing.T) {
-	ui, err := New(nil)
+	ui, err := New(nil, "")
 	require.NoError(t, err)
 	require.NotNil(t, ui)
 
@@ -195,7 +195,7 @@ func TestUI_CommandModeState(t *testing.T) {
 }
 
 func TestUI_DetailsModeState(t *testing.T) {
-	ui, err := New(nil)
+	ui, err := New(nil, "")
 	require.NoError(t, err)
 	require.NotNil(t, ui)
 
@@ -209,7 +209,7 @@ func TestUI_DetailsModeState(t *testing.T) {
 }
 
 func TestUI_LogsModeState(t *testing.T) {
-	ui, err := New(nil)
+	ui, err := New(nil, "")
 	require.NoError(t, err)
 	require.NotNil(t, ui)
 
@@ -223,7 +223,7 @@ func TestUI_LogsModeState(t *testing.T) {
 }
 
 func TestUI_CurrentActions(t *testing.T) {
-	ui, err := New(nil)
+	ui, err := New(nil, "")
 	require.NoError(t, err)
 	require.NotNil(t, ui)
 

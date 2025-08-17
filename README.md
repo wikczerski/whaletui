@@ -19,6 +19,7 @@ A modern, terminal-based Docker management tool inspired by k9s for kubernetes, 
 - **Responsive Design**: Automatically adapts to terminal dimensions
 - **Dynamic Legend**: Context-sensitive shortcuts and actions
 - **Real-time Updates**: Live updates of Docker resources
+- **Theme Support**: Customizable color schemes with YAML and JSON format support
 
 ### 🔍 Advanced Functionality
 - **Container Logs**: View real-time container logs with full scrolling support
@@ -113,7 +114,7 @@ D5r supports connecting to remote Docker hosts via command line arguments:
 - `--host`: Remote Docker host (e.g., `tcp://192.168.1.100:2375`, `http://docker.example.com:2375`) - **⚠️ Not tested yet**
 - `--refresh`: Refresh interval in seconds (default: 5)
 - `--log-level`: Log level (DEBUG, INFO, WARN, ERROR, default: INFO)
-- `--theme`: UI theme (default: default)
+- `--theme`: UI theme (default: default) - supports both YAML and JSON formats
 
 **Available commands:**
 - `d5r` - Start the application (default command)
@@ -124,6 +125,58 @@ D5r supports connecting to remote Docker hosts via command line arguments:
 **Note:** Remote Docker hosts must have the Docker daemon configured to accept remote connections. For security, consider using TLS certificates for production environments.
 
 **⚠️ Warning:** Remote Docker host functionality (`--host` flag) has not been tested yet. It might not work at all also use at your own risk and only in development/testing environments.
+
+### 🎨 Theme Configuration
+
+D5r supports multiple theme formats for customizing the UI appearance:
+
+#### Supported Formats
+- **YAML** (`.yaml`, `.yml`) - Human-readable format with comments support
+- **JSON** (`.json`) - Standard format for programmatic configuration
+
+#### Theme Files Location
+Themes are located in the `config/` directory:
+- `theme.yaml` - Default theme
+- `dark-theme.yaml` - Dark theme variant
+- `theme.json` - JSON format theme
+- `custom-theme.yaml` - Custom theme template
+
+#### Theme Structure
+Both YAML and JSON formats support the same color configuration:
+
+```yaml
+colors:
+  header: "cyan"        # Header color
+  border: "magenta"     # Border color
+  text: "white"         # Text color
+  background: "default" # Background color
+  success: "green"      # Success message color
+  warning: "yellow"     # Warning message color
+  error: "red"          # Error message color
+  info: "blue"          # Info message color
+```
+
+```json
+{
+  "colors": {
+    "header": "cyan",
+    "border": "magenta",
+    "text": "white",
+    "background": "default",
+    "success": "green",
+    "warning": "yellow",
+    "error": "red",
+    "info": "blue"
+  }
+}
+```
+
+#### Using Custom Themes
+To use a custom theme, specify the theme file path:
+```bash
+d5r --theme config/custom-theme.yaml
+d5r --theme config/theme.json
+```
 
 ## 📖 Usage Guide
 
@@ -327,7 +380,6 @@ go mod verify
 - **Multi-Container Operations**: Bulk start/stop/restart
 - **Custom Filters**: Advanced filtering and search
 - **Export Functionality**: Save logs, configs, and data
-- **Theme Support**: Customizable color schemes
 
 ### Future Ideas
 - **Docker Compose Support**: Manage multi-container applications

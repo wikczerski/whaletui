@@ -231,40 +231,40 @@ ifeq ($(OS),Windows_NT)
 	@if not exist "$(BUILD_DIR)\packages" mkdir "$(BUILD_DIR)\packages"
 	@echo "Windows detected - creating Windows packages only"
 	@echo "Creating Windows amd64 package..."
-	@cd $(BUILD_DIR) && powershell -Command "& {Compress-Archive -Path '$(BINARY_NAME)-windows-amd64.exe' -DestinationPath 'packages\$(BINARY_NAME)-windows-amd64$(PACKAGE_EXT)' -Force}" || (echo "Failed to create Windows amd64 package" && exit /b 1)
+	@cd $(BUILD_DIR) && powershell -Command "& {Compress-Archive -Path '$(BINARY_NAME)-windows-amd64.exe' -DestinationPath 'packages\$(BINARY_NAME)-v$(VERSION)-windows-amd64$(PACKAGE_EXT)' -Force}" || (echo "Failed to create Windows amd64 package" && exit /b 1)
 	@echo "Windows packages created successfully!"
 else
 	@mkdir -p $(BUILD_DIR)/packages
 	@echo "Linux/Unix detected - creating packages for all platforms"
 	@echo "Creating Linux packages..."
 	@echo "Creating Linux amd64 package..."
-	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-linux-amd64$(PACKAGE_EXT) $(BINARY_NAME)-linux-amd64 || (echo "Failed to create Linux amd64 package"; exit 1)
+	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-v$(VERSION)-linux-amd64$(PACKAGE_EXT) $(BINARY_NAME)-linux-amd64 || (echo "Failed to create Linux amd64 package"; exit 1)
 	@echo "Creating Linux arm64 package..."
-	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-linux-arm64$(PACKAGE_EXT) $(BINARY_NAME)-linux-arm64 || (echo "Failed to create Linux arm64 package"; exit 1)
+	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-v$(VERSION)-linux-arm64$(PACKAGE_EXT) $(BINARY_NAME)-linux-arm64 || (echo "Failed to create Linux arm64 package"; exit 1)
 	@echo "Creating Linux armv7 package..."
-	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-linux-armv7$(PACKAGE_EXT) $(BINARY_NAME)-linux-armv7 || (echo "Failed to create Linux armv7 package"; exit 1)
+	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-v$(VERSION)-linux-armv7$(PACKAGE_EXT) $(BINARY_NAME)-linux-armv7 || (echo "Failed to create Linux armv7 package"; exit 1)
 	@echo "Creating Linux ppc64le package..."
-	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-linux-ppc64le$(PACKAGE_EXT) $(BINARY_NAME)-linux-ppc64le || (echo "Failed to create Linux ppc64le package"; exit 1)
+	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-v$(VERSION)-linux-ppc64le$(PACKAGE_EXT) $(BINARY_NAME)-linux-ppc64le || (echo "Failed to create Linux ppc64le package"; exit 1)
 	@echo "Creating Linux s390x package..."
-	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-linux-s390x$(PACKAGE_EXT) $(BINARY_NAME)-linux-s390x || (echo "Failed to create Linux s390x package"; exit 1)
+	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-v$(VERSION)-linux-s390x$(PACKAGE_EXT) $(BINARY_NAME)-linux-s390x || (echo "Failed to create Linux s390x package"; exit 1)
 	
 	@echo "Creating Darwin packages..."
 	@echo "Creating Darwin amd64 package..."
-	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-darwin-amd64$(PACKAGE_EXT) $(BINARY_NAME)-darwin-amd64 || (echo "Failed to create Darwin amd64 package"; exit 1)
+	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-v$(VERSION)-darwin-amd64$(PACKAGE_EXT) $(BINARY_NAME)-darwin-amd64 || (echo "Failed to create Darwin amd64 package"; exit 1)
 	@echo "Creating Darwin arm64 package..."
-	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-darwin-arm64$(PACKAGE_EXT) $(BINARY_NAME)-darwin-arm64 || (echo "Failed to create Darwin arm64 package"; exit 1)
+	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-v$(VERSION)-darwin-arm64$(PACKAGE_EXT) $(BINARY_NAME)-darwin-arm64 || (echo "Failed to create Darwin arm64 package"; exit 1)
 	
 	@echo "Creating FreeBSD packages..."
 	@echo "Creating FreeBSD amd64 package..."
-	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-freebsd-amd64$(PACKAGE_EXT) $(BINARY_NAME)-freebsd-amd64 || (echo "Failed to create FreeBSD amd64 package"; exit 1)
+	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-v$(VERSION)-freebsd-amd64$(PACKAGE_EXT) $(BINARY_NAME)-freebsd-amd64 || (echo "Failed to create FreeBSD amd64 package"; exit 1)
 	@echo "Creating FreeBSD arm64 package..."
-	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-freebsd-arm64$(PACKAGE_EXT) $(BINARY_NAME)-freebsd-arm64 || (echo "Failed to create FreeBSD arm64 package"; exit 1)
+	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-v$(VERSION)-freebsd-arm64$(PACKAGE_EXT) $(BINARY_NAME)-freebsd-arm64 || (echo "Failed to create FreeBSD arm64 package"; exit 1)
 	
 	@echo "Creating Windows packages..."
 	@echo "Creating Windows amd64 package..."
-	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-windows-amd64$(PACKAGE_EXT) $(BINARY_NAME)-windows-amd64.exe || (echo "Failed to create Windows amd64 package"; exit 1)
+	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-v$(VERSION)-windows-amd64$(PACKAGE_EXT) $(BINARY_NAME)-windows-amd64.exe || (echo "Failed to create Windows amd64 package"; exit 1)
 	@echo "Creating Windows arm64 package..."
-	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-windows-arm64$(PACKAGE_EXT) $(BINARY_NAME)-windows-arm64.exe || (echo "Failed to create Windows arm64 package"; exit 1)
+	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-v$(VERSION)-windows-arm64$(PACKAGE_EXT) $(BINARY_NAME)-windows-arm64.exe || (echo "Failed to create Windows arm64 package"; exit 1)
 	
 	@echo "Packages created in $(BUILD_DIR)/packages/"
 	@echo "Verifying all packages:"

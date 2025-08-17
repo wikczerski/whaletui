@@ -1,19 +1,20 @@
 package core
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"github.com/wikczerski/D5r/internal/config"
 	"github.com/wikczerski/D5r/internal/logger"
 	"github.com/wikczerski/D5r/internal/services"
 	"github.com/wikczerski/D5r/internal/ui/builders"
 	"github.com/wikczerski/D5r/internal/ui/constants"
 	"github.com/wikczerski/D5r/internal/ui/managers"
 	"github.com/wikczerski/D5r/internal/ui/views"
+	"github.com/wikczerski/D5r/internal/ui/views/shell"
 )
 
 // UI represents the main UI
@@ -30,6 +31,9 @@ type UI struct {
 	inLogsMode     bool            // Track if we're viewing container logs
 	currentActions map[rune]string // Track current available actions
 
+	// Theme management
+	themeManager *config.ThemeManager
+
 	// Abstracted managers
 	viewRegistry   *ViewRegistry
 	headerManager  *managers.HeaderManager
@@ -41,6 +45,8 @@ type UI struct {
 	imagesView     *views.ImagesView
 	volumesView    *views.VolumesView
 	networksView   *views.NetworksView
+	logsView       *views.LogsView
+	shellView      *shell.ShellView
 
 	// Component builders
 	componentBuilder *builders.ComponentBuilder
@@ -49,7 +55,7 @@ type UI struct {
 }
 
 // New creates a new UI
-func New(serviceFactory *services.ServiceFactory) (*UI, error) {
+func New(serviceFactory *services.ServiceFactory, themePath string) (*UI, error) {
 	app := tview.NewApplication()
 
 	ui := &UI{
@@ -63,7 +69,10 @@ func New(serviceFactory *services.ServiceFactory) (*UI, error) {
 
 	ui.log.SetPrefix("UI")
 
-	ui.componentBuilder = builders.NewComponentBuilder()
+	// Initialize theme manager
+	ui.themeManager = config.NewThemeManager(themePath)
+
+	ui.componentBuilder = builders.NewComponentBuilderWithTheme(ui.themeManager)
 	ui.viewBuilder = builders.NewViewBuilder()
 	ui.tableBuilder = builders.NewTableBuilder()
 
@@ -131,8 +140,8 @@ func (ui *UI) createAndRegisterViews() {
 func (ui *UI) createViewContainer() {
 	ui.viewContainer = ui.viewBuilder.CreateView()
 	ui.viewContainer.SetBorder(true)
-	ui.viewContainer.SetTitleColor(constants.HeaderColor)
-	ui.viewContainer.SetBorderColor(constants.BorderColor)
+	ui.viewContainer.SetTitleColor(ui.themeManager.GetHeaderColor())
+	ui.viewContainer.SetBorderColor(ui.themeManager.GetBorderColor())
 
 	// Set initial view
 	if currentView := ui.viewRegistry.GetCurrent(); currentView != nil {
@@ -143,8 +152,8 @@ func (ui *UI) createViewContainer() {
 
 // createStatusBar creates the status bar
 func (ui *UI) createStatusBar() {
-	ui.statusBar = ui.componentBuilder.CreateTextView("", tview.AlignLeft, constants.TextColor)
-	ui.statusBar.SetBackgroundColor(constants.BackgroundColor)
+	ui.statusBar = ui.componentBuilder.CreateTextView("", tview.AlignLeft, ui.themeManager.GetTextColor())
+	ui.statusBar.SetBackgroundColor(ui.themeManager.GetBackgroundColor())
 	ui.updateStatusBar()
 }
 
@@ -161,13 +170,61 @@ func (ui *UI) setupKeyBindings() {
 			return event
 		}
 
+		// Check if exec command input is active (any input field with exec label)
+		if focused := ui.app.GetFocus(); focused != nil {
+			if inputField, ok := focused.(*tview.InputField); ok {
+				if inputField.GetLabel() == " Exec Command: " {
+					// In exec command mode, only allow ESC to exit
+					if event.Key() == tcell.KeyEscape {
+						// Remove the exec input and return focus to view
+						if mainFlex := ui.mainFlex; mainFlex != nil {
+							mainFlex.RemoveItem(inputField)
+							if viewContainer := ui.viewContainer; viewContainer != nil {
+								ui.app.SetFocus(viewContainer)
+							}
+						}
+						return nil
+					}
+					return event
+				}
+			}
+		}
+
+		// Check if shell view is active
+		if ui.shellView != nil && ui.app.GetFocus() == ui.shellView.GetView() {
+			// In shell mode, only allow ESC to exit (handled by shell view)
+			if event.Key() == tcell.KeyEscape {
+				return event // Let shell view handle ESC
+			}
+			// Block other global key bindings in shell mode
+			return event
+		}
+
+		// Check if shell input field is focused (more specific check)
+		if ui.shellView != nil {
+			if focused := ui.app.GetFocus(); focused != nil {
+				if inputField, ok := focused.(*tview.InputField); ok {
+					// Check if this input field belongs to the shell view
+					if inputField == ui.shellView.GetInputField() {
+						// In shell input mode, block global key bindings
+						return event
+					}
+				}
+			}
+		}
+
 		// Normal mode key bindings
 		switch event.Key() {
 		case tcell.KeyRune:
 			switch event.Rune() {
 			case 'q', 'Q':
 				ui.log.Info("Quitting application...")
-				os.Exit(0)
+				// Send shutdown signal instead of direct exit to ensure cleanup
+				select {
+				case ui.shutdownChan <- struct{}{}:
+				default:
+				}
+				return nil
 			case ':':
 				ui.commandHandler.Enter()
 				return nil
@@ -192,11 +249,32 @@ func (ui *UI) Start() error {
 
 // Stop stops the UI
 func (ui *UI) Stop() {
+	ui.cleanup()
 	ui.app.Stop()
 }
 
+// cleanup performs terminal cleanup operations
+func (ui *UI) cleanup() {
+	// These are terminal control sequences that rarely fail, but we'll handle them gracefully
+	if _, err := fmt.Fprint(os.Stdout, "\033[2J"); err != nil {
+		ui.log.Warn("Failed to clear screen: %v", err)
+	}
+	if _, err := fmt.Fprint(os.Stdout, "\033[0m"); err != nil {
+		ui.log.Warn("Failed to reset colors: %v", err)
+	}
+	if _, err := fmt.Fprint(os.Stdout, "\033[?25h"); err != nil {
+		ui.log.Warn("Failed to show cursor: %v", err)
+	}
+	if _, err := fmt.Fprint(os.Stdout, "\033[H"); err != nil {
+		ui.log.Warn("Failed to move cursor: %v", err)
+	}
+	if err := os.Stdout.Sync(); err != nil {
+		ui.log.Warn("Failed to sync stdout: %v", err)
+	}
+}
+
 // GetShutdownChan returns the shutdown channel
-func (ui *UI) GetShutdownChan() <-chan struct{} {
+func (ui *UI) GetShutdownChan() chan struct{} {
 	return ui.shutdownChan
 }
 
@@ -213,6 +291,11 @@ func (ui *UI) GetApp() any {
 // ShowError displays an error message
 func (ui *UI) ShowError(err error) {
 	ui.showError(err)
+}
+
+// ShowSuccess displays a success message in the status bar
+func (ui *UI) ShowSuccess(message string) {
+	ui.UpdateStatusBar("✓ " + message)
 }
 
 // ShowDetails displays a details view
@@ -254,6 +337,14 @@ func (ui *UI) GetCurrentActions() map[rune]string {
 	return ui.currentActions
 }
 
+// GetCurrentViewActions returns the actions string from the current view
+func (ui *UI) GetCurrentViewActions() string {
+	if ui.viewRegistry != nil {
+		return ui.viewRegistry.GetCurrentActionsString()
+	}
+	return ""
+}
+
 // GetViewRegistry returns the view registry
 func (ui *UI) GetViewRegistry() any {
 	return ui.viewRegistry
@@ -289,6 +380,30 @@ func (ui *UI) ShowLogs(containerID, containerName string) {
 	ui.showLogs(containerID, containerName)
 }
 
+// ShowShell shows shell view for a container
+func (ui *UI) ShowShell(containerID, containerName string) {
+	// Get the container service to execute commands
+	containerService := ui.services.ContainerService
+
+	ui.shellView = shell.NewShellView(ui, containerID, containerName, func() {
+		// Exit callback: return to containers view
+		ui.switchView("containers")
+	}, containerService.ExecContainer)
+
+	ui.viewContainer.Clear()
+	ui.viewContainer.SetTitle(fmt.Sprintf(" Shell - %s (%s) ", containerName, containerID[:12]))
+	ui.viewContainer.AddItem(ui.shellView.GetView(), 0, 1, true)
+	ui.app.SetFocus(ui.shellView.GetView())
+}
+
+// GetLogsView returns the logs view for a container
+func (ui *UI) GetLogsView(containerID, containerName string) *views.LogsView {
+	if ui.logsView == nil || ui.logsView.ContainerID != containerID {
+		ui.logsView = views.NewLogsView(ui, containerID, containerName)
+	}
+	return ui.logsView
+}
+
 // GetViewContainer returns the view container
 func (ui *UI) GetViewContainer() any {
 	return ui.viewContainer
@@ -297,6 +412,11 @@ func (ui *UI) GetViewContainer() any {
 // GetContainerService returns the container service
 func (ui *UI) GetContainerService() any {
 	return ui.services.ContainerService
+}
+
+// GetThemeManager returns the theme manager
+func (ui *UI) GetThemeManager() *config.ThemeManager {
+	return ui.themeManager
 }
 
 // GetImageService returns the image service
@@ -458,72 +578,13 @@ func (ui *UI) showLogs(containerID, containerName string) {
 
 	ui.viewContainer.SetTitle(" Containers<Logs> ")
 
-	logsView := ui.createLogsView(containerID, containerName)
+	logsView := ui.GetLogsView(containerID, containerName)
+	logsView.LoadLogs()
 
 	ui.viewContainer.Clear()
-	ui.viewContainer.AddItem(logsView, 0, 1, true)
+	ui.viewContainer.AddItem(logsView.GetView(), 0, 1, true)
 
 	ui.updateLegend()
 
-	ui.app.SetFocus(logsView)
-}
-
-// createLogsView creates a view for displaying container logs
-func (ui *UI) createLogsView(containerID, containerName string) *tview.Flex {
-	logsFlex := ui.viewBuilder.CreateView()
-
-	bottomTitleView := ui.componentBuilder.CreateBorderedTextView(
-		fmt.Sprintf(" %s<%s> ", containerName, containerID[:12]),
-		"",
-		constants.HeaderColor,
-	)
-	bottomTitleView.SetTextAlign(tview.AlignCenter)
-
-	logsText := ui.componentBuilder.CreateTextView("Loading logs...", tview.AlignLeft, constants.TextColor)
-	logsText.SetDynamicColors(true)
-	logsText.SetScrollable(true)
-	logsText.SetBorder(true)
-	logsText.SetBorderColor(constants.BorderColor)
-
-	go ui.loadContainerLogs(containerID, logsText)
-
-	backButton := ui.componentBuilder.CreateButton("Back to Table", func() {
-		ui.showCurrentView()
-	})
-
-	logsFlex.AddItem(bottomTitleView, constants.TitleViewHeight, 0, false)
-	logsFlex.AddItem(logsText, 0, 1, true)
-	logsFlex.AddItem(backButton, constants.BackButtonHeight, 0, false)
-
-	// Set up key bindings
-	logsFlex.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Key() {
-		case tcell.KeyEscape, tcell.KeyEnter:
-			ui.showCurrentView()
-			return nil
-		}
-
-		// Let the text view handle scrolling keys
-		if event.Key() == tcell.KeyUp || event.Key() == tcell.KeyDown ||
-			event.Key() == tcell.KeyPgUp || event.Key() == tcell.KeyPgDn ||
-			event.Key() == tcell.KeyHome || event.Key() == tcell.KeyEnd {
-			return event
-		}
-
-		return event
-	})
-
-	return logsFlex
-}
-
-// loadContainerLogs loads container logs from Docker
-func (ui *UI) loadContainerLogs(containerID string, logsText *tview.TextView) {
-	ctx := context.Background()
-	logs, err := ui.services.ContainerService.GetContainerLogs(ctx, containerID)
-	if err != nil {
-		logsText.SetText(fmt.Sprintf("Error loading logs: %v", err))
-		return
-	}
-
-	logsText.SetText(logs)
+	ui.app.SetFocus(logsView.GetView())
 }

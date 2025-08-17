@@ -6,6 +6,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/wikczerski/D5r/internal/models"
 	"github.com/wikczerski/D5r/internal/ui/builders"
+	"github.com/wikczerski/D5r/internal/ui/constants"
 	"github.com/wikczerski/D5r/internal/ui/handlers"
 	"github.com/wikczerski/D5r/internal/ui/interfaces"
 )
@@ -48,8 +49,6 @@ func (cv *ContainersView) listContainers(ctx context.Context) ([]models.Containe
 }
 
 func (cv *ContainersView) formatContainerRow(container models.Container) []string {
-	// Store the row color in a way that BaseView can access it
-	// We'll need to modify BaseView to handle colors
 	return []string{
 		container.ID,
 		container.Name,
@@ -67,8 +66,10 @@ func (cv *ContainersView) getContainerActions() map[rune]string {
 		'S': "Stop",
 		'r': "Restart",
 		'd': "Delete",
+		'a': "Attach",
 		'l': "View Logs",
 		'i': "Inspect",
+		'e': "Exec",
 	}
 }
 
@@ -80,13 +81,13 @@ func (cv *ContainersView) handleContainerKey(key rune, container models.Containe
 func (cv *ContainersView) getStateColor(container models.Container) tcell.Color {
 	switch container.State {
 	case "running":
-		return tcell.ColorGreen
+		return constants.TableSuccessColor
 	case "exited":
-		return tcell.ColorRed
+		return constants.TableErrorColor
 	case "created":
-		return tcell.ColorYellow
+		return constants.TableWarningColor
 	default:
-		return tcell.ColorWhite
+		return constants.TableDefaultRowColor
 	}
 }
 

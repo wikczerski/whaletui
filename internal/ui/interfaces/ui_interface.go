@@ -1,6 +1,7 @@
 package interfaces
 
 import (
+	"github.com/wikczerski/D5r/internal/config"
 	"github.com/wikczerski/D5r/internal/services"
 )
 
@@ -11,6 +12,7 @@ type UIInterface interface {
 
 	// UI methods
 	ShowError(error)
+	ShowSuccess(string)
 	ShowDetails(any)
 	ShowCurrentView()
 	ShowConfirm(string, func(bool))
@@ -25,6 +27,7 @@ type UIInterface interface {
 	IsInLogsMode() bool
 	IsInDetailsMode() bool
 	GetCurrentActions() map[rune]string
+	GetCurrentViewActions() string
 	GetViewRegistry() any
 
 	// Additional methods needed by managers
@@ -36,6 +39,7 @@ type UIInterface interface {
 	// Additional methods needed by handlers
 	GetPages() any
 	ShowLogs(string, string)
+	ShowShell(string, string)
 
 	// Additional methods needed by modal manager
 	GetViewContainer() any
@@ -45,4 +49,10 @@ type UIInterface interface {
 	GetImageService() any
 	GetVolumeService() any
 	GetNetworkService() any
+
+	// Theme management
+	GetThemeManager() *config.ThemeManager
+
+	// Shutdown management
+	GetShutdownChan() chan struct{}
 }

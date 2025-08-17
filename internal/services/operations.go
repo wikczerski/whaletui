@@ -58,6 +58,22 @@ func (co *CommonOperations) GetContainerLogs(ctx context.Context, id string) (st
 	return co.client.GetContainerLogs(ctx, id)
 }
 
+// ExecContainer is a reusable exec operation
+func (co *CommonOperations) ExecContainer(ctx context.Context, id string, command []string, tty bool) (string, error) {
+	if co.client == nil {
+		return "", fmt.Errorf("docker client is not initialized")
+	}
+	return co.client.ExecContainer(ctx, id, command, tty)
+}
+
+// AttachContainer is a reusable attach operation
+func (co *CommonOperations) AttachContainer(ctx context.Context, id string) (any, error) {
+	if co.client == nil {
+		return nil, fmt.Errorf("docker client is not initialized")
+	}
+	return co.client.AttachContainer(ctx, id)
+}
+
 // InspectResource provides a generic inspect operation
 func (co *CommonOperations) InspectResource(ctx context.Context, resourceType, id string) (map[string]any, error) {
 	if co.client == nil {

@@ -20,7 +20,11 @@ func TestNewDockerInfoService(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Warning: failed to close client: %v", err)
+		}
+	}()
 
 	service = NewDockerInfoService(client)
 	assert.NotNil(t, service)
@@ -32,7 +36,11 @@ func TestDockerInfoService_GetDockerInfo_Integration(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Warning: failed to close client: %v", err)
+		}
+	}()
 
 	service := NewDockerInfoService(client)
 	ctx := context.Background()

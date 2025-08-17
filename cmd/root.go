@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,6 +19,14 @@ var (
 	theme      string
 )
 
+// themeCmd represents the theme command
+var themeCmd = &cobra.Command{
+	Use:   "theme",
+	Short: "Manage theme configuration",
+	Long:  `Manage theme configuration for the D5r UI.`,
+	RunE:  runThemeCommand,
+}
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "d5r",
@@ -31,7 +40,8 @@ Features:
   • Image Management: Browse, inspect, and remove Docker images
   • Volume Management: Manage Docker volumes with ease
   • Network Management: View and manage Docker networks
-  • Remote Host Support: Connect to Docker hosts on different machines`,
+  • Remote Host Support: Connect to Docker hosts on different machines
+  • Theme Support: Customizable color schemes via YAML/JSON configuration`,
 	RunE: runApp,
 }
 
@@ -47,7 +57,10 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&remoteHost, "host", "", "Remote Docker host (e.g., tcp://192.168.1.100:2375)")
 	rootCmd.PersistentFlags().IntVar(&refresh, "refresh", 5, "Refresh interval in seconds")
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "INFO", "Log level (DEBUG, INFO, WARN, ERROR)")
-	rootCmd.PersistentFlags().StringVar(&theme, "theme", "default", "UI theme")
+	rootCmd.PersistentFlags().StringVar(&theme, "theme", "", "Path to theme configuration file (YAML/JSON)")
+
+	// Add theme subcommand
+	rootCmd.AddCommand(themeCmd)
 }
 
 // runApp runs the main application with the provided configuration
@@ -79,17 +92,48 @@ func runApp(cmd *cobra.Command, args []string) error {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
+	uiShutdownCh := application.GetUI().GetShutdownChan()
+
 	go func() {
 		if err := application.Run(); err != nil {
 			log.Error("App run failed: %v", err)
 		}
 	}()
 
-	<-sigCh
-	log.Info("Received shutdown signal, shutting down gracefully...")
+	select {
+	case <-sigCh:
+		log.Info("Received shutdown signal, shutting down gracefully...")
+	case <-uiShutdownCh:
+		log.Info("Received UI shutdown signal, shutting down gracefully...")
+	}
+
+	defer func() {
+		cleanupTerminal()
+	}()
 
 	application.Shutdown()
 	return nil
+}
+
+// cleanupTerminal performs additional terminal cleanup operations
+func cleanupTerminal() {
+	// These are terminal control sequences that rarely fail, but we'll handle them gracefully
+	if _, err := fmt.Fprint(os.Stdout, "\033[2J"); err != nil {
+		// Log error but continue with cleanup
+		fmt.Fprintf(os.Stderr, "Warning: failed to clear screen: %v\n", err)
+	}
+	if _, err := fmt.Fprint(os.Stdout, "\033[0m"); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to reset colors: %v\n", err)
+	}
+	if _, err := fmt.Fprint(os.Stdout, "\033[?25h"); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to show cursor: %v\n", err)
+	}
+	if _, err := fmt.Fprint(os.Stdout, "\033[H"); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to move cursor: %v\n", err)
+	}
+	if err := os.Stdout.Sync(); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to sync stdout: %v\n", err)
+	}
 }
 
 // applyFlagOverrides applies command line flag values to the configuration
@@ -107,7 +151,8 @@ func applyFlagOverrides(cfg *config.Config) {
 		cfg.LogLevel = logLevel
 	}
 
-	if theme != "default" {
+	// Handle theme configuration
+	if theme != "" {
 		cfg.Theme = theme
 	}
 }
@@ -124,4 +169,25 @@ func setLogLevel(log *logger.Logger, level string) {
 	default:
 		log.SetLevel(logger.INFO)
 	}
+}
+
+// runThemeCommand handles theme-related commands
+func runThemeCommand(cmd *cobra.Command, args []string) error {
+	log := logger.GetLogger()
+	log.SetPrefix("Theme")
+
+	// Create a default theme manager
+	themeManager := config.NewThemeManager("")
+
+	// Save the current theme to the default location
+	defaultPath := "./config/theme.yaml"
+	if err := themeManager.SaveTheme(defaultPath); err != nil {
+		log.Error("Failed to save theme: %v", err)
+		return err
+	}
+
+	log.Info("Theme configuration saved to: %s", defaultPath)
+	log.Info("You can now customize the colors in this file and restart D5r with --theme %s", defaultPath)
+
+	return nil
 }
