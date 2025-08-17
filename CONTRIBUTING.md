@@ -66,23 +66,7 @@ golangci-lint run
 go build -o d5r.exe .
 ```
 
-### 3. Using Makefile (Optional)
 
-If you have `make` available:
-
-```bash
-# Setup development environment
-make setup
-
-# Run tests
-make test
-
-# Run linter
-make lint
-
-# Build for all platforms
-make all-platforms
-```
 
 ## Making Changes
 

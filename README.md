@@ -70,10 +70,7 @@ The project includes a build system that generates binaries and packages for mul
 .\scripts\build.ps1         # Windows PowerShell
 .\scripts\build.bat         # Windows Batch
 
-# Or use Makefile (Unix-like systems)
-make build-all
-make build-packages
-make release   # Builds all binaries/packages, generates checksums, and prepares the full release in the dist/ directory
+
 ```
 
 **Supported Platforms:**
