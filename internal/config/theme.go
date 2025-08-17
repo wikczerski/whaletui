@@ -128,12 +128,12 @@ func (tm *ThemeManager) loadFromFile(path string) error {
 	}
 
 	// Validate and merge with defaults
-	tm.config = tm.mergeWithDefaults(config)
+	tm.config = tm.mergeWithDefaults(&config)
 	return nil
 }
 
 // mergeWithDefaults merges loaded config with defaults using interface methods
-func (tm *ThemeManager) mergeWithDefaults(loaded ThemeConfig) *ThemeConfig {
+func (tm *ThemeManager) mergeWithDefaults(loaded *ThemeConfig) *ThemeConfig {
 	merged := DefaultTheme
 
 	// Use interface methods to merge all fields automatically
@@ -349,7 +349,7 @@ func (tm *ThemeManager) SaveTheme(path string) error {
 
 	// Ensure directory exists
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -372,7 +372,7 @@ func (tm *ThemeManager) SaveTheme(path string) error {
 		return fmt.Errorf("unsupported file format: %s", ext)
 	}
 
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, 0600); err != nil {
 		return fmt.Errorf("failed to write theme file: %w", err)
 	}
 

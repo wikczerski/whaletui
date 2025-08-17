@@ -9,11 +9,13 @@ import (
 	"github.com/wikczerski/D5r/internal/ui/interfaces"
 )
 
+// NetworksView displays and manages Docker networks
 type NetworksView struct {
 	*BaseView[models.Network]
 	handlers *handlers.ActionHandlers
 }
 
+// NewNetworksView creates a new networks view
 func NewNetworksView(ui interfaces.UIInterface) *NetworksView {
 	headers := []string{"ID", "Name", "Driver", "Scope", "Created"}
 	baseView := NewBaseView[models.Network](ui, "networks", headers)
@@ -25,11 +27,11 @@ func NewNetworksView(ui interfaces.UIInterface) *NetworksView {
 
 	// Set up callbacks
 	nv.ListItems = nv.listNetworks
-	nv.FormatRow = nv.formatNetworkRow
+	nv.FormatRow = func(n models.Network) []string { return nv.formatNetworkRow(&n) }
 	nv.GetItemID = func(n models.Network) string { return n.ID }
 	nv.GetItemName = func(n models.Network) string { return n.Name }
-	nv.HandleKeyPress = nv.handleNetworkKey
-	nv.ShowDetails = nv.showNetworkDetails
+	nv.HandleKeyPress = func(key rune, n models.Network) { nv.handleNetworkKey(key, &n) }
+	nv.ShowDetails = func(n models.Network) { nv.showNetworkDetails(&n) }
 	nv.GetActions = nv.getNetworkActions
 
 	return nv
@@ -43,7 +45,7 @@ func (nv *NetworksView) listNetworks(ctx context.Context) ([]models.Network, err
 	return services.NetworkService.ListNetworks(ctx)
 }
 
-func (nv *NetworksView) formatNetworkRow(network models.Network) []string {
+func (nv *NetworksView) formatNetworkRow(network *models.Network) []string {
 	return []string{
 		network.ID,
 		network.Name,
@@ -60,7 +62,7 @@ func (nv *NetworksView) getNetworkActions() map[rune]string {
 	}
 }
 
-func (nv *NetworksView) handleNetworkKey(key rune, network models.Network) {
+func (nv *NetworksView) handleNetworkKey(key rune, network *models.Network) {
 	switch key {
 	case 'd':
 		nv.deleteNetwork(network.ID, network.Name)
@@ -69,11 +71,11 @@ func (nv *NetworksView) handleNetworkKey(key rune, network models.Network) {
 	}
 }
 
-func (nv *NetworksView) showNetworkDetails(network models.Network) {
+func (nv *NetworksView) showNetworkDetails(network *models.Network) {
 	ctx := context.Background()
 	services := nv.ui.GetServices()
 	inspectData, err := services.NetworkService.InspectNetwork(ctx, network.ID)
-	nv.ShowItemDetails(network, inspectData, err)
+	nv.ShowItemDetails(*network, inspectData, err)
 }
 
 func (nv *NetworksView) deleteNetwork(id, name string) {

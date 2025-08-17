@@ -99,7 +99,7 @@ func SuggestConfigUpdate(detectedHost string) error {
 	}
 
 	// Create config directory if it doesn't exist
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		return fmt.Errorf("config directory creation failed: %w", err)
 	}
 
@@ -109,7 +109,7 @@ func SuggestConfigUpdate(detectedHost string) error {
 		return fmt.Errorf("config marshal failed: %w", err)
 	}
 
-	if err := os.WriteFile(configFile, data, 0600); err != nil {
+	if err := os.WriteFile(configFile, data, 0o600); err != nil {
 		return fmt.Errorf("config write failed: %w", err)
 	}
 

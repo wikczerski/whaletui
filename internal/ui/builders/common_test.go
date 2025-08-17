@@ -49,7 +49,7 @@ func TestDetailsViewBuilder(t *testing.T) {
 	actions := map[rune]string{'a': "Action A", 'b': "Action B"}
 
 	detailsView := dvb.CreateDetailsView("Test Title", "Test Details", actions,
-		func(r rune) { /* action handler */ },
+		func(_ rune) { /* action handler */ },
 		func() { /* back handler */ })
 
 	require.NotNil(t, detailsView)
@@ -61,7 +61,7 @@ func TestDetailsViewBuilder_SetupKeyBindings(t *testing.T) {
 	actions := map[rune]string{'a': "Action A"}
 
 	detailsView := dvb.CreateDetailsView("Test", "Details", actions,
-		func(r rune) { /* action handler */ },
+		func(_ rune) { /* action handler */ },
 		func() { /* back handler */ })
 
 	require.NotNil(t, detailsView)
@@ -195,7 +195,7 @@ func TestCreateInspectDetailsView(t *testing.T) {
 	}
 	actions := map[rune]string{'a': "Action A"}
 	detailsView := createInspectDetailsView(title, inspectData, actions,
-		func(r rune) { /* action handler */ },
+		func(_ rune) { /* action handler */ },
 		func() { /* back handler */ })
 
 	require.NotNil(t, detailsView)

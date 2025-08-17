@@ -8,8 +8,10 @@ import (
 
 var (
 	// Version information - these should be set during build
-	Version   = "dev"
+	Version = "dev"
+	// CommitSHA is the Git commit SHA hash
 	CommitSHA = "unknown"
+	// BuildDate is the build timestamp
 	BuildDate = "unknown"
 )
 
@@ -21,7 +23,7 @@ var versionCmd = &cobra.Command{
   • Version number
   • Git commit SHA
   • Build date`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		fmt.Printf("D5r - Docker CLI Dashboard\n")
 		fmt.Printf("Version: %s\n", Version)
 		fmt.Printf("Commit: %s\n", CommitSHA)

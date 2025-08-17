@@ -249,7 +249,7 @@ func (ah *ActionHandlers) createExecOutputModal(containerName, command, output s
 
 // setupExecOutputModalHandlers configures the event handlers for the exec output modal
 func (ah *ActionHandlers) setupExecOutputModalHandlers(outputModal *tview.Modal) {
-	outputModal.SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+	outputModal.SetDoneFunc(func(_ int, _ string) {
 		ah.closeExecOutputModal()
 		ah.returnFocusToViewContainer()
 	})

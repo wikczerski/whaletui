@@ -18,11 +18,11 @@ type MockVolumeService struct {
 	listErr     error
 }
 
-func (m *MockVolumeService) ListVolumes(ctx context.Context) ([]models.Volume, error) {
+func (m *MockVolumeService) ListVolumes(_ context.Context) ([]models.Volume, error) {
 	return m.volumes, m.listErr
 }
 
-func (m *MockVolumeService) InspectVolume(ctx context.Context, name string) (map[string]any, error) {
+func (m *MockVolumeService) InspectVolume(_ context.Context, name string) (map[string]any, error) {
 	return m.inspectData, m.inspectErr
 }
 

@@ -64,7 +64,7 @@ func init() {
 }
 
 // runApp runs the main application with the provided configuration
-func runApp(cmd *cobra.Command, args []string) error {
+func runApp(_ *cobra.Command, _ []string) error {
 	log := logger.GetLogger()
 	log.SetPrefix("D5r")
 
@@ -107,9 +107,7 @@ func runApp(cmd *cobra.Command, args []string) error {
 		log.Info("Received UI shutdown signal, shutting down gracefully...")
 	}
 
-	defer func() {
-		cleanupTerminal()
-	}()
+	defer cleanupTerminal()
 
 	application.Shutdown()
 	return nil
@@ -117,9 +115,7 @@ func runApp(cmd *cobra.Command, args []string) error {
 
 // cleanupTerminal performs additional terminal cleanup operations
 func cleanupTerminal() {
-	// These are terminal control sequences that rarely fail, but we'll handle them gracefully
 	if _, err := fmt.Fprint(os.Stdout, "\033[2J"); err != nil {
-		// Log error but continue with cleanup
 		fmt.Fprintf(os.Stderr, "Warning: failed to clear screen: %v\n", err)
 	}
 	if _, err := fmt.Fprint(os.Stdout, "\033[0m"); err != nil {

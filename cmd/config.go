@@ -18,7 +18,7 @@ var configCmd = &cobra.Command{
   • Log level
   • Theme settings
   • Configuration file location`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		showConfig()
 	},
 }

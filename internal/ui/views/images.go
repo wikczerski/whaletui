@@ -10,11 +10,13 @@ import (
 	"github.com/wikczerski/D5r/internal/ui/interfaces"
 )
 
+// ImagesView displays and manages Docker images
 type ImagesView struct {
 	*BaseView[models.Image]
 	handlers *handlers.ActionHandlers
 }
 
+// NewImagesView creates a new images view
 func NewImagesView(ui interfaces.UIInterface) *ImagesView {
 	headers := []string{"ID", "Repository", "Tag", "Size", "Created", "Containers"}
 	baseView := NewBaseView[models.Image](ui, "images", headers)
@@ -26,11 +28,11 @@ func NewImagesView(ui interfaces.UIInterface) *ImagesView {
 
 	// Set up callbacks
 	iv.ListItems = iv.listImages
-	iv.FormatRow = iv.formatImageRow
+	iv.FormatRow = func(i models.Image) []string { return iv.formatImageRow(&i) }
 	iv.GetItemID = func(i models.Image) string { return i.ID }
 	iv.GetItemName = func(i models.Image) string { return i.Repository }
-	iv.HandleKeyPress = iv.handleImageKey
-	iv.ShowDetails = iv.showImageDetails
+	iv.HandleKeyPress = func(key rune, i models.Image) { iv.handleImageKey(key, &i) }
+	iv.ShowDetails = func(i models.Image) { iv.showImageDetails(&i) }
 	iv.GetActions = iv.getImageActions
 
 	return iv
@@ -44,7 +46,7 @@ func (iv *ImagesView) listImages(ctx context.Context) ([]models.Image, error) {
 	return services.ImageService.ListImages(ctx)
 }
 
-func (iv *ImagesView) formatImageRow(image models.Image) []string {
+func (iv *ImagesView) formatImageRow(image *models.Image) []string {
 	return []string{
 		image.ID,
 		image.Repository,
@@ -62,7 +64,7 @@ func (iv *ImagesView) getImageActions() map[rune]string {
 	}
 }
 
-func (iv *ImagesView) handleImageKey(key rune, image models.Image) {
+func (iv *ImagesView) handleImageKey(key rune, image *models.Image) {
 	switch key {
 	case 'd':
 		iv.deleteImage(image.ID, image.Repository)
@@ -71,11 +73,11 @@ func (iv *ImagesView) handleImageKey(key rune, image models.Image) {
 	}
 }
 
-func (iv *ImagesView) showImageDetails(image models.Image) {
+func (iv *ImagesView) showImageDetails(image *models.Image) {
 	ctx := context.Background()
 	services := iv.ui.GetServices()
 	inspectData, err := services.ImageService.InspectImage(ctx, image.ID)
-	iv.ShowItemDetails(image, inspectData, err)
+	iv.ShowItemDetails(*image, inspectData, err)
 }
 
 func (iv *ImagesView) deleteImage(id, repository string) {

@@ -7,7 +7,7 @@ import (
 )
 
 // createView creates the shell view UI components
-func (sv *ShellView) createView() {
+func (sv *View) createView() {
 	themeManager := sv.ui.GetThemeManager()
 
 	sv.outputView = tview.NewTextView()

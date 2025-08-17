@@ -19,6 +19,7 @@ import (
 	"github.com/wikczerski/D5r/internal/logger"
 )
 
+// Client represents a Docker client wrapper
 type Client struct {
 	cli *client.Client
 	cfg *config.Config
@@ -67,6 +68,7 @@ func detectWindowsDockerHost(log *logger.Logger) (string, error) {
 	return "", fmt.Errorf("no working Docker host found")
 }
 
+// New creates a new Docker client
 func New(cfg *config.Config) (*Client, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("config cannot be nil")
@@ -86,10 +88,7 @@ func New(cfg *config.Config) (*Client, error) {
 			return nil, fmt.Errorf("invalid remote host format: %w", err)
 		}
 
-		opts = append(opts, client.WithHost(cfg.RemoteHost))
-
-		// For remote connections, increase timeout
-		opts = append(opts, client.WithTimeout(30*time.Second))
+		opts = append(opts, client.WithHost(cfg.RemoteHost), client.WithTimeout(30*time.Second))
 	} else if cfg.DockerHost != "" {
 		opts = append(opts, client.WithHost(cfg.DockerHost))
 	}
@@ -217,6 +216,7 @@ func validateRemoteHost(host string) error {
 	return nil
 }
 
+// GetInfo retrieves Docker system information
 func (c *Client) GetInfo(ctx context.Context) (map[string]any, error) {
 	info, err := c.cli.Info(ctx)
 	if err != nil {
@@ -225,6 +225,7 @@ func (c *Client) GetInfo(ctx context.Context) (map[string]any, error) {
 	return marshalToMap(info)
 }
 
+// InspectContainer inspects a container
 func (c *Client) InspectContainer(ctx context.Context, id string) (map[string]any, error) {
 	container, err := c.cli.ContainerInspect(ctx, id)
 	if err != nil {
@@ -234,6 +235,7 @@ func (c *Client) InspectContainer(ctx context.Context, id string) (map[string]an
 	return marshalToMap(container)
 }
 
+// GetContainerLogs retrieves container logs
 func (c *Client) GetContainerLogs(ctx context.Context, id string) (string, error) {
 	logs, err := c.cli.ContainerLogs(ctx, id, container.LogsOptions{
 		ShowStdout: true,
@@ -245,7 +247,7 @@ func (c *Client) GetContainerLogs(ctx context.Context, id string) (string, error
 	if err != nil {
 		return "", fmt.Errorf("container logs failed %s: %w", id, err)
 	}
-		defer func() { 
+	defer func() {
 		if err := logs.Close(); err != nil {
 			// This is a cleanup operation during container logs retrieval
 			// The error is not critical for the main operation
@@ -273,6 +275,7 @@ func (c *Client) GetContainerLogs(ctx context.Context, id string) (string, error
 	return strings.Join(logLines, ""), nil
 }
 
+// InspectImage inspects an image
 func (c *Client) InspectImage(ctx context.Context, id string) (map[string]any, error) {
 	imageInfo, err := c.cli.ImageInspect(ctx, id)
 	if err != nil {
@@ -303,6 +306,7 @@ func (c *Client) RemoveVolume(ctx context.Context, name string, force bool) erro
 	return nil
 }
 
+// InspectNetwork inspects a network
 func (c *Client) InspectNetwork(ctx context.Context, id string) (map[string]any, error) {
 	networkInfo, err := c.cli.NetworkInspect(ctx, id, network.InspectOptions{})
 	if err != nil {
@@ -311,6 +315,7 @@ func (c *Client) InspectNetwork(ctx context.Context, id string) (map[string]any,
 	return marshalToMap(networkInfo)
 }
 
+// Close closes the Docker client connection
 func (c *Client) Close() error {
 	return c.cli.Close()
 }
@@ -327,7 +332,8 @@ func (c *Client) ListContainers(ctx context.Context, all bool) ([]Container, err
 	}
 
 	result := make([]Container, 0, len(containers))
-	for _, cont := range containers {
+	for i := range containers {
+		cont := &containers[i]
 		// Format ports
 		ports := ""
 		for _, p := range cont.Ports {
@@ -369,7 +375,7 @@ func (c *Client) GetContainerStats(ctx context.Context, id string) (map[string]a
 	if err != nil {
 		return nil, fmt.Errorf("failed to get container stats: %w", err)
 	}
-		defer func() { 
+	defer func() {
 		if err := stats.Body.Close(); err != nil {
 			// This is a cleanup operation during container stats retrieval
 			// The error is not critical for the main operation
@@ -395,7 +401,8 @@ func (c *Client) ListImages(ctx context.Context) ([]Image, error) {
 	}
 
 	result := make([]Image, 0, len(images))
-	for _, img := range images {
+	for i := range images {
+		img := &images[i]
 		// Format repository and tag
 		repo := "<none>"
 		tag := "<none>"
@@ -465,7 +472,8 @@ func (c *Client) ListNetworks(ctx context.Context) ([]Network, error) {
 	}
 
 	result := make([]Network, 0, len(networks))
-	for _, net := range networks {
+	for i := range networks {
+		net := &networks[i]
 		result = append(result, Network{
 			ID:         net.ID[:12],
 			Name:       net.Name,
@@ -526,7 +534,7 @@ func (c *Client) RemoveContainer(ctx context.Context, id string, force bool) err
 }
 
 // ExecContainer executes a command in a running container and returns the output
-func (c *Client) ExecContainer(ctx context.Context, id string, command []string, tty bool) (string, error) {
+func (c *Client) ExecContainer(ctx context.Context, id string, command []string, _ bool) (string, error) {
 	if c.cli == nil {
 		return "", fmt.Errorf("docker client is not initialized")
 	}

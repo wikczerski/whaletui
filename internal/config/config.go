@@ -8,6 +8,7 @@ import (
 	"runtime"
 )
 
+// Config represents the application configuration
 type Config struct {
 	RefreshInterval int    `json:"refresh_interval"`
 	LogLevel        string `json:"log_level"`
@@ -16,6 +17,7 @@ type Config struct {
 	RemoteHost      string `json:"remote_host,omitempty"` // Command line specified remote host
 }
 
+// DefaultConfig returns the default configuration
 func DefaultConfig() *Config {
 	host := "unix:///var/run/docker.sock"
 	if runtime.GOOS == "windows" {
@@ -32,6 +34,7 @@ func DefaultConfig() *Config {
 	}
 }
 
+// Load loads the configuration from file
 func Load() (*Config, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -39,7 +42,7 @@ func Load() (*Config, error) {
 	}
 
 	configDir := filepath.Join(homeDir, ".dockerk9s")
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		return nil, fmt.Errorf("config directory creation failed: %w", err)
 	}
 
@@ -66,6 +69,7 @@ func Load() (*Config, error) {
 	return cfg, nil
 }
 
+// Save saves the configuration to file
 func (c *Config) Save() error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -84,7 +88,7 @@ func saveConfig(file string, cfg *Config) error {
 		return fmt.Errorf("config marshal failed: %w", err)
 	}
 
-	if err := os.WriteFile(file, data, 0600); err != nil {
+	if err := os.WriteFile(file, data, 0o600); err != nil {
 		return fmt.Errorf("config write failed: %w", err)
 	}
 

@@ -17,7 +17,7 @@ type MockImageService struct {
 	listErr    error
 }
 
-func (m *MockImageService) ListImages(ctx context.Context) ([]models.Image, error) {
+func (m *MockImageService) ListImages(_ context.Context) ([]models.Image, error) {
 	return m.images, m.listErr
 }
 
@@ -133,7 +133,7 @@ func TestImagesView_ShowImageDetails_Success(t *testing.T) {
 
 	imagesView := NewImagesView(mockUI)
 	imagesView.items = []models.Image{mockImage}
-	imagesView.showImageDetails(mockImage)
+	imagesView.showImageDetails(&mockImage)
 
 	assert.NotNil(t, imagesView)
 }
@@ -159,7 +159,7 @@ func TestImagesView_ShowImageDetails_InspectError(t *testing.T) {
 
 	imagesView := NewImagesView(mockUI)
 	imagesView.items = []models.Image{mockImage}
-	imagesView.showImageDetails(mockImage)
+	imagesView.showImageDetails(&mockImage)
 
 	assert.NotNil(t, imagesView)
 }

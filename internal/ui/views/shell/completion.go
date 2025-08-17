@@ -6,7 +6,7 @@ import (
 )
 
 // handleTabCompletion handles tab completion for files and directories
-func (sv *ShellView) handleTabCompletion() {
+func (sv *View) handleTabCompletion() {
 	currentText := sv.inputField.GetText()
 	if currentText == "" {
 		return
@@ -84,7 +84,7 @@ func (sv *ShellView) handleTabCompletion() {
 }
 
 // parsePathForCompletion parses a path to extract directory and partial filename
-func (sv *ShellView) parsePathForCompletion(path string) (string, string) {
+func (sv *View) parsePathForCompletion(path string) (dir, partial string) {
 	if path == "" {
 		return ".", ""
 	}
@@ -94,11 +94,11 @@ func (sv *ShellView) parsePathForCompletion(path string) (string, string) {
 		if lastSlash == 0 {
 			return "/", ""
 		}
-		dir := path[:lastSlash]
+		dir = path[:lastSlash]
 		if dir == "" {
 			dir = "/"
 		}
-		partial := path[lastSlash+1:]
+		partial = path[lastSlash+1:]
 		return dir, partial
 	}
 
@@ -109,26 +109,21 @@ func (sv *ShellView) parsePathForCompletion(path string) (string, string) {
 		return ".", path
 	}
 
-	dir := path[:lastSlash]
+	dir = path[:lastSlash]
 	if dir == "" {
 		dir = "."
 	}
-	partial := path[lastSlash+1:]
+	partial = path[lastSlash+1:]
 	return dir, partial
 }
 
 // getCompletions queries the container for file/directory completions
-func (sv *ShellView) getCompletions(dirPath, partialName string) []string {
+func (sv *View) getCompletions(dirPath, partialName string) []string {
 	if sv.execFunc == nil {
 		return nil
 	}
 
-	var lsArgs []string
-	if partialName == "" {
-		lsArgs = []string{"ls", "-1", dirPath}
-	} else {
-		lsArgs = []string{"ls", "-1", dirPath}
-	}
+	lsArgs := []string{"ls", "-1", dirPath}
 
 	ctx := context.Background()
 	output, err := sv.execFunc(ctx, sv.containerID, lsArgs, false)
@@ -158,7 +153,7 @@ func (sv *ShellView) getCompletions(dirPath, partialName string) []string {
 }
 
 // isDirectory checks if a path is a directory
-func (sv *ShellView) isDirectory(dirPath, name string) bool {
+func (sv *View) isDirectory(dirPath, name string) bool {
 	if sv.execFunc == nil {
 		return false
 	}
@@ -179,7 +174,7 @@ func (sv *ShellView) isDirectory(dirPath, name string) bool {
 }
 
 // findCommonPrefix finds the common prefix among a list of strings
-func (sv *ShellView) findCommonPrefix(strings []string) string {
+func (sv *View) findCommonPrefix(strings []string) string {
 	if len(strings) == 0 {
 		return ""
 	}
@@ -209,7 +204,7 @@ func (sv *ShellView) findCommonPrefix(strings []string) string {
 }
 
 // showCompletions displays available completions to the user
-func (sv *ShellView) showCompletions(completions []string) {
+func (sv *View) showCompletions(completions []string) {
 	sv.addOutput("\nAvailable completions:\n")
 
 	var dirs, files []string
@@ -239,7 +234,7 @@ func (sv *ShellView) showCompletions(completions []string) {
 }
 
 // getCommandCompletions gets available command completions
-func (sv *ShellView) getCommandCompletions(partial string) []string {
+func (sv *View) getCommandCompletions(partial string) []string {
 	if sv.execFunc == nil {
 		return nil
 	}
@@ -290,7 +285,7 @@ func (sv *ShellView) getCommandCompletions(partial string) []string {
 }
 
 // getPathCommandCompletions gets commands from PATH
-func (sv *ShellView) getPathCommandCompletions(partial string) []string {
+func (sv *View) getPathCommandCompletions(partial string) []string {
 	if sv.execFunc == nil {
 		return nil
 	}
@@ -319,7 +314,7 @@ func (sv *ShellView) getPathCommandCompletions(partial string) []string {
 }
 
 // handleCommandCompletion handles command name completion
-func (sv *ShellView) handleCommandCompletion(currentText, partial string, completions []string) {
+func (sv *View) handleCommandCompletion(currentText, partial string, completions []string) {
 	if len(completions) == 0 {
 		sv.inputField.SetText(currentText + " ")
 		return
@@ -341,7 +336,7 @@ func (sv *ShellView) handleCommandCompletion(currentText, partial string, comple
 }
 
 // showCommandCompletions displays available command completions
-func (sv *ShellView) showCommandCompletions(completions []string) {
+func (sv *View) showCommandCompletions(completions []string) {
 	sv.addOutput("\nAvailable commands:\n")
 	for _, cmd := range completions {
 		sv.addOutput("  " + cmd + "\n")
@@ -350,7 +345,7 @@ func (sv *ShellView) showCommandCompletions(completions []string) {
 }
 
 // removeDuplicates removes duplicate strings from a slice
-func (sv *ShellView) removeDuplicates(strings []string) []string {
+func (sv *View) removeDuplicates(strings []string) []string {
 	seen := make(map[string]bool)
 	var result []string
 

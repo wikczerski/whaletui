@@ -1,7 +1,7 @@
 package shell
 
 // addToHistory adds a command to the history
-func (sv *ShellView) addToHistory(command string) {
+func (sv *View) addToHistory(command string) {
 	if command == "" || (len(sv.commandHistory) > 0 && sv.commandHistory[len(sv.commandHistory)-1] == command) {
 		return
 	}
@@ -11,7 +11,7 @@ func (sv *ShellView) addToHistory(command string) {
 }
 
 // navigateHistory navigates through command history
-func (sv *ShellView) navigateHistory(direction int) {
+func (sv *View) navigateHistory(direction int) {
 	if len(sv.commandHistory) == 0 {
 		return
 	}

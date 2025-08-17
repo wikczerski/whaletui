@@ -27,7 +27,7 @@ func (s *networkService) ListNetworks(ctx context.Context) ([]models.Network, er
 		return nil, fmt.Errorf("failed to list networks: %w", err)
 	}
 
-	var result []models.Network
+	result := make([]models.Network, 0, len(networks))
 	for _, net := range networks {
 		result = append(result, models.Network{
 			ID:      net.ID,

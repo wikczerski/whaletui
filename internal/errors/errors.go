@@ -24,24 +24,27 @@ func NewDockerError(operation string, err error) *DockerError {
 	}
 }
 
-// Connection errors
+// ConnectionError creates a connection error
 func ConnectionError(host string, err error) error {
 	return NewDockerError(fmt.Sprintf("connection to %s", host), err)
 }
 
-// Operation errors
+// ContainerError creates a container operation error
 func ContainerError(operation, id string, err error) error {
 	return NewDockerError(fmt.Sprintf("%s container %s", operation, id), err)
 }
 
+// ImageError creates an image operation error
 func ImageError(operation, id string, err error) error {
 	return NewDockerError(fmt.Sprintf("%s image %s", operation, id), err)
 }
 
+// VolumeError creates a volume operation error
 func VolumeError(operation, name string, err error) error {
 	return NewDockerError(fmt.Sprintf("%s volume %s", operation, name), err)
 }
 
+// NetworkError creates a network operation error
 func NetworkError(operation, id string, err error) error {
 	return NewDockerError(fmt.Sprintf("%s network %s", operation, id), err)
 }

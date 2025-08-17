@@ -2,6 +2,7 @@ package docker
 
 import "time"
 
+// Container represents a Docker container
 type Container struct {
 	ID      string
 	Name    string
@@ -13,6 +14,7 @@ type Container struct {
 	Size    string
 }
 
+// Image represents a Docker image
 type Image struct {
 	ID         string
 	Repository string
@@ -22,6 +24,7 @@ type Image struct {
 	Containers int
 }
 
+// Volume represents a Docker volume
 type Volume struct {
 	Name       string
 	Driver     string
@@ -32,6 +35,7 @@ type Volume struct {
 	Size       string
 }
 
+// Network represents a Docker network
 type Network struct {
 	ID         string
 	Name       string

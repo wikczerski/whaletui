@@ -6,6 +6,7 @@ import (
 	"github.com/wikczerski/D5r/internal/docker"
 )
 
+// Image represents a Docker image
 type Image = docker.Image
 
 // ImageDetails represents detailed image information

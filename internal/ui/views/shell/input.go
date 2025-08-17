@@ -5,7 +5,7 @@ import (
 )
 
 // handleInputCapture handles special key combinations
-func (sv *ShellView) handleInputCapture(event *tcell.EventKey) *tcell.EventKey {
+func (sv *View) handleInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Key() {
 	case tcell.KeyEscape:
 		sv.exitShell()

@@ -27,7 +27,7 @@ func (s *imageService) ListImages(ctx context.Context) ([]models.Image, error) {
 		return nil, fmt.Errorf("failed to list images: %w", err)
 	}
 
-	var result []models.Image
+	result := make([]models.Image, 0, len(images))
 	for _, img := range images {
 		result = append(result, models.Image(img))
 	}

@@ -11,12 +11,14 @@ import (
 	"github.com/wikczerski/D5r/internal/ui/interfaces"
 )
 
+// ContainersView displays and manages Docker containers
 type ContainersView struct {
 	*BaseView[models.Container]
 	executor *handlers.OperationExecutor
 	handlers *handlers.ActionHandlers
 }
 
+// NewContainersView creates a new containers view
 func NewContainersView(ui interfaces.UIInterface) *ContainersView {
 	headers := []string{"ID", "Name", "Image", "Status", "State", "Ports", "Created"}
 	baseView := NewBaseView[models.Container](ui, "containers", headers)
@@ -29,12 +31,12 @@ func NewContainersView(ui interfaces.UIInterface) *ContainersView {
 
 	// Set up callbacks
 	cv.ListItems = cv.listContainers
-	cv.FormatRow = cv.formatContainerRow
-	cv.GetRowColor = cv.getStateColor
+	cv.FormatRow = func(c models.Container) []string { return cv.formatContainerRow(&c) }
+	cv.GetRowColor = func(c models.Container) tcell.Color { return cv.getStateColor(&c) }
 	cv.GetItemID = func(c models.Container) string { return c.ID }
 	cv.GetItemName = func(c models.Container) string { return c.Name }
-	cv.HandleKeyPress = cv.handleContainerKey
-	cv.ShowDetails = cv.showContainerDetails
+	cv.HandleKeyPress = func(key rune, c models.Container) { cv.handleContainerKey(key, &c) }
+	cv.ShowDetails = func(c models.Container) { cv.showContainerDetails(&c) }
 	cv.GetActions = cv.getContainerActions
 
 	return cv
@@ -48,7 +50,7 @@ func (cv *ContainersView) listContainers(ctx context.Context) ([]models.Containe
 	return services.ContainerService.ListContainers(ctx)
 }
 
-func (cv *ContainersView) formatContainerRow(container models.Container) []string {
+func (cv *ContainersView) formatContainerRow(container *models.Container) []string {
 	return []string{
 		container.ID,
 		container.Name,
@@ -73,12 +75,12 @@ func (cv *ContainersView) getContainerActions() map[rune]string {
 	}
 }
 
-func (cv *ContainersView) handleContainerKey(key rune, container models.Container) {
+func (cv *ContainersView) handleContainerKey(key rune, container *models.Container) {
 	services := cv.ui.GetServices()
 	cv.handlers.HandleContainerAction(key, container.ID, container.Name, services.ContainerService, func() { cv.Refresh() })
 }
 
-func (cv *ContainersView) getStateColor(container models.Container) tcell.Color {
+func (cv *ContainersView) getStateColor(container *models.Container) tcell.Color {
 	switch container.State {
 	case "running":
 		return constants.TableSuccessColor
@@ -91,9 +93,9 @@ func (cv *ContainersView) getStateColor(container models.Container) tcell.Color 
 	}
 }
 
-func (cv *ContainersView) showContainerDetails(container models.Container) {
+func (cv *ContainersView) showContainerDetails(container *models.Container) {
 	ctx := context.Background()
 	services := cv.ui.GetServices()
 	inspectData, err := services.ContainerService.InspectContainer(ctx, container.ID)
-	cv.ShowItemDetails(container, inspectData, err)
+	cv.ShowItemDetails(*container, inspectData, err)
 }

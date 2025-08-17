@@ -38,7 +38,7 @@ func (mm *ModalManager) ShowConfirm(text string, callback func(bool)) {
 	modal := tview.NewModal().
 		SetText(text).
 		AddButtons([]string{"Yes", "No"}).
-		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+		SetDoneFunc(func(buttonIndex int, _ string) {
 			pages := mm.ui.GetPages().(*tview.Pages)
 			pages.RemovePage("modal")
 			callback(buttonIndex == 0)
@@ -53,7 +53,7 @@ func (mm *ModalManager) createModal(text string, buttons []string) *tview.Modal 
 	return tview.NewModal().
 		SetText(text).
 		AddButtons(buttons).
-		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+		SetDoneFunc(func(_ int, _ string) {
 			pages := mm.ui.GetPages().(*tview.Pages)
 			pages.RemovePage("modal")
 		})

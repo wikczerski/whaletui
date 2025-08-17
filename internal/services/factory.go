@@ -11,6 +11,7 @@ type ServiceFactory struct {
 	DockerInfoService DockerInfoService
 }
 
+// NewServiceFactory creates a new service factory
 func NewServiceFactory(client *docker.Client) *ServiceFactory {
 	return &ServiceFactory{
 		ContainerService:  NewContainerService(client),

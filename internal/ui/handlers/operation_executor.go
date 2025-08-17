@@ -53,7 +53,7 @@ func (oe *OperationExecutor) ExecuteWithConfirmation(message string, operation f
 	})
 }
 
-// Common operation patterns
+// DeleteOperation handles resource deletion with confirmation
 func (oe *OperationExecutor) DeleteOperation(resourceType, resourceID, resourceName string, deleteFunc func(context.Context, string, bool) error, onRefresh func()) {
 	message := "Delete " + resourceType + " " + resourceName + "?"
 	operation := func() error {
@@ -62,14 +62,16 @@ func (oe *OperationExecutor) DeleteOperation(resourceType, resourceID, resourceN
 	oe.ExecuteWithConfirmation(message, operation, onRefresh)
 }
 
-func (oe *OperationExecutor) StartOperation(resourceType, resourceID string, startFunc func(context.Context, string) error, onRefresh func()) {
+// StartOperation handles resource startup
+func (oe *OperationExecutor) StartOperation(_ string, resourceID string, startFunc func(context.Context, string) error, onRefresh func()) {
 	operation := func() error {
 		return startFunc(context.Background(), resourceID)
 	}
 	oe.Execute(operation, onRefresh)
 }
 
-func (oe *OperationExecutor) StopOperation(resourceType, resourceID string, stopFunc func(context.Context, string, *time.Duration) error, onRefresh func()) {
+// StopOperation handles resource shutdown
+func (oe *OperationExecutor) StopOperation(_ string, resourceID string, stopFunc func(context.Context, string, *time.Duration) error, onRefresh func()) {
 	operation := func() error {
 		timeout := 10 * time.Second
 		return stopFunc(context.Background(), resourceID, &timeout)
@@ -77,7 +79,8 @@ func (oe *OperationExecutor) StopOperation(resourceType, resourceID string, stop
 	oe.Execute(operation, onRefresh)
 }
 
-func (oe *OperationExecutor) RestartOperation(resourceType, resourceID string, restartFunc func(context.Context, string, *time.Duration) error, onRefresh func()) {
+// RestartOperation handles resource restart
+func (oe *OperationExecutor) RestartOperation(_ string, resourceID string, restartFunc func(context.Context, string, *time.Duration) error, onRefresh func()) {
 	operation := func() error {
 		timeout := 10 * time.Second
 		return restartFunc(context.Background(), resourceID, &timeout)

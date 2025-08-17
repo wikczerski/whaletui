@@ -11,6 +11,7 @@ type volumeService struct {
 	*BaseService[models.Volume]
 }
 
+// NewVolumeService creates a new volume service
 func NewVolumeService(client *docker.Client) VolumeService {
 	base := NewBaseService[models.Volume](client, "volume")
 

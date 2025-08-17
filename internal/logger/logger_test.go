@@ -187,7 +187,7 @@ func TestLogger_ConcurrentAccess(t *testing.T) {
 	// Test concurrent access with simple messages
 	done := make(chan bool)
 	for i := 0; i < 10; i++ {
-		go func(id int) {
+		go func(_ int) {
 			logger.Info("message from goroutine")
 			done <- true
 		}(i)

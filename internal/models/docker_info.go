@@ -24,7 +24,7 @@ type DockerInfo struct {
 	CPUSet             bool           `json:"cpu_set"`
 	IPv4Forwarding     bool           `json:"ipv4_forwarding"`
 	BridgeNfIptables   bool           `json:"bridge_nf_iptables"`
-	BridgeNfIp6tables  bool           `json:"bridge_nf_ip6tables"`
+	BridgeNfIP6tables  bool           `json:"bridge_nf_ip6tables"`
 	Debug              bool           `json:"debug"`
 	NFd                int            `json:"nfd"`
 	NGoroutines        int            `json:"ngoroutines"`

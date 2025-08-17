@@ -11,11 +11,13 @@ import (
 	"github.com/wikczerski/D5r/internal/ui/interfaces"
 )
 
+// VolumesView displays and manages Docker volumes
 type VolumesView struct {
 	*BaseView[models.Volume]
 	executor *handlers.OperationExecutor
 }
 
+// NewVolumesView creates a new volumes view
 func NewVolumesView(ui interfaces.UIInterface) *VolumesView {
 	headers := []string{"Name", "Driver", "Mountpoint", "Created", "Size"}
 	baseView := NewBaseView[models.Volume](ui, "volumes", headers)
@@ -27,11 +29,11 @@ func NewVolumesView(ui interfaces.UIInterface) *VolumesView {
 
 	// Set up callbacks
 	vv.ListItems = vv.listVolumes
-	vv.FormatRow = vv.formatVolumeRow
+	vv.FormatRow = func(v models.Volume) []string { return vv.formatVolumeRow(&v) }
 	vv.GetItemID = func(v models.Volume) string { return v.Name }
 	vv.GetItemName = func(v models.Volume) string { return v.Name }
-	vv.HandleKeyPress = vv.handleVolumeKey
-	vv.ShowDetails = vv.showVolumeDetails
+	vv.HandleKeyPress = func(key rune, v models.Volume) { vv.handleVolumeKey(key, &v) }
+	vv.ShowDetails = func(v models.Volume) { vv.showVolumeDetails(&v) }
 	vv.GetActions = vv.getVolumeActions
 
 	return vv
@@ -45,7 +47,7 @@ func (vv *VolumesView) listVolumes(ctx context.Context) ([]models.Volume, error)
 	return services.VolumeService.ListVolumes(ctx)
 }
 
-func (vv *VolumesView) formatVolumeRow(volume models.Volume) []string {
+func (vv *VolumesView) formatVolumeRow(volume *models.Volume) []string {
 	return []string{
 		volume.Name,
 		volume.Driver,
@@ -62,7 +64,7 @@ func (vv *VolumesView) getVolumeActions() map[rune]string {
 	}
 }
 
-func (vv *VolumesView) handleVolumeKey(key rune, volume models.Volume) {
+func (vv *VolumesView) handleVolumeKey(key rune, volume *models.Volume) {
 	switch key {
 	case 'd':
 		vv.deleteVolume(volume.Name)
@@ -71,11 +73,11 @@ func (vv *VolumesView) handleVolumeKey(key rune, volume models.Volume) {
 	}
 }
 
-func (vv *VolumesView) showVolumeDetails(volume models.Volume) {
+func (vv *VolumesView) showVolumeDetails(volume *models.Volume) {
 	ctx := context.Background()
 	services := vv.ui.GetServices()
 	inspectData, err := services.VolumeService.InspectVolume(ctx, volume.Name)
-	vv.ShowItemDetails(volume, inspectData, err)
+	vv.ShowItemDetails(*volume, inspectData, err)
 }
 
 func (vv *VolumesView) deleteVolume(name string) {

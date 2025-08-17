@@ -79,7 +79,7 @@ func TestLoad_ExistingConfig(t *testing.T) {
 	}()
 
 	configDir := filepath.Join(tempHome, ".dockerk9s")
-	err := os.MkdirAll(configDir, 0755)
+	err := os.MkdirAll(configDir, 0o755)
 	require.NoError(t, err)
 
 	configFile := filepath.Join(configDir, "config.json")
@@ -90,7 +90,7 @@ func TestLoad_ExistingConfig(t *testing.T) {
 		"docker_host": "tcp://localhost:2375",
 		"theme": "dark"
 	}`
-	err = os.WriteFile(configFile, []byte(testConfig), 0644)
+	err = os.WriteFile(configFile, []byte(testConfig), 0o644)
 	require.NoError(t, err)
 
 	cfg, err := Load()
@@ -124,7 +124,7 @@ func TestLoad_InvalidConfig(t *testing.T) {
 	}()
 
 	configDir := filepath.Join(tempHome, ".dockerk9s")
-	err := os.MkdirAll(configDir, 0755)
+	err := os.MkdirAll(configDir, 0o755)
 	require.NoError(t, err)
 
 	configFile := filepath.Join(configDir, "config.json")
@@ -133,7 +133,7 @@ func TestLoad_InvalidConfig(t *testing.T) {
 		"refresh_interval": "invalid",
 		"log_level": "DEBUG"
 	`
-	err = os.WriteFile(configFile, []byte(invalidConfig), 0644)
+	err = os.WriteFile(configFile, []byte(invalidConfig), 0o644)
 	require.NoError(t, err)
 
 	cfg, err := Load()

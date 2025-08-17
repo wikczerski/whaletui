@@ -60,8 +60,7 @@ func (bv *BaseView[T]) setupKeyBindings() {
 
 		item := bv.items[row-1]
 
-		switch event.Key() {
-		case tcell.KeyEnter:
+		if event.Key() == tcell.KeyEnter {
 			if bv.ShowDetails != nil {
 				bv.ShowDetails(item)
 			}

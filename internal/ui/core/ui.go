@@ -46,7 +46,7 @@ type UI struct {
 	volumesView    *views.VolumesView
 	networksView   *views.NetworksView
 	logsView       *views.LogsView
-	shellView      *shell.ShellView
+	shellView      *shell.View
 
 	// Component builders
 	componentBuilder *builders.ComponentBuilder
@@ -255,7 +255,6 @@ func (ui *UI) Stop() {
 
 // cleanup performs terminal cleanup operations
 func (ui *UI) cleanup() {
-	// These are terminal control sequences that rarely fail, but we'll handle them gracefully
 	if _, err := fmt.Fprint(os.Stdout, "\033[2J"); err != nil {
 		ui.log.Warn("Failed to clear screen: %v", err)
 	}
@@ -385,7 +384,7 @@ func (ui *UI) ShowShell(containerID, containerName string) {
 	// Get the container service to execute commands
 	containerService := ui.services.ContainerService
 
-	ui.shellView = shell.NewShellView(ui, containerID, containerName, func() {
+	ui.shellView = shell.NewView(ui, containerID, containerName, func() {
 		// Exit callback: return to containers view
 		ui.switchView("containers")
 	}, containerService.ExecContainer)

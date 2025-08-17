@@ -2,6 +2,7 @@ package models
 
 import "github.com/wikczerski/D5r/internal/docker"
 
+// Volume represents a Docker volume
 type Volume = docker.Volume
 
 // VolumeDetails represents detailed volume information

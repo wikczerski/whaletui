@@ -13,6 +13,7 @@ type containerService struct {
 	operations *CommonOperations
 }
 
+// NewContainerService creates a new container service
 func NewContainerService(client *docker.Client) ContainerService {
 	base := NewBaseService[models.Container](client, "container")
 	ops := NewCommonOperations(client)
@@ -24,8 +25,8 @@ func NewContainerService(client *docker.Client) ContainerService {
 		}
 
 		result := make([]models.Container, len(dockerContainers))
-		for i, c := range dockerContainers {
-			result[i] = models.Container(c)
+		for i := range dockerContainers {
+			result[i] = models.Container(dockerContainers[i])
 		}
 		return result, nil
 	}

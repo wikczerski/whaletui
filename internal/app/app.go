@@ -12,6 +12,7 @@ import (
 	"github.com/wikczerski/D5r/internal/ui/core"
 )
 
+// App represents the main application instance
 type App struct {
 	cfg      *config.Config
 	docker   *docker.Client
@@ -22,6 +23,7 @@ type App struct {
 	log      *logger.Logger
 }
 
+// New creates a new application instance
 func New(cfg *config.Config) (*App, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("config cannot be nil")
@@ -56,6 +58,7 @@ func New(cfg *config.Config) (*App, error) {
 	}, nil
 }
 
+// Run starts the application
 func (a *App) Run() error {
 	ticker := time.NewTicker(time.Duration(a.cfg.RefreshInterval) * time.Second)
 	defer ticker.Stop()
@@ -84,6 +87,7 @@ func (a *App) refreshLoop(ticker *time.Ticker) {
 	}
 }
 
+// Shutdown gracefully shuts down the application
 func (a *App) Shutdown() {
 	a.cancel()
 	a.ui.Stop()

@@ -2,6 +2,7 @@ package models
 
 import "github.com/wikczerski/D5r/internal/docker"
 
+// Network represents a Docker network
 type Network = docker.Network
 
 // NetworkDetails represents detailed network information

@@ -15,7 +15,7 @@ const (
 	ViewLogs       = "logs"
 )
 
-// Default view
+// DefaultView is the default view to show when the application starts
 const DefaultView = ViewContainers
 
 // UI layout constants
@@ -163,7 +163,7 @@ const (
 	TimeThreshold24h   = 24 * time.Hour
 )
 
-// Docker info template
+// DockerInfoTemplate is the template for displaying Docker system information
 const DockerInfoTemplate = `🐳 Docker Info
 ✅ Connected
 🐋 Version: %s
@@ -176,5 +176,5 @@ const DockerInfoTemplate = `🐳 Docker Info
 🔧 Driver: %s
 📝 Logging: %s`
 
-// Status bar template
+// StatusBarTemplate is the template for the status bar display
 const StatusBarTemplate = "%s | %s for details | %s to quit"
