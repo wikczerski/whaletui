@@ -240,7 +240,6 @@ func CreateInspectView(title string) (*tview.TextView, *tview.Flex) {
 
 // createInspectDetailsView creates a details view that displays Docker inspect data in condensed JSON
 func createInspectDetailsView(title string, inspectData map[string]any, actions map[rune]string, onAction func(rune), onBack func()) *tview.Flex {
-
 	detailsFlex := tview.NewFlex().SetDirection(tview.FlexRow)
 
 	titleView := tview.NewTextView().SetText(fmt.Sprintf(" %s ", title)).SetTextAlign(tview.AlignCenter)

@@ -17,6 +17,8 @@ linters:
     - prealloc
     - gocritic
     - revive
+    - gofumpt
+    - stylecheck
 
 linters-settings:
   gocritic:

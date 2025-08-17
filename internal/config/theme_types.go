@@ -32,12 +32,25 @@ type ThemeConfig struct {
 
 // MergeWith merges this config with another, copying non-empty values
 func (tc *ThemeConfig) MergeWith(other interface{}) {
-	if otherConfig, ok := other.(ThemeConfig); ok {
-		tc.Colors.MergeWith(otherConfig.Colors)
-		tc.Shell.MergeWith(otherConfig.Shell)
-		tc.ContainerExec.MergeWith(otherConfig.ContainerExec)
-		tc.CommandMode.MergeWith(otherConfig.CommandMode)
+	// Handle both value and pointer types
+	var otherConfig ThemeConfig
+	switch v := other.(type) {
+	case ThemeConfig:
+		otherConfig = v
+	case *ThemeConfig:
+		if v != nil {
+			otherConfig = *v
+		} else {
+			return
+		}
+	default:
+		return
 	}
+
+	tc.Colors.MergeWith(otherConfig.Colors)
+	tc.Shell.MergeWith(otherConfig.Shell)
+	tc.ContainerExec.MergeWith(otherConfig.ContainerExec)
+	tc.CommandMode.MergeWith(otherConfig.CommandMode)
 }
 
 // ThemeColors defines the color scheme
@@ -54,9 +67,22 @@ type ThemeColors struct {
 
 // MergeWith merges this ThemeColors with another, copying non-empty values
 func (tc *ThemeColors) MergeWith(other interface{}) {
-	if otherColors, ok := other.(ThemeColors); ok {
-		mergeStringFields(tc, otherColors)
+	// Handle both value and pointer types
+	var otherColors ThemeColors
+	switch v := other.(type) {
+	case ThemeColors:
+		otherColors = v
+	case *ThemeColors:
+		if v != nil {
+			otherColors = *v
+		} else {
+			return
+		}
+	default:
+		return
 	}
+
+	mergeStringFields(tc, otherColors)
 }
 
 // ShellTheme defines the shell-specific color scheme
@@ -70,10 +96,23 @@ type ShellTheme struct {
 
 // MergeWith merges this ShellTheme with another, copying non-empty values
 func (st *ShellTheme) MergeWith(other interface{}) {
-	if otherShell, ok := other.(ShellTheme); ok {
-		mergeStringFields(st, otherShell)
-		st.Cmd.MergeWith(otherShell.Cmd)
+	// Handle both value and pointer types
+	var otherShell ShellTheme
+	switch v := other.(type) {
+	case ShellTheme:
+		otherShell = v
+	case *ShellTheme:
+		if v != nil {
+			otherShell = *v
+		} else {
+			return
+		}
+	default:
+		return
 	}
+
+	mergeStringFields(st, otherShell)
+	st.Cmd.MergeWith(otherShell.Cmd)
 }
 
 // ShellCmdTheme defines the shell command input field color scheme
@@ -87,9 +126,22 @@ type ShellCmdTheme struct {
 
 // MergeWith merges this ShellCmdTheme with another, copying non-empty values
 func (sct *ShellCmdTheme) MergeWith(other interface{}) {
-	if otherCmd, ok := other.(ShellCmdTheme); ok {
-		mergeStringFields(sct, otherCmd)
+	// Handle both value and pointer types
+	var otherCmd ShellCmdTheme
+	switch v := other.(type) {
+	case ShellCmdTheme:
+		otherCmd = v
+	case *ShellCmdTheme:
+		if v != nil {
+			otherCmd = *v
+		} else {
+			return
+		}
+	default:
+		return
 	}
+
+	mergeStringFields(sct, otherCmd)
 }
 
 // ContainerExecTheme defines the container exec input field color scheme
@@ -104,9 +156,22 @@ type ContainerExecTheme struct {
 
 // MergeWith merges this ContainerExecTheme with another, copying non-empty values
 func (cet *ContainerExecTheme) MergeWith(other interface{}) {
-	if otherExec, ok := other.(ContainerExecTheme); ok {
-		mergeStringFields(cet, otherExec)
+	// Handle both value and pointer types
+	var otherExec ContainerExecTheme
+	switch v := other.(type) {
+	case ContainerExecTheme:
+		otherExec = v
+	case *ContainerExecTheme:
+		if v != nil {
+			otherExec = *v
+		} else {
+			return
+		}
+	default:
+		return
 	}
+
+	mergeStringFields(cet, otherExec)
 }
 
 // CommandModeTheme defines the command mode input field color scheme
@@ -121,7 +186,20 @@ type CommandModeTheme struct {
 
 // MergeWith merges this CommandModeTheme with another, copying non-empty values
 func (cmt *CommandModeTheme) MergeWith(other interface{}) {
-	if otherMode, ok := other.(CommandModeTheme); ok {
-		mergeStringFields(cmt, otherMode)
+	// Handle both value and pointer types
+	var otherMode CommandModeTheme
+	switch v := other.(type) {
+	case CommandModeTheme:
+		otherMode = v
+	case *CommandModeTheme:
+		if v != nil {
+			otherMode = *v
+		} else {
+			return
+		}
+	default:
+		return
 	}
+
+	mergeStringFields(cmt, otherMode)
 }

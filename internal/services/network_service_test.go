@@ -209,7 +209,6 @@ func TestNetworkService_ErrorHandling(t *testing.T) {
 }
 
 func TestNetworkService_EmptyResults(t *testing.T) {
-
 	service := NewNetworkService(nil)
 
 	assert.NotNil(t, service)

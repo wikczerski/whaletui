@@ -66,7 +66,8 @@ func (ah *ActionHandlers) addInspectPage(inspectFlex *tview.Flex) {
 func (ah *ActionHandlers) loadInspectDataAsync(
 	resourceType, resourceID string,
 	inspectView *tview.TextView,
-	inspectFunc func(context.Context, string) (map[string]any, error)) {
+	inspectFunc func(context.Context, string) (map[string]any, error),
+) {
 	go func() {
 		inspectData, err := inspectFunc(context.Background(), resourceID)
 		app := ah.ui.GetApp().(*tview.Application)
@@ -81,7 +82,8 @@ func (ah *ActionHandlers) updateInspectView(
 	resourceType string,
 	inspectView *tview.TextView,
 	inspectData map[string]any,
-	err error) {
+	err error,
+) {
 	if err != nil {
 		inspectView.SetText(fmt.Sprintf("%s inspection failed: %v", resourceType, err))
 		return
@@ -103,7 +105,6 @@ func (ah *ActionHandlers) HandleContainerAction(
 	containerService services.ContainerService,
 	onRefresh func(),
 ) {
-
 	switch action {
 	case 's':
 		ah.executor.StartOperation("container", containerID, containerService.StartContainer, onRefresh)
