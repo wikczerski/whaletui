@@ -33,9 +33,9 @@ jobs:
         echo "Make version:"
         make --version
         echo "==========================="
-        
+
         make build-all
-        
+
         echo "Build completed. Checking binaries:"
         ls -la dist/
         echo "Verifying all expected binaries exist:"
@@ -46,15 +46,15 @@ jobs:
             echo "✗ d5r-linux-$arch MISSING"
           fi
         done
-        
+
     - name: Create packages
       run: |
         make build-packages
-        
+
     - name: Generate checksums
       run: |
         make checksums
-        
+
     - name: List artifacts
       run: |
         ls -la dist/
@@ -87,7 +87,7 @@ jobs:
         echo "Available binaries in dist directory:"
         ls -la
         echo "Creating packages for architecture: ${{ matrix.arch }}"
-        
+
         # Verify the binary exists before proceeding
         if [ ! -f "${{ env.BINARY_NAME }}-linux-${{ matrix.arch }}" ]; then
           echo "ERROR: Binary ${{ env.BINARY_NAME }}-linux-${{ matrix.arch }} not found!"
@@ -95,14 +95,14 @@ jobs:
           ls -la
           exit 1
         fi
-        
+
         # Create tar.gz packages with version
         tar -czf packages/${{ env.BINARY_NAME }}-v${{ env.VERSION }}-linux-${{ matrix.arch }}.tar.gz ${{ env.BINARY_NAME }}-linux-${{ matrix.arch }}
-        
+
         # Create package files for supported architectures
         if [ "${{ matrix.arch }}" = "amd64" ]; then
           echo "Creating packages for amd64 architecture..."
-          
+
           # Create .deb package
           mkdir -p deb/DEBIAN
           echo "Package: ${{ env.BINARY_NAME }}" > deb/DEBIAN/control
@@ -110,20 +110,20 @@ jobs:
           echo "Architecture: amd64" >> deb/DEBIAN/control
           echo "Maintainer: Your Name <your.email@example.com>" >> deb/DEBIAN/control
           echo "Description: Docker management tool" >> deb/DEBIAN/control
-          
+
           mkdir -p deb/usr/local/bin
           cp ${{ env.BINARY_NAME }}-linux-${{ matrix.arch }} deb/usr/local/bin/${{ env.BINARY_NAME }}
           chmod +x deb/usr/local/bin/${{ env.BINARY_NAME }}
-          
+
           dpkg-deb --build deb packages/${{ env.BINARY_NAME }}-v${{ env.VERSION }}-linux-${{ matrix.arch }}.deb
           rm -rf deb
-          
+
           # Create .rpm package
           echo "Creating RPM package for amd64..."
           echo "Binary path: ${{ env.BINARY_NAME }}-linux-${{ matrix.arch }}"
           echo "Current directory: $(pwd)"
           echo "Binary exists: $(ls -la ${{ env.BINARY_NAME }}-linux-${{ matrix.arch }})"
-          
+
           mkdir -p rpm/BUILD rpm/BUILDROOT rpm/RPMS rpm/SOURCES rpm/SPECS
           echo "Name: ${{ env.BINARY_NAME }}" > rpm/SPECS/${{ env.BINARY_NAME }}.spec
           echo "Version: ${VERSION#v}" >> rpm/SPECS/${{ env.BINARY_NAME }}.spec
@@ -142,14 +142,14 @@ jobs:
           echo "mkdir -p %{buildroot}/usr/local/bin" >> rpm/SPECS/${{ env.BINARY_NAME }}.spec
           echo "cp ../../${{ env.BINARY_NAME }}-linux-${{ matrix.arch }} %{buildroot}/usr/local/bin/${{ env.BINARY_NAME }}" >> rpm/SPECS/${{ env.BINARY_NAME }}.spec
           echo "chmod +x %{buildroot}/usr/local/bin/${{ env.BINARY_NAME }}" >> rpm/SPECS/${{ env.BINARY_NAME }}.spec
-          
+
           echo "RPM spec file created:"
           cat rpm/SPECS/${{ env.BINARY_NAME }}.spec
-          
+
           rpmbuild --define "_topdir $(pwd)/rpm" -bb rpm/SPECS/${{ env.BINARY_NAME }}.spec
           cp rpm/RPMS/x86_64/*.rpm packages/
           rm -rf rpm
-          
+
           # Create .apk package
           echo "Creating APK package for amd64..."
           mkdir -p apk/apk
@@ -158,14 +158,14 @@ jobs:
           echo "x86_64" >> apk/apk/installed
           echo "" >> apk/apk/installed
           echo "C" >> apk/apk/installed
-          
+
           mkdir -p apk/usr/local/bin
           cp ${{ env.BINARY_NAME }}-linux-${{ matrix.arch }} apk/usr/local/bin/${{ env.BINARY_NAME }}
           chmod +x apk/usr/local/bin/${{ env.BINARY_NAME }}
-          
+
           tar -czf packages/${{ env.BINARY_NAME }}-v${{ env.VERSION }}-linux-${{ matrix.arch }}.apk -C apk .
           rm -rf apk
-          
+
           echo "All packages created successfully for amd64"
         else
           echo "Skipping package creation for ${{ matrix.arch }} architecture (only tar.gz created)"
@@ -275,10 +275,10 @@ jobs:
         find . -name "*.deb" -exec cp {} release/ \;
         find . -name "*.rpm" -exec cp {} release/ \;
         find . -name "*.apk" -exec cp {} release/ \;
-        
+
         # Copy checksums
         find . -name "checksums.sha256" -exec cp {} release/ \;
-        
+
         # Generate SBOM files (placeholder - you can integrate with actual SBOM tools)
         for file in release/*.tar.gz release/*.zip release/*.deb release/*.rpm release/*.apk; do
           if [ -f "$file" ]; then
@@ -286,7 +286,7 @@ jobs:
             echo '{"bomFormat": "CycloneDX", "specVersion": "1.4", "version": 1, "metadata": {"timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'", "tools": [{"vendor": "Your Company", "name": "SBOM Generator", "version": "1.0.0"}]}, "components": []}' > "release/${filename}.sbom.json"
           fi
         done
-        
+
         ls -la release/
 
     - name: Create Release

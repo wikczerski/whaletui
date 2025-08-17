@@ -11,7 +11,7 @@ A modern, terminal-based Docker management tool inspired by k9s for kubernetes, 
 
 ### 🐳 Core Docker Management
 - **Container Management**: View, start, stop, restart, delete, and manage containers
-- **Image Management**: Browse, inspect, and remove Docker images  
+- **Image Management**: Browse, inspect, and remove Docker images
 - **Volume Management**: Manage Docker volumes with ease
 - **Network Management**: View and manage Docker networks
 
@@ -184,7 +184,7 @@ d5r --theme config/theme.json
 
 Press `:` to enter command mode, then type:
 - `containers` or `c` - Switch to containers view
-- `images` or `i` - Switch to images view  
+- `images` or `i` - Switch to images view
 - `volumes` or `v` - Switch to volumes view
 - `networks` or `n` - Switch to networks view
 - `help` or `?` - Show help
@@ -201,7 +201,7 @@ Press `:` to enter command mode, then type:
 
 #### Containers View
 - **s**: Start container
-- **S**: Stop container  
+- **S**: Stop container
 - **r**: Restart container
 - **d**: Delete container
 - **l**: View container logs
@@ -360,6 +360,54 @@ golangci-lint run
 go vet ./...
 ```
 
+### Pre-commit Hooks
+
+This project uses pre-commit hooks to ensure code quality and consistency. The hooks run automatically before each commit and include:
+
+- **Code Formatting**: `go fmt` and `goimports` for consistent Go code style
+- **Static Analysis**: `go vet` for Go-specific issues
+- **Linting**: `golangci-lint` for comprehensive code quality checks
+- **File Hygiene**: Trailing whitespace removal, end-of-file fixes, YAML validation
+
+#### Installation
+
+1. **Install pre-commit** (if not already installed):
+   ```bash
+   # Using pip (Python)
+   pip install pre-commit
+
+   # Using Homebrew (macOS)
+   brew install pre-commit
+
+   # Using Chocolatey (Windows)
+   choco install pre-commit
+   ```
+
+2. **Install the project hooks**:
+   ```bash
+   pre-commit install
+   ```
+
+#### Usage
+
+- **Automatic**: Hooks run automatically before each `git commit`
+- **Manual (all files)**: `pre-commit run --all-files`
+- **Manual (staged only)**: `pre-commit run`
+- **Skip hooks** (not recommended): `git commit --no-verify`
+
+#### What Happens During Commit
+
+1. **Pre-commit checks run** automatically
+2. **If all pass**: Commit proceeds normally
+3. **If any fail**: Commit is blocked with error details
+4. **If files are modified**: Modified files are auto-staged for re-commit
+
+#### Troubleshooting
+
+- **Hook failures**: Fix the issues shown in the error output, then commit again
+- **Path issues**: Ensure `golangci-lint` is in your PATH
+- **Configuration**: Check `.golangci.yml` and `.pre-commit-config.yaml` for settings
+
 ### Dependencies
 
 ```bash
@@ -404,10 +452,16 @@ Contributions are Welcome! Please feel free to submit a Pull Request.
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes and add tests
-4. Commit your changes: `git commit -m 'Add amazing feature'`
-5. Push to the branch: `git push origin feature/amazing-feature`
-6. Open a Pull Request
+3. **Set up pre-commit hooks** (recommended):
+   ```bash
+   pre-commit install
+   ```
+4. Make your changes and add tests
+5. Commit your changes: `git commit -m 'Add amazing feature'`
+6. Push to the branch: `git push origin feature/amazing-feature`
+7. Open a Pull Request
+
+> **💡 Pro Tip**: Install pre-commit hooks before making changes to catch issues early and ensure your code meets project standards automatically!
 
 ## 📄 License
 

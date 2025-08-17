@@ -31,8 +31,8 @@ var themeCmd = &cobra.Command{
 var rootCmd = &cobra.Command{
 	Use:   "d5r",
 	Short: "D5r - Docker CLI Dashboard",
-	Long: `D5r is a terminal-based Docker management tool inspired by k9s, 
-providing an intuitive and powerful interface for managing Docker containers, 
+	Long: `D5r is a terminal-based Docker management tool inspired by k9s,
+providing an intuitive and powerful interface for managing Docker containers,
 images, volumes, and networks with a modern, responsive TUI.
 
 Features:

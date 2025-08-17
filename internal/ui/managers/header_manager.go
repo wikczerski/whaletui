@@ -61,8 +61,8 @@ func (hm *HeaderManager) createColumn(align int, color tcell.Color) *tview.TextV
 // createLogoColumn creates the logo column with special styling
 func (hm *HeaderManager) createLogoColumn() *tview.TextView {
 	logoCol := hm.createColumn(tview.AlignRight, hm.themeManager.GetHeaderColor())
-	logoCol.SetText(`  ____  ____  
- |  _ \|  _ \ 
+	logoCol.SetText(`  ____  ____
+ |  _ \|  _ \
  | | | | | | |
  | |_| | |_| |
  |____/|____/

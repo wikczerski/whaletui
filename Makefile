@@ -124,7 +124,7 @@ else
 	@echo "Cleaning previous build artifacts..."
 	@rm -rf $(BUILD_DIR)/
 	@mkdir -p $(BUILD_DIR)
-	
+
 	@echo "Starting Linux builds..."
 	@echo "Building Linux amd64..."
 ifeq ($(OS),Windows_NT)
@@ -138,7 +138,7 @@ else
 	@if [ ! -f "$(BUILD_DIR)/$(BINARY_NAME)-linux-amd64" ]; then echo "ERROR: Linux amd64 binary not created"; exit 1; fi
 	@echo "✓ Linux amd64 built successfully: $(shell ls -lh $(BUILD_DIR)/$(BINARY_NAME)-linux-amd64)"
 endif
-	
+
 	@echo "Building Linux arm64..."
 	@GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-arm64 main.go
 ifeq ($(OS),Windows_NT)
@@ -147,7 +147,7 @@ else
 	@if [ ! -f "$(BUILD_DIR)/$(BINARY_NAME)-linux-arm64" ]; then echo "ERROR: Linux arm64 binary not created"; exit 1; fi
 	@echo "✓ Linux arm64 built successfully: $(shell ls -lh $(BUILD_DIR)/$(BINARY_NAME)-linux-arm64)"
 endif
-	
+
 	@echo "Building Linux armv7..."
 	@GOOS=linux GOARCH=arm GOARM=7 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-armv7 main.go
 ifeq ($(OS),Windows_NT)
@@ -156,7 +156,7 @@ else
 	@if [ ! -f "$(BUILD_DIR)/$(BINARY_NAME)-linux-armv7" ]; then echo "ERROR: Linux armv7 binary not created"; exit 1; fi
 	@echo "✓ Linux armv7 built successfully: $(shell ls -lh $(BUILD_DIR)/$(BINARY_NAME)-linux-armv7)"
 endif
-	
+
 	@echo "Building Linux ppc64le..."
 	@GOOS=linux GOARCH=ppc64le go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-ppc64le main.go
 ifeq ($(OS),Windows_NT)
@@ -165,7 +165,7 @@ else
 	@if [ ! -f "$(BUILD_DIR)/$(BINARY_NAME)-linux-ppc64le" ]; then echo "ERROR: Linux ppc64le binary not created"; exit 1; fi
 	@echo "✓ Linux ppc64le built successfully: $(shell ls -lh $(BUILD_DIR)/$(BINARY_NAME)-linux-ppc64le)"
 endif
-	
+
 	@echo "Building Linux s390x..."
 	@GOOS=linux GOARCH=s390x go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-s390x main.go
 ifeq ($(OS),Windows_NT)
@@ -174,27 +174,27 @@ else
 	@if [ ! -f "$(BUILD_DIR)/$(BINARY_NAME)-linux-s390x" ]; then echo "ERROR: Linux s390x binary not created"; exit 1; fi
 	@echo "✓ Linux s390x built successfully: $(shell ls -lh $(BUILD_DIR)/$(BINARY_NAME)-linux-s390x)"
 endif
-	
+
 	@echo "Starting Darwin builds..."
 	@echo "Building Darwin amd64..."
 	@GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-amd64 main.go || (echo "Failed to build Darwin amd64"; exit 1)
 	@echo "Building Darwin arm64..."
 	@GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-arm64 main.go || (echo "Failed to build Darwin arm64"; exit 1)
-	
+
 	@echo "Starting FreeBSD builds..."
 	@echo "Building FreeBSD amd64..."
 	@GOOS=freebsd GOARCH=amd64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-freebsd-amd64 main.go || (echo "Failed to build FreeBSD amd64"; exit 1)
 	@echo "Building FreeBSD arm64..."
 	@GOOS=freebsd GOARCH=arm64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-freebsd-arm64 main.go || (echo "Failed to build FreeBSD arm64"; exit 1)
-	
+
 	@echo "Starting Windows builds..."
 	@echo "Building Windows amd64..."
 	@GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe main.go || (echo "Failed to build Windows amd64"; exit 1)
 	@echo "Building Windows arm64..."
 	@GOOS=windows GOARCH=arm64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-arm64.exe main.go || (echo "Failed to build Windows arm64"; exit 1)
-	
+
 	@echo "Build complete. Binaries are in $(BUILD_DIR)/"
-	
+
 	# Final verification that all expected binaries exist
 	@echo "Final verification:"
 ifeq ($(OS),Windows_NT)
@@ -247,25 +247,25 @@ else
 	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-v$(VERSION)-linux-ppc64le$(PACKAGE_EXT) $(BINARY_NAME)-linux-ppc64le || (echo "Failed to create Linux ppc64le package"; exit 1)
 	@echo "Creating Linux s390x package..."
 	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-v$(VERSION)-linux-s390x$(PACKAGE_EXT) $(BINARY_NAME)-linux-s390x || (echo "Failed to create Linux s390x package"; exit 1)
-	
+
 	@echo "Creating Darwin packages..."
 	@echo "Creating Darwin amd64 package..."
 	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-v$(VERSION)-darwin-amd64$(PACKAGE_EXT) $(BINARY_NAME)-darwin-amd64 || (echo "Failed to create Darwin amd64 package"; exit 1)
 	@echo "Creating Darwin arm64 package..."
 	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-v$(VERSION)-darwin-arm64$(PACKAGE_EXT) $(BINARY_NAME)-darwin-arm64 || (echo "Failed to create Darwin arm64 package"; exit 1)
-	
+
 	@echo "Creating FreeBSD packages..."
 	@echo "Creating FreeBSD amd64 package..."
 	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-v$(VERSION)-freebsd-amd64$(PACKAGE_EXT) $(BINARY_NAME)-freebsd-amd64 || (echo "Failed to create FreeBSD amd64 package"; exit 1)
 	@echo "Creating FreeBSD arm64 package..."
 	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-v$(VERSION)-freebsd-arm64$(PACKAGE_EXT) $(BINARY_NAME)-freebsd-arm64 || (echo "Failed to create FreeBSD arm64 package"; exit 1)
-	
+
 	@echo "Creating Windows packages..."
 	@echo "Creating Windows amd64 package..."
 	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-v$(VERSION)-windows-amd64$(PACKAGE_EXT) $(BINARY_NAME)-windows-amd64.exe || (echo "Failed to create Windows amd64 package"; exit 1)
 	@echo "Creating Windows arm64 package..."
 	@cd $(BUILD_DIR) && tar -czf packages/$(BINARY_NAME)-v$(VERSION)-windows-arm64$(PACKAGE_EXT) $(BINARY_NAME)-windows-arm64.exe || (echo "Failed to create Windows arm64 package"; exit 1)
-	
+
 	@echo "Packages created in $(BUILD_DIR)/packages/"
 	@echo "Verifying all packages:"
 ifeq ($(OS),Windows_NT)
