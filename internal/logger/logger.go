@@ -124,9 +124,8 @@ func (l *Logger) log(level LogLevel, format string, args ...any) {
 	if level == FATAL {
 		l.mu.Unlock() // Unlock before exit
 		os.Exit(1)
-	} else {
-		l.mu.Unlock()
 	}
+	l.mu.Unlock()
 }
 
 // Debug logs a debug message

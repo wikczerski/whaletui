@@ -21,11 +21,11 @@ func (m *MockImageService) ListImages(_ context.Context) ([]models.Image, error)
 	return m.images, m.listErr
 }
 
-func (m *MockImageService) InspectImage(_ context.Context, id string) (map[string]any, error) {
+func (m *MockImageService) InspectImage(_ context.Context, _ string) (map[string]any, error) {
 	return nil, m.inspectErr
 }
 
-func (m *MockImageService) RemoveImage(ctx context.Context, id string, force bool) error {
+func (m *MockImageService) RemoveImage(_ context.Context, id string, force bool) error {
 	return nil
 }
 

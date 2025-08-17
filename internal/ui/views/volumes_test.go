@@ -26,7 +26,7 @@ func (m *MockVolumeService) InspectVolume(_ context.Context, _ string) (map[stri
 	return m.inspectData, m.inspectErr
 }
 
-func (m *MockVolumeService) RemoveVolume(_ context.Context, name string, force bool) error {
+func (m *MockVolumeService) RemoveVolume(_ context.Context, _ string, force bool) error {
 	return nil
 }
 
