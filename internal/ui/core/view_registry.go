@@ -59,6 +59,14 @@ func (vr *ViewRegistry) GetCurrentName() string {
 	return vr.currentView
 }
 
+// GetCurrentActionsString returns the actions string from the current view
+func (vr *ViewRegistry) GetCurrentActionsString() string {
+	if currentView := vr.GetCurrent(); currentView != nil {
+		return currentView.Actions
+	}
+	return ""
+}
+
 // GetAll returns all views
 func (vr *ViewRegistry) GetAll() map[string]*ViewInfo {
 	return vr.views

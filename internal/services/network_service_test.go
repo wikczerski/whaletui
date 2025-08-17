@@ -63,7 +63,7 @@ func TestNetworkService_RemoveNetwork(t *testing.T) {
 	err := service.RemoveNetwork(ctx, "test-network-id")
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "network removal not yet implemented")
+	assert.Contains(t, err.Error(), "docker client is not initialized")
 }
 
 func TestNetworkService_RemoveNetwork_EmptyID(t *testing.T) {
@@ -72,7 +72,23 @@ func TestNetworkService_RemoveNetwork_EmptyID(t *testing.T) {
 	err := service.RemoveNetwork(ctx, "")
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "network removal not yet implemented")
+	assert.Contains(t, err.Error(), "docker client is not initialized")
+}
+
+func TestNetworkService_RemoveNetwork_EmptyID_WithClient(t *testing.T) {
+	cfg := &config.Config{DockerHost: "unix:///var/run/docker.sock"}
+	client, err := docker.New(cfg)
+	if err != nil {
+		t.Skipf("Docker not available: %v", err)
+	}
+	defer client.Close()
+
+	service := NewNetworkService(client)
+	ctx := context.Background()
+	err = service.RemoveNetwork(ctx, "")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "network ID cannot be empty")
 }
 
 func TestNetworkService_InspectNetwork_Integration(t *testing.T) {
@@ -159,11 +175,13 @@ func TestNetworkService_ContextHandling(t *testing.T) {
 }
 
 func TestNetworkService_NetworkConversion(t *testing.T) {
+	createdTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
 	dockerNetwork := docker.Network{
-		ID:     "abc123def456",
-		Name:   "bridge",
-		Driver: "bridge",
-		Scope:  "local",
+		ID:      "abc123def456",
+		Name:    "bridge",
+		Driver:  "bridge",
+		Scope:   "local",
+		Created: createdTime,
 	}
 
 	modelNetwork := models.Network{
@@ -171,15 +189,14 @@ func TestNetworkService_NetworkConversion(t *testing.T) {
 		Name:    dockerNetwork.Name,
 		Driver:  dockerNetwork.Driver,
 		Scope:   dockerNetwork.Scope,
-		Created: time.Now(), // Note: service uses time.Now() instead of actual creation time
+		Created: dockerNetwork.Created,
 	}
 
 	assert.Equal(t, dockerNetwork.ID, modelNetwork.ID)
 	assert.Equal(t, dockerNetwork.Name, modelNetwork.Name)
 	assert.Equal(t, dockerNetwork.Driver, modelNetwork.Driver)
 	assert.Equal(t, dockerNetwork.Scope, modelNetwork.Scope)
-
-	assert.WithinDuration(t, time.Now(), modelNetwork.Created, time.Second)
+	assert.Equal(t, dockerNetwork.Created, modelNetwork.Created)
 }
 
 func TestNetworkService_ErrorHandling(t *testing.T) {
@@ -188,8 +205,7 @@ func TestNetworkService_ErrorHandling(t *testing.T) {
 	err := service.RemoveNetwork(ctx, "test-network")
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "network removal not yet implemented")
-	assert.Contains(t, err.Error(), "docker client")
+	assert.Contains(t, err.Error(), "docker client is not initialized")
 }
 
 func TestNetworkService_EmptyResults(t *testing.T) {
@@ -212,6 +228,22 @@ func TestNetworkService_NetworkIDValidation(t *testing.T) {
 	for _, id := range testIDs {
 		err := service.RemoveNetwork(context.Background(), id)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "network removal not yet implemented")
+		assert.Contains(t, err.Error(), "docker client is not initialized")
 	}
+}
+
+func TestNetworkService_NetworkIDValidation_WithClient(t *testing.T) {
+	cfg := &config.Config{DockerHost: "unix:///var/run/docker.sock"}
+	client, err := docker.New(cfg)
+	if err != nil {
+		t.Skipf("Docker not available: %v", err)
+	}
+	defer client.Close()
+
+	service := NewNetworkService(client)
+
+	// Test empty ID validation
+	err = service.RemoveNetwork(context.Background(), "")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "network ID cannot be empty")
 }

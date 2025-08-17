@@ -7,6 +7,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/wikczerski/D5r/internal/ui/builders"
+	"github.com/wikczerski/D5r/internal/ui/constants"
 	"github.com/wikczerski/D5r/internal/ui/interfaces"
 )
 
@@ -97,7 +98,7 @@ func (bv *BaseView[T]) Refresh() {
 	if bv.FormatRow != nil {
 		for i, item := range items {
 			cells := bv.FormatRow(item)
-			rowColor := tcell.ColorWhite
+			rowColor := constants.TableDefaultRowColor
 			if bv.GetRowColor != nil {
 				rowColor = bv.GetRowColor(item)
 			}

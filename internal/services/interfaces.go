@@ -16,6 +16,8 @@ type ContainerService interface {
 	RemoveContainer(ctx context.Context, id string, force bool) error
 	GetContainerLogs(ctx context.Context, id string) (string, error)
 	InspectContainer(ctx context.Context, id string) (map[string]any, error)
+	ExecContainer(ctx context.Context, id string, command []string, tty bool) (string, error)
+	AttachContainer(ctx context.Context, id string) (any, error)
 }
 
 // ImageService defines the interface for image business operations

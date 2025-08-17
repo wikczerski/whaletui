@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/wikczerski/D5r/internal/docker"
 	"github.com/wikczerski/D5r/internal/models"
@@ -35,7 +34,7 @@ func (s *networkService) ListNetworks(ctx context.Context) ([]models.Network, er
 			Name:    net.Name,
 			Driver:  net.Driver,
 			Scope:   net.Scope,
-			Created: time.Now(), // TODO: Get actual creation time from docker client
+			Created: net.Created,
 		})
 	}
 
@@ -44,8 +43,15 @@ func (s *networkService) ListNetworks(ctx context.Context) ([]models.Network, er
 
 // RemoveNetwork removes a network
 func (s *networkService) RemoveNetwork(ctx context.Context, id string) error {
-	// TODO: Implement network removal when docker client supports it
-	return fmt.Errorf("network removal not yet implemented in docker client")
+	if s.client == nil {
+		return fmt.Errorf("docker client is not initialized")
+	}
+
+	if id == "" {
+		return fmt.Errorf("network ID cannot be empty")
+	}
+
+	return s.client.RemoveNetwork(ctx, id)
 }
 
 // InspectNetwork inspects a network

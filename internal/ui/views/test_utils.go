@@ -2,6 +2,7 @@ package views
 
 import (
 	"github.com/rivo/tview"
+	"github.com/wikczerski/D5r/internal/config"
 	"github.com/wikczerski/D5r/internal/logger"
 	"github.com/wikczerski/D5r/internal/services"
 )
@@ -68,12 +69,22 @@ func (m *MockUI) GetNetworkService() any {
 func (m *MockUI) IsInLogsMode() bool                               { return false }
 func (m *MockUI) IsInDetailsMode() bool                            { return false }
 func (m *MockUI) GetCurrentActions() map[rune]string               { return nil }
+func (m *MockUI) GetCurrentViewActions() string                    { return "" }
 func (m *MockUI) GetViewRegistry() any                             { return nil }
 func (m *MockUI) SwitchView(view string)                           {}
 func (m *MockUI) ShowHelp()                                        {}
 func (m *MockUI) ShowLogs(containerID, containerName string)       {}
+func (m *MockUI) ShowShell(containerID, containerName string)      {}
 func (m *MockUI) ShowError(err error)                              {}
 func (m *MockUI) ShowDetails(details any)                          {}
 func (m *MockUI) ShowCurrentView()                                 {}
 func (m *MockUI) ShowConfirm(message string, onConfirm func(bool)) {}
+func (m *MockUI) ShowSuccess(message string)                       {}
+func (m *MockUI) GetThemeManager() *config.ThemeManager            { return nil }
 func (m *MockUI) UpdateStatusBar(message string)                   {}
+func (m *MockUI) GetInputField() any                               { return nil }
+
+// GetShutdownChan returns a mock shutdown channel for testing
+func (m *MockUI) GetShutdownChan() chan struct{} {
+	return make(chan struct{})
+}

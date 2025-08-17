@@ -38,7 +38,7 @@ func New(cfg *config.Config) (*App, error) {
 	services := services.NewServiceFactory(client)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	ui, err := core.New(services)
+	ui, err := core.New(services, cfg.Theme)
 	if err != nil {
 		cancel()
 		client.Close()
@@ -88,4 +88,9 @@ func (a *App) Shutdown() {
 	a.cancel()
 	a.ui.Stop()
 	a.docker.Close()
+}
+
+// GetUI returns the UI instance
+func (a *App) GetUI() *core.UI {
+	return a.ui
 }

@@ -5,15 +5,24 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	"github.com/wikczerski/D5r/internal/ui/constants"
+	"github.com/wikczerski/D5r/internal/config"
 )
 
 // ComponentBuilder provides methods to create consistent UI components
-type ComponentBuilder struct{}
+type ComponentBuilder struct {
+	themeManager *config.ThemeManager
+}
 
 // NewComponentBuilder creates a new component builder
 func NewComponentBuilder() *ComponentBuilder {
 	return &ComponentBuilder{}
+}
+
+// NewComponentBuilderWithTheme creates a new component builder with theme support
+func NewComponentBuilderWithTheme(themeManager *config.ThemeManager) *ComponentBuilder {
+	return &ComponentBuilder{
+		themeManager: themeManager,
+	}
 }
 
 // CreateTextView creates a text view with consistent styling
@@ -23,7 +32,9 @@ func (cb *ComponentBuilder) CreateTextView(text string, align int, color tcell.C
 	tv.SetTextAlign(align)
 	tv.SetTextColor(color)
 	tv.SetBorder(false)
-	tv.SetBackgroundColor(constants.BackgroundColor)
+	if cb.themeManager != nil {
+		tv.SetBackgroundColor(cb.themeManager.GetBackgroundColor())
+	}
 	return tv
 }
 
@@ -34,7 +45,9 @@ func (cb *ComponentBuilder) CreateBorderedTextView(text, title string, color tce
 	tv.SetTitle(fmt.Sprintf(" %s ", title))
 	tv.SetBorder(true)
 	tv.SetBorderColor(color)
-	tv.SetBackgroundColor(constants.BackgroundColor)
+	if cb.themeManager != nil {
+		tv.SetBackgroundColor(cb.themeManager.GetBackgroundColor())
+	}
 	return tv
 }
 
@@ -57,7 +70,9 @@ func (cb *ComponentBuilder) CreateTable() *tview.Table {
 	table.SetBorderPadding(0, 0, 0, 0)
 	table.SetSelectable(true, false)
 	table.SetFixed(1, 0)
-	table.SetBorderColor(constants.BorderColor)
+	if cb.themeManager != nil {
+		table.SetBorderColor(cb.themeManager.GetBorderColor())
+	}
 	return table
 }
 
@@ -66,7 +81,9 @@ func (cb *ComponentBuilder) CreateInputField(label string) *tview.InputField {
 	input := tview.NewInputField()
 	input.SetLabel(label)
 	input.SetBorder(true)
-	input.SetBorderColor(constants.BorderColor)
-	input.SetBackgroundColor(constants.BackgroundColor)
+	if cb.themeManager != nil {
+		input.SetBorderColor(cb.themeManager.GetBorderColor())
+		input.SetBackgroundColor(cb.themeManager.GetBackgroundColor())
+	}
 	return input
 }

@@ -1,0 +1,37 @@
+colors:
+  header: "#00FF00"     # Bright green header
+  border: "#444444"     # Dark gray borders
+  text: "#E0E0E0"       # Light gray text
+  background: "black"   # Black background
+  success: "#00FF00"    # Bright green success
+  warning: "#FFFF00"    # Bright yellow warning
+  error: "#FF0000"      # Bright red error
+  info: "#0080FF"       # Bright blue info
+
+shell:
+  border: "#444444"     # Dark gray borders (matching theme)
+  title: "#00FF00"      # Bright green title (matching header)
+  text: "#E0E0E0"       # Light gray text (matching theme)
+  background: "black"   # Black background (matching theme)
+  cmd:
+    label: "#00FF00"      # Bright green label (matching success)
+    border: "#444444"     # Dark gray border (matching theme)
+    text: "#E0E0E0"       # Light gray text (matching theme)
+    background: "black"   # Black background (matching theme)
+    placeholder: "#666666" # Medium gray placeholder
+
+containerExec:
+  label: "#00FF00"      # Bright green label (matching header)
+  border: "#444444"     # Dark gray border (matching theme)
+  text: "#E0E0E0"       # Light gray text (matching theme)
+  background: "#222222" # Very dark gray background
+  placeholder: "#666666" # Medium gray placeholder (matching shell)
+  title: "#00FF00"      # Bright green title (matching header)
+
+commandMode:
+  label: "#00FF00"      # Bright green label (matching header)
+  border: "#444444"     # Dark gray border (matching theme)
+  text: "#E0E0E0"       # Light gray text (matching theme)
+  background: "#222222" # Very dark gray background
+  placeholder: "#666666" # Medium gray placeholder (matching shell)
+  title: "#00FF00"      # Bright green title (matching header)

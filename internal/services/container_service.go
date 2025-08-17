@@ -71,3 +71,11 @@ func (s *containerService) GetContainerLogs(ctx context.Context, id string) (str
 func (s *containerService) InspectContainer(ctx context.Context, id string) (map[string]any, error) {
 	return s.Inspect(ctx, id)
 }
+
+func (s *containerService) ExecContainer(ctx context.Context, id string, command []string, tty bool) (string, error) {
+	return s.operations.ExecContainer(ctx, id, command, tty)
+}
+
+func (s *containerService) AttachContainer(ctx context.Context, id string) (any, error) {
+	return s.operations.AttachContainer(ctx, id)
+}

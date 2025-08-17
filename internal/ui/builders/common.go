@@ -252,23 +252,10 @@ func createInspectDetailsView(title string, inspectData map[string]any, actions 
 	inspectText.SetBorderColor(constants.BorderColor)
 
 	// Configure spacebar for half-page scrolling
-	// TODO: fix it so it goes half page view at the time and not always to half of the text
 	inspectText.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyRune && event.Rune() == ' ' {
 			// Get current scroll position
 			_, currentLine := inspectText.GetScrollOffset()
-
-			// Get the text content to calculate actual height
-			text := inspectText.GetText(true)
-
-			// Count the lines in the actual content
-			lines := 0
-			for _, char := range text {
-				if char == '\n' {
-					lines++
-				}
-			}
-			lines++ // Add 1 for the last line
 
 			// Get the visible area height
 			_, _, _, visibleHeight := inspectText.GetInnerRect()
@@ -281,11 +268,6 @@ func createInspectDetailsView(title string, inspectData map[string]any, actions 
 
 			// Calculate new scroll position
 			newLine := currentLine + halfView
-
-			// Ensure we don't scroll past the end
-			if newLine >= lines {
-				newLine = lines - 1
-			}
 
 			// Scroll to the new position
 			inspectText.ScrollTo(newLine, 0)

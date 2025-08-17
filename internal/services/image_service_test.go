@@ -40,7 +40,6 @@ func TestImageService_ListImages_Integration(t *testing.T) {
 	result, err := service.ListImages(ctx)
 
 	require.NoError(t, err)
-	// Result can be nil or empty slice - both are valid
 	if result == nil {
 		result = []models.Image{}
 	}
@@ -63,7 +62,7 @@ func TestImageService_RemoveImage(t *testing.T) {
 	err := service.RemoveImage(ctx, "test-image-id", false)
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "image removal not yet implemented")
+	assert.Contains(t, err.Error(), "docker client is not initialized")
 }
 
 func TestImageService_RemoveImage_Force(t *testing.T) {
@@ -72,7 +71,7 @@ func TestImageService_RemoveImage_Force(t *testing.T) {
 	err := service.RemoveImage(ctx, "test-image-id", true)
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "image removal not yet implemented")
+	assert.Contains(t, err.Error(), "docker client is not initialized")
 }
 
 func TestImageService_RemoveImage_EmptyID(t *testing.T) {
@@ -81,7 +80,23 @@ func TestImageService_RemoveImage_EmptyID(t *testing.T) {
 	err := service.RemoveImage(ctx, "", false)
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "image removal not yet implemented")
+	assert.Contains(t, err.Error(), "docker client is not initialized")
+}
+
+func TestImageService_RemoveImage_EmptyID_WithClient(t *testing.T) {
+	cfg := &config.Config{DockerHost: "unix:///var/run/docker.sock"}
+	client, err := docker.New(cfg)
+	if err != nil {
+		t.Skipf("Docker not available: %v", err)
+	}
+	defer client.Close()
+
+	service := NewImageService(client)
+	ctx := context.Background()
+	err = service.RemoveImage(ctx, "", false)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "image ID cannot be empty")
 }
 
 func TestImageService_InspectImage_Integration(t *testing.T) {

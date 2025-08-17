@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
@@ -450,6 +451,13 @@ func (c *Client) ListNetworks(ctx context.Context) ([]Network, error) {
 			Name:       net.Name,
 			Driver:     net.Driver,
 			Scope:      net.Scope,
+			Created:    net.Created,
+			Internal:   net.Internal,
+			Attachable: net.Attachable,
+			Ingress:    net.Ingress,
+			IPv6:       net.EnableIPv6,
+			EnableIPv6: net.EnableIPv6,
+			Labels:     net.Labels,
 			Containers: len(net.Containers),
 		})
 	}
@@ -495,4 +503,116 @@ func (c *Client) RemoveContainer(ctx context.Context, id string, force bool) err
 	}
 
 	return c.cli.ContainerRemove(ctx, id, opts)
+}
+
+// ExecContainer executes a command in a running container and returns the output
+func (c *Client) ExecContainer(ctx context.Context, id string, command []string, tty bool) (string, error) {
+	if c.cli == nil {
+		return "", fmt.Errorf("docker client is not initialized")
+	}
+
+	// Create exec configuration
+	execConfig := container.ExecOptions{
+		Cmd:          command,
+		Tty:          false, // Set to false to capture output
+		AttachStdin:  false, // We don't need stdin for command execution
+		AttachStdout: true,
+		AttachStderr: true,
+		Detach:       false,
+	}
+
+	// Create exec instance
+	execResp, err := c.cli.ContainerExecCreate(ctx, id, execConfig)
+	if err != nil {
+		return "", fmt.Errorf("failed to create exec instance: %w", err)
+	}
+
+	// Attach to exec instance to capture output
+	attachConfig := container.ExecStartOptions{
+		Tty: false,
+	}
+
+	hijackedResp, err := c.cli.ContainerExecAttach(ctx, execResp.ID, attachConfig)
+	if err != nil {
+		return "", fmt.Errorf("failed to attach to exec instance: %w", err)
+	}
+	defer hijackedResp.Close()
+
+	// Start the exec instance
+	err = c.cli.ContainerExecStart(ctx, execResp.ID, attachConfig)
+	if err != nil {
+		return "", fmt.Errorf("failed to start exec instance: %w", err)
+	}
+
+	// Read the output
+	var output strings.Builder
+	buffer := make([]byte, 1024)
+
+	for {
+		n, err := hijackedResp.Reader.Read(buffer)
+		if n > 0 {
+			output.Write(buffer[:n])
+		}
+		if err != nil {
+			break
+		}
+	}
+
+	return output.String(), nil
+}
+
+// AttachContainer attaches to a running container
+func (c *Client) AttachContainer(ctx context.Context, id string) (types.HijackedResponse, error) {
+	if c.cli == nil {
+		return types.HijackedResponse{}, fmt.Errorf("docker client is not initialized")
+	}
+
+	// Configure attach options
+	attachConfig := container.AttachOptions{
+		Stream: true,
+		Stdin:  true,
+		Stdout: true,
+		Stderr: true,
+		Logs:   false,
+	}
+
+	// Attach to container
+	response, err := c.cli.ContainerAttach(ctx, id, attachConfig)
+	if err != nil {
+		return types.HijackedResponse{}, fmt.Errorf("failed to attach to container: %w", err)
+	}
+
+	return response, nil
+}
+
+// RemoveImage removes an image
+func (c *Client) RemoveImage(ctx context.Context, id string, force bool) error {
+	if id == "" {
+		return fmt.Errorf("image ID cannot be empty")
+	}
+
+	opts := image.RemoveOptions{
+		Force:         force,
+		PruneChildren: true, // Remove dependent images by default
+	}
+
+	_, err := c.cli.ImageRemove(ctx, id, opts)
+	if err != nil {
+		return fmt.Errorf("failed to remove image %s: %w", id, err)
+	}
+
+	return nil
+}
+
+// RemoveNetwork removes a network
+func (c *Client) RemoveNetwork(ctx context.Context, id string) error {
+	if id == "" {
+		return fmt.Errorf("network ID cannot be empty")
+	}
+
+	if err := c.cli.NetworkRemove(ctx, id); err != nil {
+		return fmt.Errorf("failed to remove network %s: %w", id, err)
+	}
+
+	return nil
 }

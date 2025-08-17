@@ -6,6 +6,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"github.com/wikczerski/D5r/internal/config"
 	"github.com/wikczerski/D5r/internal/ui/constants"
 	"github.com/wikczerski/D5r/internal/ui/interfaces"
 )
@@ -17,20 +18,24 @@ type HeaderManager struct {
 	navCol        *tview.TextView
 	actionsCol    *tview.TextView
 	logoCol       *tview.TextView
+	themeManager  *config.ThemeManager
 }
 
 // NewHeaderManager creates a new header manager
 func NewHeaderManager(ui interfaces.UIInterface) *HeaderManager {
-	return &HeaderManager{ui: ui}
+	return &HeaderManager{
+		ui:           ui,
+		themeManager: ui.GetThemeManager(),
+	}
 }
 
 // CreateHeaderSection creates the complete header section with all columns
 func (hm *HeaderManager) CreateHeaderSection() *tview.Flex {
 	headerSection := tview.NewFlex().SetDirection(tview.FlexColumn)
 
-	hm.dockerInfoCol = hm.createColumn(tview.AlignLeft, constants.TextColor)
-	hm.navCol = hm.createColumn(tview.AlignLeft, constants.TextColor)
-	hm.actionsCol = hm.createColumn(tview.AlignLeft, constants.TextColor)
+	hm.dockerInfoCol = hm.createColumn(tview.AlignLeft, hm.themeManager.GetTextColor())
+	hm.navCol = hm.createColumn(tview.AlignLeft, hm.themeManager.GetTextColor())
+	hm.actionsCol = hm.createColumn(tview.AlignLeft, hm.themeManager.GetTextColor())
 	hm.logoCol = hm.createLogoColumn()
 
 	headerSection.AddItem(hm.dockerInfoCol, 0, 1, false)
@@ -45,7 +50,7 @@ func (hm *HeaderManager) CreateHeaderSection() *tview.Flex {
 func (hm *HeaderManager) createColumn(align int, color tcell.Color) *tview.TextView {
 	col := tview.NewTextView()
 	col.SetBorder(false)
-	col.SetBackgroundColor(constants.BackgroundColor)
+	col.SetBackgroundColor(hm.themeManager.GetBackgroundColor())
 	col.SetTextColor(color)
 	col.SetTextAlign(align)
 	col.SetWordWrap(false)
@@ -55,7 +60,7 @@ func (hm *HeaderManager) createColumn(align int, color tcell.Color) *tview.TextV
 
 // createLogoColumn creates the logo column with special styling
 func (hm *HeaderManager) createLogoColumn() *tview.TextView {
-	logoCol := hm.createColumn(tview.AlignRight, tcell.ColorYellow)
+	logoCol := hm.createColumn(tview.AlignRight, hm.themeManager.GetHeaderColor())
 	logoCol.SetText(`  ____  ____  
  |  _ \|  _ \ 
  | | | | | | |
@@ -89,10 +94,6 @@ func (hm *HeaderManager) UpdateDockerInfo() {
 		return
 	}
 
-	// Get the config to check if we're connected to a remote host
-	// We'll need to access the config through the services or UI
-	// For now, let's show a basic info structure
-
 	ctx := context.Background()
 	dockerInfo, err := services.DockerInfoService.GetDockerInfo(ctx)
 
@@ -101,15 +102,19 @@ func (hm *HeaderManager) UpdateDockerInfo() {
 		// Show connection info even if Docker info fails
 		infoText = "Context: docker\nCluster: local\nUser: docker\nD5r Rev: dev\nDocker Rev: --\nCPU: --\nMEM: --"
 	} else {
-		infoText = fmt.Sprintf("Context: docker\nCluster: local\nUser: docker\nD5r Rev: dev\nDocker Rev: %s\nCPU: --\nMEM: --", dockerInfo.Version)
+		// Use the DockerInfoTemplate constant with comprehensive information
+		infoText = fmt.Sprintf(constants.DockerInfoTemplate,
+			dockerInfo.Version,
+			dockerInfo.Containers,
+			dockerInfo.Images,
+			dockerInfo.Volumes,
+			dockerInfo.Networks,
+			dockerInfo.OperatingSystem,
+			dockerInfo.Architecture,
+			dockerInfo.Driver,
+			dockerInfo.LoggingDriver,
+		)
 	}
-
-	// Try to get host information from the UI or services
-	// This is a placeholder - we'll need to implement proper host info access
-	hostInfo := "Host: local"
-
-	// Add host info to the display
-	infoText = hostInfo + "\n" + infoText
 
 	hm.dockerInfoCol.SetText(infoText)
 }
@@ -139,6 +144,24 @@ func (hm *HeaderManager) UpdateActions() {
 		return
 	}
 
+	// If in logs mode, show logs actions
+	if hm.ui.IsInLogsMode() {
+		logsActions := map[rune]string{
+			'f': "Follow logs",
+			't': "Tail logs",
+			's': "Save logs",
+			'c': "Clear logs",
+			'w': "Wrap text",
+		}
+		var actionsText string
+		for key, action := range logsActions {
+			actionsText += fmt.Sprintf("<%c> %s\n", key, action)
+		}
+		actionsText += "ESC/Enter: Back to table"
+		hm.actionsCol.SetText(actionsText)
+		return
+	}
+
 	// If in details mode, show current actions
 	if hm.ui.IsInDetailsMode() {
 		currentActions := hm.ui.GetCurrentActions()
@@ -154,12 +177,11 @@ func (hm *HeaderManager) UpdateActions() {
 	}
 
 	// Get actions for current view from registry
-	// viewRegistry := hm.ui.GetViewRegistry()
-	// if viewRegistry != nil {
-	//     // For now, use default actions to avoid complex type assertions
-	//     // TODO: Implement proper view registry access
-	// }
-	// TODO: Implement proper view registry access when it's fully functional
+	viewActions := hm.ui.GetCurrentViewActions()
+	if viewActions != "" {
+		hm.actionsCol.SetText(viewActions)
+		return
+	}
 
 	// Fallback to default container actions
 	defaultActions := "<s> Start\n<S> Stop\n<r> Restart\n<d> Delete\n<a> Attach\n<l> Logs\n<i> Inspect\n<n> New\n<e> Exec\n<f> Filter\n<t> Sort\n<h> History\n<enter> Details\n<:> Command"

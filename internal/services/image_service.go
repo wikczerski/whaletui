@@ -37,8 +37,15 @@ func (s *imageService) ListImages(ctx context.Context) ([]models.Image, error) {
 
 // RemoveImage removes an image
 func (s *imageService) RemoveImage(ctx context.Context, id string, force bool) error {
-	// TODO: Implement image removal when docker client supports it
-	return fmt.Errorf("image removal not yet implemented in docker client")
+	if s.client == nil {
+		return fmt.Errorf("docker client is not initialized")
+	}
+
+	if id == "" {
+		return fmt.Errorf("image ID cannot be empty")
+	}
+
+	return s.client.RemoveImage(ctx, id, force)
 }
 
 // InspectImage inspects an image

@@ -124,6 +124,14 @@ func (mm *ModalManager) buildHelpText() string {
 				"i         Inspect network",
 			},
 		},
+		{
+			title: "Configuration",
+			content: []string{
+				":         Command mode",
+				"theme     Custom themes (YAML/JSON)",
+				"refresh   Auto-refresh settings",
+			},
+		},
 	}
 
 	helpText := "DockerK9s Keyboard Shortcuts\n\n"
