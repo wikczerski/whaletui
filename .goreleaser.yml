@@ -76,32 +76,6 @@ nfpms:
         dst: /usr/share/doc/d5r/README.md
       - src: "LICENSE"
         dst: /usr/share/doc/d5r/LICENSE
-    overrides:
-      - goos: linux
-        goarch: amd64
-        contents:
-          - src: "D5r_linux_amd64"
-            dst: /usr/local/bin/D5r
-      - goos: linux
-        goarch: 386
-        contents:
-          - src: "D5r_linux_386"
-            dst: /usr/local/bin/D5r
-      - goos: linux
-        goarch: arm64
-        contents:
-          - src: "D5r_linux_arm64"
-            dst: /usr/local/bin/D5r
-      - goos: linux
-        goarch: ppc64le
-        contents:
-          - src: "D5r_linux_ppc64le"
-            dst: /usr/local/bin/D5r
-      - goos: linux
-        goarch: s390x
-        contents:
-          - src: "D5r_linux_s390x"
-            dst: /usr/local/bin/D5r
 
 
 
