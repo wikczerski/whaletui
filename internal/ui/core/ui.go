@@ -255,11 +255,22 @@ func (ui *UI) Stop() {
 
 // cleanup performs terminal cleanup operations
 func (ui *UI) cleanup() {
-	fmt.Fprint(os.Stdout, "\033[2J")   // Clear screen
-	fmt.Fprint(os.Stdout, "\033[0m")   // Reset all attributes
-	fmt.Fprint(os.Stdout, "\033[?25h") // Show cursor
-	fmt.Fprint(os.Stdout, "\033[H")    // Move cursor to home position
-	os.Stdout.Sync()
+	// These are terminal control sequences that rarely fail, but we'll handle them gracefully
+	if _, err := fmt.Fprint(os.Stdout, "\033[2J"); err != nil {
+		ui.log.Warn("Failed to clear screen: %v", err)
+	}
+	if _, err := fmt.Fprint(os.Stdout, "\033[0m"); err != nil {
+		ui.log.Warn("Failed to reset colors: %v", err)
+	}
+	if _, err := fmt.Fprint(os.Stdout, "\033[?25h"); err != nil {
+		ui.log.Warn("Failed to show cursor: %v", err)
+	}
+	if _, err := fmt.Fprint(os.Stdout, "\033[H"); err != nil {
+		ui.log.Warn("Failed to move cursor: %v", err)
+	}
+	if err := os.Stdout.Sync(); err != nil {
+		ui.log.Warn("Failed to sync stdout: %v", err)
+	}
 }
 
 // GetShutdownChan returns the shutdown channel

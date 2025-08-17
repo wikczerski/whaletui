@@ -64,27 +64,27 @@ echo -e "${YELLOW}Creating packages...${NC}"
 # Linux packages
 echo "Creating Linux packages..."
 cd "$BUILD_DIR"
-tar -czf "packages/$BINARY_NAME-linux-amd64.tar.gz" "$BINARY_NAME-linux-amd64"
-tar -czf "packages/$BINARY_NAME-linux-arm64.tar.gz" "$BINARY_NAME-linux-arm64"
-tar -czf "packages/$BINARY_NAME-linux-armv7.tar.gz" "$BINARY_NAME-linux-armv7"
-tar -czf "packages/$BINARY_NAME-linux-ppc64le.tar.gz" "$BINARY_NAME-linux-ppc64le"
-tar -czf "packages/$BINARY_NAME-linux-s390x.tar.gz" "$BINARY_NAME-linux-s390x"
+tar -czf "packages/$BINARY_NAME-v$VERSION-linux-amd64.tar.gz" "$BINARY_NAME-linux-amd64"
+tar -czf "packages/$BINARY_NAME-v$VERSION-linux-arm64.tar.gz" "$BINARY_NAME-linux-arm64"
+tar -czf "packages/$BINARY_NAME-v$VERSION-linux-armv7.tar.gz" "$BINARY_NAME-linux-armv7"
+tar -czf "packages/$BINARY_NAME-v$VERSION-linux-ppc64le.tar.gz" "$BINARY_NAME-linux-ppc64le"
+tar -czf "packages/$BINARY_NAME-v$VERSION-linux-s390x.tar.gz" "$BINARY_NAME-linux-s390x"
 
 # Darwin packages
 echo "Creating Darwin packages..."
-tar -czf "packages/$BINARY_NAME-darwin-amd64.tar.gz" "$BINARY_NAME-darwin-amd64"
-tar -czf "packages/$BINARY_NAME-darwin-arm64.tar.gz" "$BINARY_NAME-darwin-arm64"
+tar -czf "packages/$BINARY_NAME-v$VERSION-darwin-amd64.tar.gz" "$BINARY_NAME-darwin-amd64"
+tar -czf "packages/$BINARY_NAME-v$VERSION-darwin-arm64.tar.gz" "$BINARY_NAME-darwin-arm64"
 
 # FreeBSD packages
 echo "Creating FreeBSD packages..."
-tar -czf "packages/$BINARY_NAME-freebsd-amd64.tar.gz" "$BINARY_NAME-freebsd-amd64"
-tar -czf "packages/$BINARY_NAME-freebsd-arm64.tar.gz" "$BINARY_NAME-freebsd-arm64"
+tar -czf "packages/$BINARY_NAME-v$VERSION-freebsd-amd64.tar.gz" "$BINARY_NAME-freebsd-amd64"
+tar -czf "packages/$BINARY_NAME-v$VERSION-freebsd-arm64.tar.gz" "$BINARY_NAME-freebsd-arm64"
 
 # Windows packages
 echo "Creating Windows packages..."
 if command -v zip >/dev/null 2>&1; then
-    zip "packages/$BINARY_NAME-windows-amd64.zip" "$BINARY_NAME-windows-amd64.exe"
-    zip "packages/$BINARY_NAME-windows-arm64.zip" "$BINARY_NAME-windows-arm64.exe"
+    zip "packages/$BINARY_NAME-v$VERSION-windows-amd64.zip" "$BINARY_NAME-windows-amd64.exe"
+    zip "packages/$BINARY_NAME-v$VERSION-windows-arm64.zip" "$BINARY_NAME-windows-arm64.exe"
 else
     echo -e "${YELLOW}Warning: zip command not found, skipping Windows packages${NC}"
 fi

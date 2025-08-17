@@ -1,6 +1,6 @@
 run:
   timeout: 5m
-  go: '1.25'
+  go: "1.25"
 
 linters:
   enable:
@@ -14,11 +14,18 @@ linters:
     - unused
     - misspell
     - gosec
+    - prealloc
+    - gocritic
+    - revive
 
 linters-settings:
-  gosec:
-    excludes:
-      - G404
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
 
 issues:
   exclude-rules:

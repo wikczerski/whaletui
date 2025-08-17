@@ -87,7 +87,9 @@ func (a *App) refreshLoop(ticker *time.Ticker) {
 func (a *App) Shutdown() {
 	a.cancel()
 	a.ui.Stop()
-	a.docker.Close()
+	if err := a.docker.Close(); err != nil {
+		a.log.Error("Failed to close Docker client: %v", err)
+	}
 }
 
 // GetUI returns the UI instance

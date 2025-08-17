@@ -75,26 +75,26 @@ Write-Host "Creating packages..." -ForegroundColor Yellow
 # Linux packages
 Write-Host "Creating Linux packages..." -ForegroundColor Cyan
 Set-Location $BuildDir
-tar -czf "packages/$BinaryName-linux-amd64.tar.gz" "$BinaryName-linux-amd64"
-tar -czf "packages/$BinaryName-linux-arm64.tar.gz" "$BinaryName-linux-arm64"
-tar -czf "packages/$BinaryName-linux-armv7.tar.gz" "$BinaryName-linux-armv7"
-tar -czf "packages/$BinaryName-linux-ppc64le.tar.gz" "$BinaryName-linux-ppc64le"
-tar -czf "packages/$BinaryName-linux-s390x.tar.gz" "$BinaryName-linux-s390x"
+tar -czf "packages/$BinaryName-v$Version-linux-amd64.tar.gz" "$BinaryName-linux-amd64"
+tar -czf "packages/$BinaryName-v$Version-linux-arm64.tar.gz" "$BinaryName-linux-arm64"
+tar -czf "packages/$BinaryName-v$Version-linux-armv7.tar.gz" "$BinaryName-linux-armv7"
+tar -czf "packages/$BinaryName-v$Version-linux-ppc64le.tar.gz" "$BinaryName-linux-ppc64le"
+tar -czf "packages/$BinaryName-v$Version-linux-s390x.tar.gz" "$BinaryName-linux-s390x"
 
 # Darwin packages
 Write-Host "Creating Darwin packages..." -ForegroundColor Cyan
-tar -czf "packages/$BinaryName-darwin-amd64.tar.gz" "$BinaryName-darwin-amd64"
-tar -czf "packages/$BinaryName-darwin-arm64.tar.gz" "$BinaryName-darwin-arm64"
+tar -czf "packages/$BinaryName-v$Version-darwin-amd64.tar.gz" "$BinaryName-darwin-amd64"
+tar -czf "packages/$BinaryName-v$Version-darwin-arm64.tar.gz" "$BinaryName-darwin-arm64"
 
 # FreeBSD packages
 Write-Host "Creating FreeBSD packages..." -ForegroundColor Cyan
-tar -czf "packages/$BinaryName-freebsd-amd64.tar.gz" "$BinaryName-freebsd-amd64"
-tar -czf "packages/$BinaryName-freebsd-arm64.tar.gz" "$BinaryName-freebsd-arm64"
+tar -czf "packages/$BinaryName-v$Version-freebsd-amd64.tar.gz" "$BinaryName-freebsd-amd64"
+tar -czf "packages/$BinaryName-v$Version-freebsd-arm64.tar.gz" "$BinaryName-freebsd-arm64"
 
 # Windows packages
 Write-Host "Creating Windows packages..." -ForegroundColor Cyan
-Compress-Archive -Path "$BinaryName-windows-amd64.exe" -DestinationPath "packages/$BinaryName-windows-amd64.zip" -Force
-Compress-Archive -Path "$BinaryName-windows-arm64.exe" -DestinationPath "packages/$BinaryName-windows-arm64.zip" -Force
+Compress-Archive -Path "$BinaryName-windows-amd64.exe" -DestinationPath "packages/$BinaryName-v$Version-windows-amd64.zip" -Force
+Compress-Archive -Path "$BinaryName-windows-arm64.exe" -DestinationPath "packages/$BinaryName-v$Version-windows-arm64.zip" -Force
 
 Set-Location ..
 

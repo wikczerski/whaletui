@@ -26,7 +26,7 @@ type Client struct {
 }
 
 // detectWindowsDockerHost attempts to find the correct Docker host on Windows
-func detectWindowsDockerHost() (string, error) {
+func detectWindowsDockerHost(log *logger.Logger) (string, error) {
 	if runtime.GOOS != "windows" {
 		return "", fmt.Errorf("not on Windows")
 	}
@@ -53,11 +53,15 @@ func detectWindowsDockerHost() (string, error) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		if _, err = cli.Ping(ctx); err == nil {
 			cancel()
-			cli.Close()
+			if closeErr := cli.Close(); closeErr != nil {
+				log.Warn("Failed to close Docker client during host detection: %v", closeErr)
+			}
 			return host, nil
 		}
 		cancel()
-		cli.Close()
+		if closeErr := cli.Close(); closeErr != nil {
+			log.Warn("Failed to close Docker client during host detection: %v", closeErr)
+		}
 	}
 
 	return "", fmt.Errorf("no working Docker host found")
@@ -101,7 +105,7 @@ func New(cfg *config.Config) (*Client, error) {
 		if runtime.GOOS == "windows" && cfg.RemoteHost == "" {
 			log.Warn("Docker client creation failed, attempting to auto-detect correct host...")
 
-			detectedHost, detectErr := detectWindowsDockerHost()
+			detectedHost, detectErr := detectWindowsDockerHost(log)
 			if detectErr == nil {
 				log.Info("Detected working Docker host: %s", detectedHost)
 
@@ -128,7 +132,9 @@ func New(cfg *config.Config) (*Client, error) {
 						return client, nil
 					}
 					detectedCancel()
-					detectedCli.Close()
+					if closeErr := detectedCli.Close(); closeErr != nil {
+						log.Warn("Failed to close detected Docker client: %v", closeErr)
+					}
 				}
 			}
 		}
@@ -141,7 +147,9 @@ func New(cfg *config.Config) (*Client, error) {
 	defer cancel()
 
 	if _, err := cli.Ping(ctx); err != nil {
-		cli.Close()
+		if closeErr := cli.Close(); closeErr != nil {
+			log.Warn("Failed to close Docker client: %v", closeErr)
+		}
 		if cfg.RemoteHost != "" {
 			return nil, fmt.Errorf("failed to connect to remote Docker host '%s': %w", cfg.RemoteHost, err)
 		}
@@ -237,7 +245,13 @@ func (c *Client) GetContainerLogs(ctx context.Context, id string) (string, error
 	if err != nil {
 		return "", fmt.Errorf("container logs failed %s: %w", id, err)
 	}
-	defer logs.Close()
+		defer func() { 
+		if err := logs.Close(); err != nil {
+			// This is a cleanup operation during container logs retrieval
+			// The error is not critical for the main operation
+			// We could log this if we had access to a logger in this context
+		}
+	}()
 
 	var logLines []string
 	buffer := make([]byte, 1024)
@@ -355,7 +369,13 @@ func (c *Client) GetContainerStats(ctx context.Context, id string) (map[string]a
 	if err != nil {
 		return nil, fmt.Errorf("failed to get container stats: %w", err)
 	}
-	defer stats.Body.Close()
+		defer func() { 
+		if err := stats.Body.Close(); err != nil {
+			// This is a cleanup operation during container stats retrieval
+			// The error is not critical for the main operation
+			// We could log this if we had access to a logger in this context
+		}
+	}()
 
 	var statsJSON map[string]any
 	if err := json.NewDecoder(stats.Body).Decode(&statsJSON); err != nil {
@@ -511,7 +531,6 @@ func (c *Client) ExecContainer(ctx context.Context, id string, command []string,
 		return "", fmt.Errorf("docker client is not initialized")
 	}
 
-	// Create exec configuration
 	execConfig := container.ExecOptions{
 		Cmd:          command,
 		Tty:          false, // Set to false to capture output
@@ -521,13 +540,11 @@ func (c *Client) ExecContainer(ctx context.Context, id string, command []string,
 		Detach:       false,
 	}
 
-	// Create exec instance
 	execResp, err := c.cli.ContainerExecCreate(ctx, id, execConfig)
 	if err != nil {
 		return "", fmt.Errorf("failed to create exec instance: %w", err)
 	}
 
-	// Attach to exec instance to capture output
 	attachConfig := container.ExecStartOptions{
 		Tty: false,
 	}
@@ -538,13 +555,11 @@ func (c *Client) ExecContainer(ctx context.Context, id string, command []string,
 	}
 	defer hijackedResp.Close()
 
-	// Start the exec instance
 	err = c.cli.ContainerExecStart(ctx, execResp.ID, attachConfig)
 	if err != nil {
 		return "", fmt.Errorf("failed to start exec instance: %w", err)
 	}
 
-	// Read the output
 	var output strings.Builder
 	buffer := make([]byte, 1024)
 
@@ -567,7 +582,6 @@ func (c *Client) AttachContainer(ctx context.Context, id string) (types.Hijacked
 		return types.HijackedResponse{}, fmt.Errorf("docker client is not initialized")
 	}
 
-	// Configure attach options
 	attachConfig := container.AttachOptions{
 		Stream: true,
 		Stdin:  true,
@@ -576,7 +590,6 @@ func (c *Client) AttachContainer(ctx context.Context, id string) (types.Hijacked
 		Logs:   false,
 	}
 
-	// Attach to container
 	response, err := c.cli.ContainerAttach(ctx, id, attachConfig)
 	if err != nil {
 		return types.HijackedResponse{}, fmt.Errorf("failed to attach to container: %w", err)

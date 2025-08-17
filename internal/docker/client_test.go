@@ -44,7 +44,11 @@ func TestNew(t *testing.T) {
 				assert.NoError(t, err)
 				assert.NotNil(t, client)
 				if client != nil {
-					defer client.Close()
+					defer func() {
+						if err := client.Close(); err != nil {
+							t.Logf("Warning: failed to close client: %v", err)
+						}
+					}()
 				}
 			}
 		})
@@ -57,7 +61,11 @@ func TestClient_GetInfo(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Warning: failed to close client: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 	info, err := client.GetInfo(ctx)
@@ -88,7 +96,11 @@ func TestClient_InspectContainer(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Warning: failed to close client: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 
@@ -107,7 +119,11 @@ func TestClient_GetContainerLogs(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Warning: failed to close client: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 
@@ -126,7 +142,11 @@ func TestClient_InspectImage(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Warning: failed to close client: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 
@@ -145,7 +165,11 @@ func TestClient_InspectVolume(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Warning: failed to close client: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 
@@ -164,7 +188,11 @@ func TestClient_InspectNetwork(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Warning: failed to close client: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 
@@ -201,7 +229,11 @@ func TestClient_ListContainers(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Warning: failed to close client: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 
@@ -224,7 +256,11 @@ func TestClient_GetContainerStats(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Warning: failed to close client: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 
@@ -243,7 +279,11 @@ func TestClient_ListImages(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Warning: failed to close client: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 
@@ -267,7 +307,11 @@ func TestClient_ListVolumes(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Warning: failed to close client: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 
@@ -291,7 +335,11 @@ func TestClient_ListNetworks(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Warning: failed to close client: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 
@@ -315,7 +363,11 @@ func TestClient_ListNetworks_CreatedField(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Warning: failed to close client: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 
@@ -339,7 +391,11 @@ func TestClient_StartContainer(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Warning: failed to close client: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 
@@ -356,7 +412,11 @@ func TestClient_StopContainer(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Warning: failed to close client: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 
@@ -377,7 +437,11 @@ func TestClient_RestartContainer(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Warning: failed to close client: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 
@@ -398,7 +462,11 @@ func TestClient_RemoveContainer(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Warning: failed to close client: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 
@@ -418,7 +486,11 @@ func TestClient_RemoveImage(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Warning: failed to close client: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 
@@ -439,7 +511,11 @@ func TestClient_RemoveNetwork(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Warning: failed to close client: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 

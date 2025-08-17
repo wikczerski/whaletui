@@ -117,11 +117,23 @@ func runApp(cmd *cobra.Command, args []string) error {
 
 // cleanupTerminal performs additional terminal cleanup operations
 func cleanupTerminal() {
-	fmt.Fprint(os.Stdout, "\033[2J")   // Clear screen
-	fmt.Fprint(os.Stdout, "\033[0m")   // Reset colors
-	fmt.Fprint(os.Stdout, "\033[?25h") // Show cursor
-	fmt.Fprint(os.Stdout, "\033[H")    // Move cursor to top-left
-	os.Stdout.Sync()
+	// These are terminal control sequences that rarely fail, but we'll handle them gracefully
+	if _, err := fmt.Fprint(os.Stdout, "\033[2J"); err != nil {
+		// Log error but continue with cleanup
+		fmt.Fprintf(os.Stderr, "Warning: failed to clear screen: %v\n", err)
+	}
+	if _, err := fmt.Fprint(os.Stdout, "\033[0m"); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to reset colors: %v\n", err)
+	}
+	if _, err := fmt.Fprint(os.Stdout, "\033[?25h"); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to show cursor: %v\n", err)
+	}
+	if _, err := fmt.Fprint(os.Stdout, "\033[H"); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to move cursor: %v\n", err)
+	}
+	if err := os.Stdout.Sync(); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to sync stdout: %v\n", err)
+	}
 }
 
 // applyFlagOverrides applies command line flag values to the configuration
