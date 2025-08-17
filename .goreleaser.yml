@@ -38,9 +38,7 @@ builds:
     ldflags:
       - -s -w -X main.Version={{.Version}} -X main.Commit={{.Commit}} -X main.Date={{.Date}}
     binary: D5r
-    hooks:
-      post:
-        - cmd: echo "Build completed for {{.Os}}/{{.Arch}}"
+
 
 archives:
   - format: tar.gz
@@ -60,82 +58,7 @@ archives:
       - docs/*
       - configs/*
 
-nfpms:
-  - maintainer: "D5r <22891046+wikczerski@users.noreply.github.com>"
-    description: "D5r - Docker Container Management Tool"
-    homepage: "https://github.com/wikczerski/D5r"
-    license: "MIT"
-    formats:
-      - deb
-      - rpm
-    bindir: /usr/local/bin
-    contents:
-      - src: "D5r_linux_amd64"
-        dst: /usr/local/bin/D5r
-      - src: "README.md"
-        dst: /usr/share/doc/d5r/README.md
-      - src: "LICENSE"
-        dst: /usr/share/doc/d5r/LICENSE
-  - maintainer: "D5r <22891046+wikczerski@users.noreply.github.com>"
-    description: "D5r - Docker Container Management Tool"
-    homepage: "https://github.com/wikczerski/D5r"
-    license: "MIT"
-    formats:
-      - deb
-      - rpm
-    bindir: /usr/local/bin
-    contents:
-      - src: "D5r_linux_386"
-        dst: /usr/local/bin/D5r
-      - src: "README.md"
-        dst: /usr/share/doc/d5r/README.md
-      - src: "LICENSE"
-        dst: /usr/share/doc/d5r/LICENSE
-  - maintainer: "D5r <22891046+wikczerski@users.noreply.github.com>"
-    description: "D5r - Docker Container Management Tool"
-    homepage: "https://github.com/wikczerski/D5r"
-    license: "MIT"
-    formats:
-      - deb
-      - rpm
-    bindir: /usr/local/bin
-    contents:
-      - src: "D5r_linux_arm64"
-        dst: /usr/local/bin/D5r
-      - src: "README.md"
-        dst: /usr/share/doc/d5r/README.md
-      - src: "LICENSE"
-        dst: /usr/share/doc/d5r/LICENSE
-  - maintainer: "D5r <22891046+wikczerski@users.noreply.github.com>"
-    description: "D5r - Docker Container Management Tool"
-    homepage: "https://github.com/wikczerski/D5r"
-    license: "MIT"
-    formats:
-      - deb
-      - rpm
-    bindir: /usr/local/bin
-    contents:
-      - src: "D5r_linux_ppc64le"
-        dst: /usr/local/bin/D5r
-      - src: "README.md"
-        dst: /usr/share/doc/d5r/README.md
-      - src: "LICENSE"
-        dst: /usr/share/doc/d5r/LICENSE
-  - maintainer: "D5r <22891046+wikczerski@users.noreply.github.com>"
-    description: "D5r - Docker Container Management Tool"
-    homepage: "https://github.com/wikczerski/D5r"
-    license: "MIT"
-    formats:
-      - deb
-      - rpm
-    bindir: /usr/local/bin
-    contents:
-      - src: "D5r_linux_s390x"
-        dst: /usr/local/bin/D5r
-      - src: "README.md"
-        dst: /usr/share/doc/d5r/README.md
-      - src: "LICENSE"
-        dst: /usr/share/doc/d5r/LICENSE
+
 
 
 
