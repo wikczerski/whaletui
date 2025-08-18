@@ -8,7 +8,7 @@ import (
 // UIInterface defines the interface that views need from the UI
 type UIInterface interface {
 	// Services
-	GetServices() *services.ServiceFactory
+	GetServices() services.ServiceFactoryInterface
 
 	// UI methods
 	ShowError(error)
@@ -26,6 +26,7 @@ type UIInterface interface {
 	// State methods
 	IsInLogsMode() bool
 	IsInDetailsMode() bool
+	IsModalActive() bool
 	GetCurrentActions() map[rune]string
 	GetCurrentViewActions() string
 	GetViewRegistry() any

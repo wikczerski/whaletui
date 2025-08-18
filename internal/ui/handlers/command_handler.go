@@ -1,8 +1,8 @@
-package managers
+package handlers
 
 import (
-	"fmt"
 	"strings"
+	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -15,6 +15,7 @@ type CommandHandler struct {
 	ui           interfaces.UIInterface
 	commandInput *tview.InputField
 	isActive     bool
+	errorTimer   *time.Timer // Timer for clearing error messages
 }
 
 // NewCommandHandler creates a new command handler
@@ -51,6 +52,10 @@ func (ch *CommandHandler) configureCommandInput() {
 
 // hideCommandInput makes the command input completely invisible
 func (ch *CommandHandler) hideCommandInput() {
+	if ch.commandInput == nil {
+		return
+	}
+
 	ch.commandInput.SetBorder(false)
 	ch.commandInput.SetBackgroundColor(constants.UIInvisibleColor)
 	ch.commandInput.SetFieldTextColor(constants.UIInvisibleColor)
@@ -60,6 +65,10 @@ func (ch *CommandHandler) hideCommandInput() {
 
 // showCommandInput makes the command input visible with proper styling
 func (ch *CommandHandler) showCommandInput() {
+	if ch.commandInput == nil {
+		return
+	}
+
 	// Get theme manager for styling
 	themeManager := ch.ui.GetThemeManager()
 
@@ -82,10 +91,17 @@ func (ch *CommandHandler) Enter() {
 // Exit deactivates command mode
 func (ch *CommandHandler) Exit() {
 	ch.isActive = false
-	ch.hideCommandInput()
-	mainFlex := ch.ui.GetMainFlex().(*tview.Flex)
-	mainFlex.RemoveItem(ch.commandInput)
-	ch.commandInput.SetText("")
+
+	// Clear any error timer
+	ch.clearError()
+
+	// Only hide command input if it's been initialized
+	if ch.commandInput != nil {
+		ch.hideCommandInput()
+		mainFlex := ch.ui.GetMainFlex().(*tview.Flex)
+		mainFlex.RemoveItem(ch.commandInput)
+		ch.commandInput.SetText("")
+	}
 
 	if viewContainer := ch.ui.GetViewContainer(); viewContainer != nil {
 		if vc, ok := viewContainer.(*tview.Flex); ok {
@@ -110,35 +126,152 @@ func (ch *CommandHandler) HandleInput(key tcell.Key) {
 	switch key {
 	case tcell.KeyEnter:
 		command := ch.commandInput.GetText()
-		ch.processCommand(command)
-		ch.Exit()
+		if ch.processCommand(command) {
+			ch.Exit()
+		}
+		// If processCommand returns false, don't exit - let the error message show
 	case tcell.KeyEscape:
 		ch.Exit()
+	case tcell.KeyRune:
+		// User is typing - clear any error message
+		ch.clearError()
 	}
 }
 
 // processCommand executes the given command
-func (ch *CommandHandler) processCommand(command string) {
+// Returns true if the command was successfully processed and the input should close
+func (ch *CommandHandler) processCommand(command string) bool {
+	// Handle empty command - just clear and stay open
+	if strings.TrimSpace(command) == "" {
+		ch.commandInput.SetText("")
+		return false
+	}
+
+	if ch.handleViewSwitchCommand(command) {
+		return true
+	}
+
+	if ch.handleSystemCommand(command) {
+		return true
+	}
+
+	if ch.handleHelpCommand(command) {
+		return true
+	}
+
+	// Handle unknown command
+	ch.handleUnknownCommand(command)
+	return false // Don't close input for unknown commands
+}
+
+// handleViewSwitchCommand handles view switching commands
+func (ch *CommandHandler) handleViewSwitchCommand(command string) bool {
 	switch command {
 	case "containers", "c":
 		ch.ui.SwitchView("containers")
+		ch.Exit()
+		return true
 	case "images", "i":
 		ch.ui.SwitchView("images")
+		ch.Exit()
+		return true
 	case "volumes", "v":
 		ch.ui.SwitchView("volumes")
+		ch.Exit()
+		return true
 	case "networks", "n":
 		ch.ui.SwitchView("networks")
+		ch.Exit()
+		return true
+	}
+	return false
+}
+
+// handleSystemCommand handles system-level commands
+func (ch *CommandHandler) handleSystemCommand(command string) bool {
+	switch command {
 	case "quit", "q", "exit":
-		// Send shutdown signal instead of direct exit to ensure cleanup
-		shutdownChan := ch.ui.GetShutdownChan()
-		select {
-		case shutdownChan <- struct{}{}:
-		default:
-		}
+		ch.handleQuitCommand()
+		return true
+	}
+	return false
+}
+
+// handleHelpCommand handles help-related commands
+func (ch *CommandHandler) handleHelpCommand(command string) bool {
+	switch command {
 	case "help", "?":
-		ch.ui.ShowError(fmt.Errorf("unknown command: %s", command))
+		ch.ui.ShowHelp()
+		ch.Exit()
+		return true
+	}
+	return false
+}
+
+// handleQuitCommand handles the quit command by sending shutdown signal
+func (ch *CommandHandler) handleQuitCommand() {
+	shutdownChan := ch.ui.GetShutdownChan()
+	select {
+	case shutdownChan <- struct{}{}:
 	default:
-		ch.ui.ShowError(fmt.Errorf("unknown command: %s", command))
+	}
+	ch.Exit()
+}
+
+// handleUnknownCommand handles unknown commands by showing an error message in the command input
+func (ch *CommandHandler) handleUnknownCommand(command string) {
+	ch.showCommandError("Wrong command")
+	// Don't exit automatically - let the user see the error and continue typing
+	// The error message will disappear after 3 seconds
+}
+
+// showCommandError displays an error message in the command input with red text
+func (ch *CommandHandler) showCommandError(message string) {
+	if ch.commandInput == nil {
+		return
+	}
+
+	// Cancel any existing timer
+	if ch.errorTimer != nil {
+		ch.errorTimer.Stop()
+	}
+
+	// Get theme manager for styling
+	themeManager := ch.ui.GetThemeManager()
+
+	// Store original theme color
+	originalTextColor := themeManager.GetCommandModeTextColor()
+
+	// Set error message with red text
+	ch.commandInput.SetText(message)
+	ch.commandInput.SetFieldTextColor(tcell.ColorRed)
+
+	// Set up a timer to clear the error message after 3 seconds
+	ch.errorTimer = time.AfterFunc(3*time.Second, func() {
+		// Use the UI's app to schedule the update on the main thread
+		if ch.isActive && ch.commandInput != nil {
+			app := ch.ui.GetApp().(*tview.Application)
+			app.QueueUpdateDraw(func() {
+				if ch.isActive && ch.commandInput != nil {
+					ch.commandInput.SetText("")
+					ch.commandInput.SetFieldTextColor(originalTextColor)
+				}
+			})
+		}
+	})
+}
+
+// clearError clears any displayed error message immediately
+func (ch *CommandHandler) clearError() {
+	if ch.errorTimer != nil {
+		ch.errorTimer.Stop()
+		ch.errorTimer = nil
+	}
+
+	if ch.commandInput != nil && ch.isActive {
+		themeManager := ch.ui.GetThemeManager()
+		ch.commandInput.SetText("")
+		ch.commandInput.SetFieldTextColor(themeManager.GetCommandModeTextColor())
 	}
 }
 

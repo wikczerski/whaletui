@@ -242,9 +242,30 @@ func CreateInspectView(title string) (*tview.TextView, *tview.Flex) {
 func createInspectDetailsView(title string, inspectData map[string]any, actions map[rune]string, onAction func(rune), onBack func()) *tview.Flex {
 	detailsFlex := tview.NewFlex().SetDirection(tview.FlexRow)
 
+	titleView := createInspectTitleView(title)
+	inspectText := createInspectTextView(inspectData, actions)
+	backButton := createInspectBackButton(onBack)
+
+	// Add components to flex
+	detailsFlex.AddItem(titleView, constants.TitleViewHeight, 0, false)
+	detailsFlex.AddItem(inspectText, 0, 1, true) // Set to true to make it focusable and scrollable
+	detailsFlex.AddItem(backButton, constants.BackButtonHeight, 0, false)
+
+	// Set up key bindings for the details view
+	setupInspectDetailsKeyBindings(detailsFlex, inspectText, onAction, onBack)
+
+	return detailsFlex
+}
+
+// createInspectTitleView creates the title view for the inspect details
+func createInspectTitleView(title string) *tview.TextView {
 	titleView := tview.NewTextView().SetText(fmt.Sprintf(" %s ", title)).SetTextAlign(tview.AlignCenter)
 	titleView.SetBorder(true).SetBorderColor(constants.HeaderColor)
+	return titleView
+}
 
+// createInspectTextView creates the main text view for displaying inspect data
+func createInspectTextView(inspectData map[string]any, actions map[rune]string) *tview.TextView {
 	inspectText := tview.NewTextView()
 	inspectText.SetDynamicColors(true)
 	inspectText.SetScrollable(true)
@@ -252,29 +273,7 @@ func createInspectDetailsView(title string, inspectData map[string]any, actions 
 	inspectText.SetBorderColor(constants.BorderColor)
 
 	// Configure spacebar for half-page scrolling
-	inspectText.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyRune && event.Rune() == ' ' {
-			// Get current scroll position
-			_, currentLine := inspectText.GetScrollOffset()
-
-			// Get the visible area height
-			_, _, _, visibleHeight := inspectText.GetInnerRect()
-
-			// Calculate half of the visible area
-			halfView := visibleHeight / 2
-			if halfView < 1 {
-				halfView = 1
-			}
-
-			// Calculate new scroll position
-			newLine := currentLine + halfView
-
-			// Scroll to the new position
-			inspectText.ScrollTo(newLine, 0)
-			return nil
-		}
-		return event
-	})
+	setupInspectTextScrolling(inspectText)
 
 	// Format the inspect data as condensed JSON
 	condensedJSON := formatInspectData(inspectData)
@@ -285,45 +284,117 @@ func createInspectDetailsView(title string, inspectData map[string]any, actions 
 	}
 
 	inspectText.SetText(condensedJSON)
+	return inspectText
+}
 
-	// Create back button
-	backButton := tview.NewButton("Back to Table").SetSelectedFunc(onBack)
+// createInspectBackButton creates the back button for the inspect details
+func createInspectBackButton(onBack func()) *tview.Button {
+	return tview.NewButton("Back to Table").SetSelectedFunc(onBack)
+}
 
-	// Add components to flex
-	detailsFlex.AddItem(titleView, constants.TitleViewHeight, 0, false)
-	detailsFlex.AddItem(inspectText, 0, 1, true) // Set to true to make it focusable and scrollable
-	detailsFlex.AddItem(backButton, constants.BackButtonHeight, 0, false)
-
-	// Set up key bindings for the details view
-	detailsFlex.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Key() {
-		case tcell.KeyEscape, tcell.KeyEnter:
-			if onBack != nil {
-				onBack()
-			}
+// setupInspectTextScrolling configures the scrolling behavior for the inspect text view
+func setupInspectTextScrolling(inspectText *tview.TextView) {
+	inspectText.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if setupInspectTextScrolling_handleSpacebar(event, inspectText) {
 			return nil
-		case tcell.KeyRune:
-			// Handle spacebar for half-page scrolling
-			if event.Rune() == ' ' {
-				// Let the text view handle spacebar scrolling
-				return event
-			}
+		}
+		return event
+	})
+}
+
+// setupInspectTextScrolling_handleSpacebar handles spacebar for half-page scrolling
+func setupInspectTextScrolling_handleSpacebar(event *tcell.EventKey, inspectText *tview.TextView) bool {
+	if event.Key() == tcell.KeyRune && event.Rune() == ' ' {
+		setupInspectTextScrolling_performHalfPageScroll(inspectText)
+		return true
+	}
+	return false
+}
+
+// setupInspectTextScrolling_performHalfPageScroll performs the actual half-page scrolling
+func setupInspectTextScrolling_performHalfPageScroll(inspectText *tview.TextView) {
+	// Get current scroll position
+	_, currentLine := inspectText.GetScrollOffset()
+
+	// Get the visible area height
+	_, _, _, visibleHeight := inspectText.GetInnerRect()
+
+	// Calculate half of the visible area
+	halfView := setupInspectTextScrolling_calculateHalfView(visibleHeight)
+
+	// Calculate new scroll position
+	newLine := currentLine + halfView
+
+	// Scroll to the new position
+	inspectText.ScrollTo(newLine, 0)
+}
+
+// setupInspectTextScrolling_calculateHalfView calculates half of the visible area
+func setupInspectTextScrolling_calculateHalfView(visibleHeight int) int {
+	halfView := visibleHeight / 2
+	if halfView < 1 {
+		halfView = 1
+	}
+	return halfView
+}
+
+// setupInspectDetailsKeyBindings sets up the key bindings for the inspect details view
+func setupInspectDetailsKeyBindings(detailsFlex *tview.Flex, inspectText *tview.TextView, onAction func(rune), onBack func()) {
+	detailsFlex.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if setupInspectDetailsKeyBindings_handleNavigationKeys(event, onBack) {
+			return nil
 		}
 
-		// Let the text view handle scrolling keys
-		if event.Key() == tcell.KeyUp || event.Key() == tcell.KeyDown ||
-			event.Key() == tcell.KeyPgUp || event.Key() == tcell.KeyPgDn ||
-			event.Key() == tcell.KeyHome || event.Key() == tcell.KeyEnd {
+		if setupInspectDetailsKeyBindings_handleScrollingKeys(event) {
 			return event
 		}
 
+		if setupInspectDetailsKeyBindings_handleActionKeys(event, onAction) {
+			return nil
+		}
+
+		return event
+	})
+}
+
+// setupInspectDetailsKeyBindings_handleNavigationKeys handles navigation keys (Escape, Enter)
+func setupInspectDetailsKeyBindings_handleNavigationKeys(event *tcell.EventKey, onBack func()) bool {
+	switch event.Key() {
+	case tcell.KeyEscape, tcell.KeyEnter:
+		if onBack != nil {
+			onBack()
+		}
+		return true
+	}
+	return false
+}
+
+// setupInspectDetailsKeyBindings_handleScrollingKeys handles scrolling keys and spacebar
+func setupInspectDetailsKeyBindings_handleScrollingKeys(event *tcell.EventKey) bool {
+	// Handle spacebar for half-page scrolling
+	if event.Key() == tcell.KeyRune && event.Rune() == ' ' {
+		return true
+	}
+
+	// Handle scrolling keys
+	if event.Key() == tcell.KeyUp || event.Key() == tcell.KeyDown ||
+		event.Key() == tcell.KeyPgUp || event.Key() == tcell.KeyPgDn ||
+		event.Key() == tcell.KeyHome || event.Key() == tcell.KeyEnd {
+		return true
+	}
+
+	return false
+}
+
+// setupInspectDetailsKeyBindings_handleActionKeys handles action keys (rune characters)
+func setupInspectDetailsKeyBindings_handleActionKeys(event *tcell.EventKey, onAction func(rune)) bool {
+	if event.Key() == tcell.KeyRune {
 		if onAction != nil {
 			onAction(event.Rune())
 		}
-		return nil
-	})
-
-	return detailsFlex
+		return true
+	}
+	return false
 }
 
 // formatInspectData formats Docker inspect data in a condensed, readable JSON format

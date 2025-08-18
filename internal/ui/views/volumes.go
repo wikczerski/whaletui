@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/rivo/tview"
 	"github.com/wikczerski/D5r/internal/models"
 	"github.com/wikczerski/D5r/internal/ui/builders"
 	"github.com/wikczerski/D5r/internal/ui/handlers"
@@ -32,7 +31,7 @@ func NewVolumesView(ui interfaces.UIInterface) *VolumesView {
 	vv.FormatRow = func(v models.Volume) []string { return vv.formatVolumeRow(&v) }
 	vv.GetItemID = func(v models.Volume) string { return v.Name }
 	vv.GetItemName = func(v models.Volume) string { return v.Name }
-	vv.HandleKeyPress = func(key rune, v models.Volume) { vv.handleVolumeKey(key, &v) }
+	vv.HandleKeyPress = func(key rune, v models.Volume) { vv.handleAction(key, &v) }
 	vv.ShowDetails = func(v models.Volume) { vv.showVolumeDetails(&v) }
 	vv.GetActions = vv.getVolumeActions
 
@@ -41,10 +40,10 @@ func NewVolumesView(ui interfaces.UIInterface) *VolumesView {
 
 func (vv *VolumesView) listVolumes(ctx context.Context) ([]models.Volume, error) {
 	services := vv.ui.GetServices()
-	if services == nil || services.VolumeService == nil {
+	if services == nil || services.GetVolumeService() == nil {
 		return []models.Volume{}, nil
 	}
-	return services.VolumeService.ListVolumes(ctx)
+	return services.GetVolumeService().ListVolumes(ctx)
 }
 
 func (vv *VolumesView) formatVolumeRow(volume *models.Volume) []string {
@@ -64,7 +63,12 @@ func (vv *VolumesView) getVolumeActions() map[rune]string {
 	}
 }
 
-func (vv *VolumesView) handleVolumeKey(key rune, volume *models.Volume) {
+func (vv *VolumesView) handleAction(key rune, volume *models.Volume) {
+	services := vv.ui.GetServices()
+	if services == nil || services.GetVolumeService() == nil {
+		return
+	}
+
 	switch key {
 	case 'd':
 		vv.deleteVolume(volume.Name)
@@ -76,36 +80,43 @@ func (vv *VolumesView) handleVolumeKey(key rune, volume *models.Volume) {
 func (vv *VolumesView) showVolumeDetails(volume *models.Volume) {
 	ctx := context.Background()
 	services := vv.ui.GetServices()
-	inspectData, err := services.VolumeService.InspectVolume(ctx, volume.Name)
+	inspectData, err := services.GetVolumeService().InspectVolume(ctx, volume.Name)
 	vv.ShowItemDetails(*volume, inspectData, err)
 }
 
 func (vv *VolumesView) deleteVolume(name string) {
 	vv.executor.ExecuteWithConfirmation(
 		fmt.Sprintf("Delete volume %s?", name),
-		func() error {
-			services := vv.ui.GetServices()
-			if services == nil || services.VolumeService == nil {
-				return fmt.Errorf("volume service not available")
-			}
-
-			ctx := context.Background()
-			// Force removal to handle cases where volume might be in use
-			return services.VolumeService.RemoveVolume(ctx, name, true)
-		},
+		vv.createDeleteVolumeFunction(name),
 		func() { vv.Refresh() },
 	)
 }
 
+// createDeleteVolumeFunction creates a function to delete a volume
+func (vv *VolumesView) createDeleteVolumeFunction(name string) func() error {
+	return func() error {
+		services := vv.ui.GetServices()
+		if services == nil || services.GetVolumeService() == nil {
+			return fmt.Errorf("volume service not available")
+		}
+		ctx := context.Background()
+		// Force removal to handle cases where volume might be in use
+		return services.GetVolumeService().RemoveVolume(ctx, name, true)
+	}
+}
+
 func (vv *VolumesView) inspectVolume(name string) {
-	inspectView, inspectFlex := builders.CreateInspectView(fmt.Sprintf("Inspect: %s", name))
+	services := vv.ui.GetServices()
+	if services == nil || services.GetVolumeService() == nil {
+		return
+	}
 
-	inspectFlex.GetItem(1).(*tview.Button).SetSelectedFunc(func() {
-		pages := vv.ui.GetPages().(*tview.Pages)
-		pages.RemovePage("inspect")
-	})
+	ctx := context.Background()
+	inspectData, err := services.GetVolumeService().InspectVolume(ctx, name)
+	if err != nil {
+		vv.ui.ShowError(err)
+		return
+	}
 
-	pages := vv.ui.GetPages().(*tview.Pages)
-	pages.AddPage("inspect", inspectFlex, true, true)
-	inspectView.SetText("Volume inspection not implemented yet.")
+	vv.ShowItemDetails(models.Volume{Name: name}, inspectData, err)
 }

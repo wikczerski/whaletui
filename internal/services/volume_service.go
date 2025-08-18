@@ -52,3 +52,19 @@ func (s *volumeService) RemoveVolume(ctx context.Context, name string, force boo
 func (s *volumeService) InspectVolume(ctx context.Context, name string) (map[string]any, error) {
 	return s.Inspect(ctx, name)
 }
+
+// GetActions returns the available actions for volumes as a map
+func (s *volumeService) GetActions() map[rune]string {
+	return map[rune]string{
+		'r': "Remove",
+		'h': "History",
+		'f': "Filter",
+		't': "Sort",
+		'i': "Inspect",
+	}
+}
+
+// GetActionsString returns the available actions for volumes as a formatted string
+func (s *volumeService) GetActionsString() string {
+	return "<r> Remove\n<h> History\n<f> Filter\n<t> Sort\n<i> Inspect\n<enter> Details\n<up/down> Navigate\n<?> Help\n<f5> Refresh\n<:> Command"
+}

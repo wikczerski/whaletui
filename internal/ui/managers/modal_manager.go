@@ -3,6 +3,7 @@ package managers
 import (
 	"fmt"
 
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/wikczerski/D5r/internal/ui/interfaces"
 )
@@ -21,16 +22,86 @@ func NewModalManager(ui interfaces.UIInterface) *ModalManager {
 func (mm *ModalManager) ShowHelp() {
 	helpText := mm.buildHelpText()
 	modal := mm.createModal(helpText, []string{"Close"})
+
+	// Add done function to handle Close button click
+	modal.SetDoneFunc(func(_ int, _ string) {
+		pages := mm.ui.GetPages().(*tview.Pages)
+		pages.RemovePage("help_modal")
+		// Restore focus to the main view after closing modal
+		if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
+			if vc, ok := viewContainer.(*tview.Flex); ok {
+				app := mm.ui.GetApp().(*tview.Application)
+				app.SetFocus(vc)
+			}
+		}
+	})
+
+	// Add keyboard handling for ESC key to close modal
+	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape {
+			pages := mm.ui.GetPages().(*tview.Pages)
+			pages.RemovePage("help_modal")
+			// Restore focus to the main view after closing modal
+			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
+				if vc, ok := viewContainer.(*tview.Flex); ok {
+					app := mm.ui.GetApp().(*tview.Application)
+					app.SetFocus(vc)
+				}
+			}
+			return nil // Consume the event
+		}
+		return event
+	})
+
 	pages := mm.ui.GetPages().(*tview.Pages)
-	pages.AddPage("modal", modal, true, true)
+	pages.AddPage("help_modal", modal, true, true)
+
+	// Set focus to the modal so it can receive keyboard input
+	app := mm.ui.GetApp().(*tview.Application)
+	app.SetFocus(modal)
 }
 
 // ShowError displays an error modal
 func (mm *ModalManager) ShowError(err error) {
 	errorText := fmt.Sprintf("Error: %v", err)
 	modal := mm.createModal(errorText, []string{"OK"})
+
+	// Add done function to handle OK button click
+	modal.SetDoneFunc(func(_ int, _ string) {
+		pages := mm.ui.GetPages().(*tview.Pages)
+		pages.RemovePage("error_modal")
+		// Restore focus to the main view after closing modal
+		if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
+			if vc, ok := viewContainer.(*tview.Flex); ok {
+				app := mm.ui.GetApp().(*tview.Application)
+				app.SetFocus(vc)
+			}
+		}
+	})
+
+	// Add keyboard handling for ESC key to close modal
+	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape {
+			pages := mm.ui.GetPages().(*tview.Pages)
+			pages.RemovePage("error_modal")
+			// Restore focus to the main view after closing modal
+			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
+				if vc, ok := viewContainer.(*tview.Flex); ok {
+					app := mm.ui.GetApp().(*tview.Application)
+					app.SetFocus(vc)
+				}
+			}
+			return nil // Consume the event
+		}
+		return event
+	})
+
 	pages := mm.ui.GetPages().(*tview.Pages)
-	pages.AddPage("modal", modal, true, true)
+	pages.AddPage("error_modal", modal, true, true)
+
+	// Set focus to the modal so it can receive keyboard input
+	app := mm.ui.GetApp().(*tview.Application)
+	app.SetFocus(modal)
 }
 
 // ShowConfirm displays a confirmation modal with Yes/No buttons
@@ -40,23 +111,49 @@ func (mm *ModalManager) ShowConfirm(text string, callback func(bool)) {
 		AddButtons([]string{"Yes", "No"}).
 		SetDoneFunc(func(buttonIndex int, _ string) {
 			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("modal")
+			pages.RemovePage("confirm_modal")
 			callback(buttonIndex == 0)
+			// Restore focus to the main view after closing modal
+			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
+				if vc, ok := viewContainer.(*tview.Flex); ok {
+					app := mm.ui.GetApp().(*tview.Application)
+					app.SetFocus(vc)
+				}
+			}
 		})
 
+	// Add keyboard handling for ESC key to close modal (cancel action)
+	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape {
+			pages := mm.ui.GetPages().(*tview.Pages)
+			pages.RemovePage("confirm_modal")
+			// Call callback with false (No) when ESC is pressed
+			callback(false)
+			// Restore focus to the main view after closing modal
+			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
+				if vc, ok := viewContainer.(*tview.Flex); ok {
+					app := mm.ui.GetApp().(*tview.Application)
+					app.SetFocus(vc)
+				}
+			}
+			return nil // Consume the event
+		}
+		return event
+	})
+
 	pages := mm.ui.GetPages().(*tview.Pages)
-	pages.AddPage("modal", modal, true, true)
+	pages.AddPage("confirm_modal", modal, true, true)
+
+	// Set focus to the modal so it can receive keyboard input
+	app := mm.ui.GetApp().(*tview.Application)
+	app.SetFocus(modal)
 }
 
 // createModal creates a standard modal with consistent styling
 func (mm *ModalManager) createModal(text string, buttons []string) *tview.Modal {
 	return tview.NewModal().
 		SetText(text).
-		AddButtons(buttons).
-		SetDoneFunc(func(_ int, _ string) {
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("modal")
-		})
+		AddButtons(buttons)
 }
 
 // buildHelpText constructs the help text content

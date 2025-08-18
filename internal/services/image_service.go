@@ -52,3 +52,19 @@ func (s *imageService) RemoveImage(ctx context.Context, id string, force bool) e
 func (s *imageService) InspectImage(ctx context.Context, id string) (map[string]any, error) {
 	return s.client.InspectImage(ctx, id)
 }
+
+// GetActions returns the available actions for images as a map
+func (s *imageService) GetActions() map[rune]string {
+	return map[rune]string{
+		'r': "Remove",
+		'h': "History",
+		'f': "Filter",
+		't': "Sort",
+		'i': "Inspect",
+	}
+}
+
+// GetActionsString returns the available actions for images as a formatted string
+func (s *imageService) GetActionsString() string {
+	return "<r> Remove\n<h> History\n<f> Filter\n<t> Sort\n<i> Inspect\n<enter> Details\n<up/down> Navigate\n<?> Help\n<f5> Refresh\n<:> Command"
+}

@@ -177,4 +177,4 @@ const DockerInfoTemplate = `🐳 Docker Info
 📝 Logging: %s`
 
 // StatusBarTemplate is the template for the status bar display
-const StatusBarTemplate = "%s | %s for details | %s to quit"
+const StatusBarTemplate = "[%s] [Enter] Details [Q] Quit"

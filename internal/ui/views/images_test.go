@@ -5,55 +5,71 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rivo/tview"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/wikczerski/D5r/internal/models"
 	"github.com/wikczerski/D5r/internal/services"
+	servicemocks "github.com/wikczerski/D5r/internal/services/mocks"
+	uimocks "github.com/wikczerski/D5r/internal/ui/interfaces/mocks"
 )
 
-// MockImageService is a mock implementation of ImageService
-type MockImageService struct {
-	images     []models.Image
-	inspectErr error
-	listErr    error
+func newImagesUIMockWithServices(t *testing.T, sf *services.ServiceFactory) *uimocks.MockUIInterface {
+	ui := uimocks.NewMockUIInterface(t)
+	ui.On("GetApp").Return(tview.NewApplication()).Maybe()
+	ui.On("GetPages").Return(tview.NewPages()).Maybe()
+	ui.On("GetServices").Return(sf).Maybe()
+	return ui
 }
 
-func (m *MockImageService) ListImages(_ context.Context) ([]models.Image, error) {
-	return m.images, m.listErr
-}
-
-func (m *MockImageService) InspectImage(_ context.Context, _ string) (map[string]any, error) {
-	return nil, m.inspectErr
-}
-
-func (m *MockImageService) RemoveImage(_ context.Context, _ string, _ bool) error {
-	return nil
-}
-
-func TestNewImagesView(t *testing.T) {
-	mockUI := NewMockUI()
-	imagesView := NewImagesView(mockUI)
+func TestNewImagesView_Creation(t *testing.T) {
+	ui := newImagesUIMockWithServices(t, nil)
+	imagesView := NewImagesView(ui)
 
 	assert.NotNil(t, imagesView)
-	// Note: ui field is internal, we can't test it directly
+}
+
+func TestNewImagesView_ViewField(t *testing.T) {
+	ui := newImagesUIMockWithServices(t, nil)
+	imagesView := NewImagesView(ui)
+
 	assert.NotNil(t, imagesView.view)
+}
+
+func TestNewImagesView_TableField(t *testing.T) {
+	ui := newImagesUIMockWithServices(t, nil)
+	imagesView := NewImagesView(ui)
+
 	assert.NotNil(t, imagesView.table)
+}
+
+func TestNewImagesView_ItemsField(t *testing.T) {
+	ui := newImagesUIMockWithServices(t, nil)
+	imagesView := NewImagesView(ui)
+
 	assert.Empty(t, imagesView.items)
 }
 
 func TestImagesView_GetView(t *testing.T) {
-	mockUI := NewMockUI()
-	imagesView := NewImagesView(mockUI)
+	ui := newImagesUIMockWithServices(t, nil)
+	imagesView := NewImagesView(ui)
 	view := imagesView.GetView()
 
 	assert.NotNil(t, view)
+}
+
+func TestImagesView_GetView_ReturnsCorrectView(t *testing.T) {
+	ui := newImagesUIMockWithServices(t, nil)
+	imagesView := NewImagesView(ui)
+	view := imagesView.GetView()
+
 	assert.Equal(t, imagesView.view, view)
 }
 
 func TestImagesView_Refresh_NoServices(t *testing.T) {
-	mockUI := NewMockUI()
-	mockUI.services = nil
+	ui := newImagesUIMockWithServices(t, nil)
+	imagesView := NewImagesView(ui)
 
-	imagesView := NewImagesView(mockUI)
 	imagesView.Refresh()
 
 	assert.Empty(t, imagesView.items)
@@ -79,43 +95,35 @@ func TestImagesView_Refresh_WithServices(t *testing.T) {
 		},
 	}
 
-	mockImageService := &MockImageService{
-		images:  mockImages,
-		listErr: nil,
-	}
+	is := servicemocks.NewMockImageService(t)
+	is.On("ListImages", context.Background()).Return(mockImages, nil)
 
-	mockUI := NewMockUI()
-	mockUI.services = &services.ServiceFactory{
-		ImageService: mockImageService,
-	}
+	sf := &services.ServiceFactory{ImageService: is}
+	ui := newImagesUIMockWithServices(t, sf)
 
-	imagesView := NewImagesView(mockUI)
+	imagesView := NewImagesView(ui)
 	imagesView.Refresh()
 
 	assert.Equal(t, mockImages, imagesView.items)
 }
 
 func TestImagesView_Refresh_ServiceError(t *testing.T) {
-	mockImageService := &MockImageService{
-		images:  []models.Image{},
-		listErr: assert.AnError,
-	}
+	is := servicemocks.NewMockImageService(t)
+	is.On("ListImages", context.Background()).Return([]models.Image{}, assert.AnError)
 
-	mockUI := NewMockUI()
-	mockUI.services = &services.ServiceFactory{
-		ImageService: mockImageService,
-	}
+	sf := &services.ServiceFactory{ImageService: is}
+	ui := newImagesUIMockWithServices(t, sf)
+	ui.On("ShowError", assert.AnError).Return().Maybe()
 
-	imagesView := NewImagesView(mockUI)
+	imagesView := NewImagesView(ui)
 	imagesView.Refresh()
 
 	assert.Empty(t, imagesView.items)
 }
 
 func TestImagesView_ShowImageDetails_Success(t *testing.T) {
-	mockImageService := &MockImageService{
-		inspectErr: nil,
-	}
+	is := servicemocks.NewMockImageService(t)
+	is.On("InspectImage", context.Background(), "image1").Return(map[string]any{"ok": true}, nil).Maybe()
 
 	mockImage := models.Image{
 		ID:         "image1",
@@ -126,12 +134,11 @@ func TestImagesView_ShowImageDetails_Success(t *testing.T) {
 		Containers: 2,
 	}
 
-	mockUI := NewMockUI()
-	mockUI.services = &services.ServiceFactory{
-		ImageService: mockImageService,
-	}
+	sf := &services.ServiceFactory{ImageService: is}
+	ui := newImagesUIMockWithServices(t, sf)
+	ui.On("ShowDetails", mock.AnythingOfType("*tview.Flex")).Return().Maybe()
 
-	imagesView := NewImagesView(mockUI)
+	imagesView := NewImagesView(ui)
 	imagesView.items = []models.Image{mockImage}
 	imagesView.showImageDetails(&mockImage)
 
@@ -139,9 +146,8 @@ func TestImagesView_ShowImageDetails_Success(t *testing.T) {
 }
 
 func TestImagesView_ShowImageDetails_InspectError(t *testing.T) {
-	mockImageService := &MockImageService{
-		inspectErr: assert.AnError,
-	}
+	is := servicemocks.NewMockImageService(t)
+	is.On("InspectImage", context.Background(), "image1").Return(map[string]any(nil), assert.AnError).Maybe()
 
 	mockImage := models.Image{
 		ID:         "image1",
@@ -152,12 +158,11 @@ func TestImagesView_ShowImageDetails_InspectError(t *testing.T) {
 		Containers: 2,
 	}
 
-	mockUI := NewMockUI()
-	mockUI.services = &services.ServiceFactory{
-		ImageService: mockImageService,
-	}
+	sf := &services.ServiceFactory{ImageService: is}
+	ui := newImagesUIMockWithServices(t, sf)
+	ui.On("ShowDetails", mock.AnythingOfType("*tview.Flex")).Return().Maybe()
 
-	imagesView := NewImagesView(mockUI)
+	imagesView := NewImagesView(ui)
 	imagesView.items = []models.Image{mockImage}
 	imagesView.showImageDetails(&mockImage)
 
@@ -165,9 +170,8 @@ func TestImagesView_ShowImageDetails_InspectError(t *testing.T) {
 }
 
 func TestImagesView_HandleAction_Delete(t *testing.T) {
-	mockUI := NewMockUI()
-
-	imagesView := NewImagesView(mockUI)
+	ui := newImagesUIMockWithServices(t, nil)
+	imagesView := NewImagesView(ui)
 	imagesView.items = []models.Image{
 		{
 			ID:         "image1",
@@ -180,15 +184,12 @@ func TestImagesView_HandleAction_Delete(t *testing.T) {
 	}
 	imagesView.table.Select(1, 0)
 
-	// We'll avoid calling handleAction since it triggers complex UI operations
-	assert.NotNil(t, imagesView)
 	assert.NotNil(t, imagesView.handleImageKey)
 }
 
 func TestImagesView_HandleAction_Inspect(t *testing.T) {
-	mockUI := NewMockUI()
-
-	imagesView := NewImagesView(mockUI)
+	ui := newImagesUIMockWithServices(t, nil)
+	imagesView := NewImagesView(ui)
 	imagesView.items = []models.Image{
 		{
 			ID:         "image1",
@@ -201,48 +202,54 @@ func TestImagesView_HandleAction_Inspect(t *testing.T) {
 	}
 	imagesView.table.Select(1, 0)
 
-	// We'll avoid calling handleAction since it triggers complex UI operations
-	assert.NotNil(t, imagesView)
 	assert.NotNil(t, imagesView.handleImageKey)
 }
 
 func TestImagesView_HandleAction_InvalidSelection(t *testing.T) {
-	mockUI := NewMockUI()
-
-	imagesView := NewImagesView(mockUI)
+	ui := newImagesUIMockWithServices(t, nil)
+	imagesView := NewImagesView(ui)
+	testImage := models.Image{
+		ID:         "image1",
+		Repository: "test/repo1",
+		Tag:        "latest",
+		Size:       "100MB",
+		Created:    time.Now(),
+		Containers: 2,
+	}
 	imagesView.items = []models.Image{}
 	imagesView.table.Select(0, 0)
-	imagesView.handleAction('d')
-	imagesView.handleAction('i')
+
+	// Test action handling
+	imagesView.handleAction('d', &testImage)
+	imagesView.handleAction('i', &testImage)
 
 	assert.NotNil(t, imagesView)
 }
 
 func TestImagesView_ShowTable(t *testing.T) {
-	mockUI := NewMockUI()
-	imagesView := NewImagesView(mockUI)
+	ui := newImagesUIMockWithServices(t, nil)
+	imagesView := NewImagesView(ui)
 
 	assert.NotNil(t, imagesView)
 }
 
 func TestImagesView_DeleteImage(t *testing.T) {
-	mockUI := NewMockUI()
-	imagesView := NewImagesView(mockUI)
+	ui := newImagesUIMockWithServices(t, nil)
+	imagesView := NewImagesView(ui)
 
 	assert.NotNil(t, imagesView)
 }
 
 func TestImagesView_InspectImage(t *testing.T) {
-	mockUI := NewMockUI()
-	imagesView := NewImagesView(mockUI)
+	ui := newImagesUIMockWithServices(t, nil)
+	imagesView := NewImagesView(ui)
 
 	assert.NotNil(t, imagesView)
 }
 
 func TestImagesView_SetupKeyBindings(t *testing.T) {
-	mockUI := NewMockUI()
-
-	imagesView := NewImagesView(mockUI)
+	ui := newImagesUIMockWithServices(t, nil)
+	imagesView := NewImagesView(ui)
 	imagesView.items = []models.Image{
 		{
 			ID:         "image1",
@@ -255,16 +262,12 @@ func TestImagesView_SetupKeyBindings(t *testing.T) {
 	}
 	imagesView.table.Select(1, 0)
 
-	// Test key bindings - just verify they don't panic
-	// Note: We can't easily test tcell.EventKey creation in tests
-	// but we can verify the input capture function exists
 	assert.NotNil(t, imagesView.table.GetInputCapture())
 }
 
 func TestImagesView_SetupKeyBindings_InvalidSelection(t *testing.T) {
-	mockUI := NewMockUI()
-
-	imagesView := NewImagesView(mockUI)
+	ui := newImagesUIMockWithServices(t, nil)
+	imagesView := NewImagesView(ui)
 	imagesView.items = []models.Image{}
 	imagesView.table.Select(0, 0)
 

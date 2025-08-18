@@ -80,6 +80,11 @@ func (co *CommonOperations) InspectResource(ctx context.Context, resourceType, i
 		return nil, fmt.Errorf("docker client is not initialized")
 	}
 
+	return co.inspectResourceByType(ctx, resourceType, id)
+}
+
+// inspectResourceByType inspects a resource based on its type
+func (co *CommonOperations) inspectResourceByType(ctx context.Context, resourceType, id string) (map[string]any, error) {
 	switch resourceType {
 	case "container":
 		return co.client.InspectContainer(ctx, id)

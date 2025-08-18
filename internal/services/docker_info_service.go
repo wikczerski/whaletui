@@ -57,7 +57,7 @@ func (s *dockerInfoService) GetDockerInfo(ctx context.Context) (*models.DockerIn
 
 	getStringSlice := func(key string) []string {
 		if val, ok := info[key]; ok {
-			if slice, ok := val.([]interface{}); ok {
+			if slice, ok := val.([]any); ok {
 				result := make([]string, len(slice))
 				for i, v := range slice {
 					if s, ok := v.(string); ok {

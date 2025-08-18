@@ -62,15 +62,27 @@ func SuggestConfigUpdate(detectedHost string) error {
 		return fmt.Errorf("config update suggestion only available on Windows")
 	}
 
+	config, err := readExistingConfig()
+	if err != nil {
+		return err
+	}
+
+	updateConfigWithHost(config, detectedHost)
+	ensureRequiredFields(config)
+
+	return writeUpdatedConfig(config)
+}
+
+// readExistingConfig reads the existing configuration file
+func readExistingConfig() (map[string]any, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return fmt.Errorf("home directory access failed: %w", err)
+		return nil, fmt.Errorf("home directory access failed: %w", err)
 	}
 
 	configDir := filepath.Join(homeDir, ".dockerk9s")
 	configFile := filepath.Join(configDir, "config.json")
 
-	// Read existing config
 	var config map[string]any
 	if _, err := os.Stat(configFile); err == nil {
 		data, err := os.ReadFile(configFile)
@@ -81,13 +93,20 @@ func SuggestConfigUpdate(detectedHost string) error {
 		}
 	}
 
-	// Update the Docker host
 	if config == nil {
 		config = make(map[string]any)
 	}
-	config["docker_host"] = detectedHost
 
-	// Ensure other required fields exist
+	return config, nil
+}
+
+// updateConfigWithHost updates the configuration with the detected Docker host
+func updateConfigWithHost(config map[string]any, detectedHost string) {
+	config["docker_host"] = detectedHost
+}
+
+// ensureRequiredFields ensures that all required configuration fields exist
+func ensureRequiredFields(config map[string]any) {
 	if _, exists := config["refresh_interval"]; !exists {
 		config["refresh_interval"] = 5
 	}
@@ -97,6 +116,17 @@ func SuggestConfigUpdate(detectedHost string) error {
 	if _, exists := config["theme"]; !exists {
 		config["theme"] = "default"
 	}
+}
+
+// writeUpdatedConfig writes the updated configuration to file
+func writeUpdatedConfig(config map[string]any) error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("home directory access failed: %w", err)
+	}
+
+	configDir := filepath.Join(homeDir, ".dockerk9s")
+	configFile := filepath.Join(configDir, "config.json")
 
 	// Create config directory if it doesn't exist
 	if err := os.MkdirAll(configDir, 0o755); err != nil {

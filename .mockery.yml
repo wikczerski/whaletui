@@ -1,0 +1,26 @@
+all: false
+dir: '{{.InterfaceDir}}'
+filename: '{{.InterfaceName}}.go'
+force-file-write: true
+formatter: goimports
+include-auto-generated: false
+log-level: info
+structname: '{{.Mock}}{{.InterfaceName}}'
+pkgname: '{{.SrcPackageName}}'
+recursive: true
+require-template-schema-exists: true
+template: testify
+template-schema: '{{.Template}}.schema.json'
+packages:
+  github.com/wikczerski/D5r/internal/ui/interfaces:
+    config:
+      all: true
+      dir: internal/ui/interfaces/mocks
+      filename: '{{.InterfaceName}}.go'
+      pkgname: mocks
+  github.com/wikczerski/D5r/internal/services:
+    config:
+      all: true
+      dir: internal/services/mocks
+      filename: '{{.InterfaceName}}.go'
+      pkgname: mocks

@@ -4,11 +4,11 @@ import "reflect"
 
 // Mergeable defines types that can merge with defaults
 type Mergeable interface {
-	MergeWith(other interface{})
+	MergeWith(other any)
 }
 
 // mergeStringFields is a helper function that merges non-empty string fields from src to dst
-func mergeStringFields(dst, src interface{}) {
+func mergeStringFields(dst, src any) {
 	dstVal := reflect.ValueOf(dst).Elem()
 	srcVal := reflect.ValueOf(src)
 
@@ -31,7 +31,7 @@ type ThemeConfig struct {
 }
 
 // MergeWith merges this config with another, copying non-empty values
-func (tc *ThemeConfig) MergeWith(other interface{}) {
+func (tc *ThemeConfig) MergeWith(other any) {
 	// Handle both value and pointer types
 	var otherConfig ThemeConfig
 	switch v := other.(type) {
@@ -66,7 +66,7 @@ type ThemeColors struct {
 }
 
 // MergeWith merges this ThemeColors with another, copying non-empty values
-func (tc *ThemeColors) MergeWith(other interface{}) {
+func (tc *ThemeColors) MergeWith(other any) {
 	// Handle both value and pointer types
 	var otherColors ThemeColors
 	switch v := other.(type) {
@@ -95,7 +95,7 @@ type ShellTheme struct {
 }
 
 // MergeWith merges this ShellTheme with another, copying non-empty values
-func (st *ShellTheme) MergeWith(other interface{}) {
+func (st *ShellTheme) MergeWith(other any) {
 	// Handle both value and pointer types
 	var otherShell ShellTheme
 	switch v := other.(type) {
@@ -125,7 +125,7 @@ type ShellCmdTheme struct {
 }
 
 // MergeWith merges this ShellCmdTheme with another, copying non-empty values
-func (sct *ShellCmdTheme) MergeWith(other interface{}) {
+func (sct *ShellCmdTheme) MergeWith(other any) {
 	// Handle both value and pointer types
 	var otherCmd ShellCmdTheme
 	switch v := other.(type) {
@@ -155,7 +155,7 @@ type ContainerExecTheme struct {
 }
 
 // MergeWith merges this ContainerExecTheme with another, copying non-empty values
-func (cet *ContainerExecTheme) MergeWith(other interface{}) {
+func (cet *ContainerExecTheme) MergeWith(other any) {
 	// Handle both value and pointer types
 	var otherExec ContainerExecTheme
 	switch v := other.(type) {
@@ -185,7 +185,7 @@ type CommandModeTheme struct {
 }
 
 // MergeWith merges this CommandModeTheme with another, copying non-empty values
-func (cmt *CommandModeTheme) MergeWith(other interface{}) {
+func (cmt *CommandModeTheme) MergeWith(other any) {
 	// Handle both value and pointer types
 	var otherMode CommandModeTheme
 	switch v := other.(type) {

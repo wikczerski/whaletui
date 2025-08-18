@@ -115,18 +115,43 @@ func runApp(_ *cobra.Command, _ []string) error {
 
 // cleanupTerminal performs additional terminal cleanup operations
 func cleanupTerminal() {
+	cleanupTerminal_clearScreen()
+	cleanupTerminal_resetColors()
+	cleanupTerminal_showCursor()
+	cleanupTerminal_moveCursorToTop()
+	cleanupTerminal_syncStdout()
+}
+
+// cleanupTerminal_clearScreen clears the terminal screen
+func cleanupTerminal_clearScreen() {
 	if _, err := fmt.Fprint(os.Stdout, "\033[2J"); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: failed to clear screen: %v\n", err)
 	}
+}
+
+// cleanupTerminal_resetColors resets terminal colors
+func cleanupTerminal_resetColors() {
 	if _, err := fmt.Fprint(os.Stdout, "\033[0m"); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: failed to reset colors: %v\n", err)
 	}
+}
+
+// cleanupTerminal_showCursor shows the terminal cursor
+func cleanupTerminal_showCursor() {
 	if _, err := fmt.Fprint(os.Stdout, "\033[?25h"); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: failed to show cursor: %v\n", err)
 	}
+}
+
+// cleanupTerminal_moveCursorToTop moves the cursor to the top of the terminal
+func cleanupTerminal_moveCursorToTop() {
 	if _, err := fmt.Fprint(os.Stdout, "\033[H"); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: failed to move cursor: %v\n", err)
 	}
+}
+
+// cleanupTerminal_syncStdout synchronizes stdout
+func cleanupTerminal_syncStdout() {
 	if err := os.Stdout.Sync(); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: failed to sync stdout: %v\n", err)
 	}

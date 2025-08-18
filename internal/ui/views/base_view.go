@@ -90,40 +90,81 @@ func (bv *BaseView[T]) Refresh() {
 		return
 	}
 
+	bv.updateItemsAndTable(items)
+}
+
+// updateItemsAndTable updates the items and refreshes the table display
+func (bv *BaseView[T]) updateItemsAndTable(items []T) {
 	bv.items = items
 	bv.table.Clear()
 	builders.NewTableBuilder().SetupHeaders(bv.table, bv.headers)
 
 	if bv.FormatRow != nil {
-		for i, item := range items {
-			cells := bv.FormatRow(item)
-			rowColor := constants.TableDefaultRowColor
-			if bv.GetRowColor != nil {
-				rowColor = bv.GetRowColor(item)
-			}
-			builders.NewTableBuilder().SetupRow(bv.table, i+1, cells, rowColor)
-		}
+		bv.populateTableRows(items)
 	}
 
+	bv.selectFirstRowIfAvailable(items)
+}
+
+// populateTableRows populates the table with formatted row data
+func (bv *BaseView[T]) populateTableRows(items []T) {
+	for i, item := range items {
+		cells := bv.FormatRow(item)
+		rowColor := bv.getRowColor(item)
+		builders.NewTableBuilder().SetupRow(bv.table, i+1, cells, rowColor)
+	}
+}
+
+// getRowColor gets the color for a table row, with fallback to default
+func (bv *BaseView[T]) getRowColor(item T) tcell.Color {
+	if bv.GetRowColor != nil {
+		return bv.GetRowColor(item)
+	}
+	return constants.TableDefaultRowColor
+}
+
+// selectFirstRowIfAvailable selects the first row if items are available
+func (bv *BaseView[T]) selectFirstRowIfAvailable(items []T) {
 	if len(items) > 0 {
 		bv.table.Select(1, 0)
 	}
 }
 
 func (bv *BaseView[T]) ShowItemDetails(item T, inspectData map[string]any, err error) {
+	actions := bv.getActionsForItem()
+
+	if bv.shouldShowErrorDetails(err) {
+		bv.showErrorDetails(item, err, actions)
+		return
+	}
+
+	bv.showSuccessDetails(item, inspectData, actions)
+}
+
+// shouldShowErrorDetails determines if error details should be shown
+func (bv *BaseView[T]) shouldShowErrorDetails(err error) bool {
+	return err != nil
+}
+
+// getActionsForItem gets the actions for the item, with fallback to defaults
+func (bv *BaseView[T]) getActionsForItem() map[rune]string {
 	actions := bv.GetActions()
 	if actions == nil {
 		actions = map[rune]string{'d': "Delete", 'i': "Inspect"}
 	}
+	return actions
+}
 
-	if err != nil {
-		itemName := bv.GetItemName(item)
-		details := fmt.Sprintf("Item: %s\nInspect error: %v", itemName, err)
-		detailsView := builders.CreateDetailsView(itemName, details, actions, bv.handleAction, bv.showTable)
-		bv.ui.ShowDetails(detailsView)
-		return
-	}
+// showErrorDetails shows error details when inspection fails
+func (bv *BaseView[T]) showErrorDetails(item T, err error, actions map[rune]string) {
+	itemName := bv.GetItemName(item)
+	details := fmt.Sprintf("Item: %s\nInspect error: %v", itemName, err)
+	detailsView := builders.CreateDetailsView(itemName, details, actions, bv.handleAction, bv.showTable)
+	bv.ui.ShowDetails(detailsView)
+}
 
+// showSuccessDetails shows successful inspection details
+func (bv *BaseView[T]) showSuccessDetails(item T, inspectData map[string]any, actions map[rune]string) {
 	itemName := bv.GetItemName(item)
 	detailsView := builders.CreateInspectDetailsView(itemName, inspectData, actions, bv.handleAction, bv.showTable)
 	bv.ui.ShowDetails(detailsView)

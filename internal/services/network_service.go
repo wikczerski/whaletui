@@ -22,6 +22,10 @@ func NewNetworkService(client *docker.Client) NetworkService {
 
 // ListNetworks retrieves all networks
 func (s *networkService) ListNetworks(ctx context.Context) ([]models.Network, error) {
+	if s.client == nil {
+		return nil, fmt.Errorf("docker client is not initialized")
+	}
+
 	networks, err := s.client.ListNetworks(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list networks: %w", err)
@@ -56,5 +60,25 @@ func (s *networkService) RemoveNetwork(ctx context.Context, id string) error {
 
 // InspectNetwork inspects a network
 func (s *networkService) InspectNetwork(ctx context.Context, id string) (map[string]any, error) {
+	if s.client == nil {
+		return nil, fmt.Errorf("docker client is not initialized")
+	}
+
 	return s.client.InspectNetwork(ctx, id)
+}
+
+// GetActions returns the available actions for networks as a map
+func (s *networkService) GetActions() map[rune]string {
+	return map[rune]string{
+		'r': "Remove",
+		'h': "History",
+		'f': "Filter",
+		't': "Sort",
+		'i': "Inspect",
+	}
+}
+
+// GetActionsString returns the available actions for networks as a formatted string
+func (s *networkService) GetActionsString() string {
+	return "<r> Remove\n<h> History\n<f> Filter\n<t> Sort\n<i> Inspect\n<enter> Details\n<up/down> Navigate\n<?> Help\n<f5> Refresh\n<:> Command"
 }

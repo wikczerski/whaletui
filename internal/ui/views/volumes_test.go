@@ -5,56 +5,70 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rivo/tview"
 	"github.com/stretchr/testify/assert"
 	"github.com/wikczerski/D5r/internal/models"
 	"github.com/wikczerski/D5r/internal/services"
+	servicemocks "github.com/wikczerski/D5r/internal/services/mocks"
+	uimocks "github.com/wikczerski/D5r/internal/ui/interfaces/mocks"
 )
 
-// MockVolumeService is a mock implementation of VolumeService
-type MockVolumeService struct {
-	volumes     []models.Volume
-	inspectData map[string]any
-	inspectErr  error
-	listErr     error
+func newUIMockWithServices(t *testing.T, sf *services.ServiceFactory) *uimocks.MockUIInterface {
+	ui := uimocks.NewMockUIInterface(t)
+	ui.On("GetApp").Return(tview.NewApplication()).Maybe()
+	ui.On("GetPages").Return(tview.NewPages()).Maybe()
+	ui.On("GetServices").Return(sf).Maybe()
+	return ui
 }
 
-func (m *MockVolumeService) ListVolumes(_ context.Context) ([]models.Volume, error) {
-	return m.volumes, m.listErr
-}
-
-func (m *MockVolumeService) InspectVolume(_ context.Context, _ string) (map[string]any, error) {
-	return m.inspectData, m.inspectErr
-}
-
-func (m *MockVolumeService) RemoveVolume(_ context.Context, _ string, _ bool) error {
-	return nil
-}
-
-func TestNewVolumesView(t *testing.T) {
-	mockUI := NewMockUI()
-	volumesView := NewVolumesView(mockUI)
+func TestNewVolumesView_Creation(t *testing.T) {
+	ui := newUIMockWithServices(t, nil)
+	volumesView := NewVolumesView(ui)
 
 	assert.NotNil(t, volumesView)
-	// Note: ui field is internal, we can't test it directly
+}
+
+func TestNewVolumesView_ViewField(t *testing.T) {
+	ui := newUIMockWithServices(t, nil)
+	volumesView := NewVolumesView(ui)
+
 	assert.NotNil(t, volumesView.view)
+}
+
+func TestNewVolumesView_TableField(t *testing.T) {
+	ui := newUIMockWithServices(t, nil)
+	volumesView := NewVolumesView(ui)
+
 	assert.NotNil(t, volumesView.table)
+}
+
+func TestNewVolumesView_ItemsField(t *testing.T) {
+	ui := newUIMockWithServices(t, nil)
+	volumesView := NewVolumesView(ui)
+
 	assert.Empty(t, volumesView.items)
 }
 
 func TestVolumesView_GetView(t *testing.T) {
-	mockUI := NewMockUI()
-	volumesView := NewVolumesView(mockUI)
+	ui := newUIMockWithServices(t, nil)
+	volumesView := NewVolumesView(ui)
 	view := volumesView.GetView()
 
 	assert.NotNil(t, view)
+}
+
+func TestVolumesView_GetView_ReturnsCorrectView(t *testing.T) {
+	ui := newUIMockWithServices(t, nil)
+	volumesView := NewVolumesView(ui)
+	view := volumesView.GetView()
+
 	assert.Equal(t, volumesView.view, view)
 }
 
 func TestVolumesView_Refresh_NoServices(t *testing.T) {
-	mockUI := NewMockUI()
-	mockUI.services = nil
+	ui := newUIMockWithServices(t, nil)
+	volumesView := NewVolumesView(ui)
 
-	volumesView := NewVolumesView(mockUI)
 	volumesView.Refresh()
 
 	assert.Empty(t, volumesView.items)
@@ -77,44 +91,35 @@ func TestVolumesView_Refresh_WithServices(t *testing.T) {
 			Size:       "200MB",
 		},
 	}
+	vs := servicemocks.NewMockVolumeService(t)
+	vs.On("ListVolumes", context.Background()).Return(mockVolumes, nil)
 
-	mockVolumeService := &MockVolumeService{
-		volumes: mockVolumes,
-		listErr: nil,
-	}
+	sf := &services.ServiceFactory{VolumeService: vs}
+	ui := newUIMockWithServices(t, sf)
 
-	mockUI := NewMockUI()
-	mockUI.services = &services.ServiceFactory{
-		VolumeService: mockVolumeService,
-	}
-
-	volumesView := NewVolumesView(mockUI)
+	volumesView := NewVolumesView(ui)
 	volumesView.Refresh()
 
 	assert.Equal(t, mockVolumes, volumesView.items)
 }
 
 func TestVolumesView_Refresh_ServiceError(t *testing.T) {
-	mockVolumeService := &MockVolumeService{
-		volumes: []models.Volume{},
-		listErr: assert.AnError,
-	}
+	vs := servicemocks.NewMockVolumeService(t)
+	vs.On("ListVolumes", context.Background()).Return([]models.Volume{}, assert.AnError)
 
-	mockUI := NewMockUI()
-	mockUI.services = &services.ServiceFactory{
-		VolumeService: mockVolumeService,
-	}
+	sf := &services.ServiceFactory{VolumeService: vs}
+	ui := newUIMockWithServices(t, sf)
+	ui.On("ShowError", assert.AnError).Return().Maybe()
 
-	volumesView := NewVolumesView(mockUI)
+	volumesView := NewVolumesView(ui)
 	volumesView.Refresh()
 
 	assert.Empty(t, volumesView.items)
 }
 
 func TestVolumesView_ShowVolumeDetails_Success(t *testing.T) {
-	mockVolumeService := &MockVolumeService{
-		inspectErr: nil,
-	}
+	vs := servicemocks.NewMockVolumeService(t)
+	vs.On("InspectVolume", context.Background(), "volume1").Return(map[string]any{"ok": true}, nil).Maybe()
 
 	mockVolume := models.Volume{
 		Name:       "volume1",
@@ -124,24 +129,18 @@ func TestVolumesView_ShowVolumeDetails_Success(t *testing.T) {
 		Size:       "100MB",
 	}
 
-	mockUI := NewMockUI()
-	mockUI.services = &services.ServiceFactory{
-		VolumeService: mockVolumeService,
-	}
+	sf := &services.ServiceFactory{VolumeService: vs}
+	ui := newUIMockWithServices(t, sf)
 
-	volumesView := NewVolumesView(mockUI)
+	volumesView := NewVolumesView(ui)
 	volumesView.items = []models.Volume{mockVolume}
 
-	// Test that the method exists and can be called
-	// We'll avoid calling showVolumeDetails since it triggers complex UI operations
-	assert.NotNil(t, volumesView)
 	assert.NotNil(t, volumesView.showVolumeDetails)
 }
 
 func TestVolumesView_ShowVolumeDetails_InspectError(t *testing.T) {
-	mockVolumeService := &MockVolumeService{
-		inspectErr: assert.AnError,
-	}
+	vs := servicemocks.NewMockVolumeService(t)
+	vs.On("InspectVolume", context.Background(), "volume1").Return(map[string]any(nil), assert.AnError).Maybe()
 
 	mockVolume := models.Volume{
 		Name:       "volume1",
@@ -151,132 +150,109 @@ func TestVolumesView_ShowVolumeDetails_InspectError(t *testing.T) {
 		Size:       "100MB",
 	}
 
-	mockUI := NewMockUI()
-	mockUI.services = &services.ServiceFactory{
-		VolumeService: mockVolumeService,
-	}
+	sf := &services.ServiceFactory{VolumeService: vs}
+	ui := newUIMockWithServices(t, sf)
 
-	volumesView := NewVolumesView(mockUI)
+	volumesView := NewVolumesView(ui)
 	volumesView.items = []models.Volume{mockVolume}
 
-	// Test that the method exists and can be called
-	// We'll avoid calling showVolumeDetails since it triggers complex UI operations
-	assert.NotNil(t, volumesView)
 	assert.NotNil(t, volumesView.showVolumeDetails)
 }
 
 func TestVolumesView_HandleAction_Delete(t *testing.T) {
-	mockUI := NewMockUI()
-
-	volumesView := NewVolumesView(mockUI)
-	volumesView.items = []models.Volume{
-		{
-			Name:       "volume1",
-			Driver:     "local",
-			Mountpoint: "/var/lib/docker/volumes/volume1/_data",
-			Created:    time.Now(),
-			Size:       "100MB",
-		},
+	ui := newUIMockWithServices(t, nil)
+	volumesView := NewVolumesView(ui)
+	testVolume := models.Volume{
+		Name:       "volume1",
+		Driver:     "local",
+		Mountpoint: "/var/lib/docker/volumes/volume1/_data",
+		Created:    time.Now(),
+		Size:       "100MB",
 	}
+	volumesView.items = []models.Volume{testVolume}
 	volumesView.table.Select(1, 0)
 
-	// Test that the method exists and can be called
-	// We'll avoid calling handleAction since it triggers complex UI operations
+	// Test action handling
+	volumesView.handleAction('d', &testVolume)
+	volumesView.handleAction('i', &testVolume)
+
 	assert.NotNil(t, volumesView)
-	assert.NotNil(t, volumesView.handleVolumeKey)
 }
 
 func TestVolumesView_HandleAction_Inspect(t *testing.T) {
-	mockUI := NewMockUI()
-
-	volumesView := NewVolumesView(mockUI)
-	volumesView.items = []models.Volume{
-		{
-			Name:       "volume1",
-			Driver:     "local",
-			Mountpoint: "/var/lib/docker/volumes/volume1/_data",
-			Created:    time.Now(),
-			Size:       "100MB",
-		},
+	ui := newUIMockWithServices(t, nil)
+	volumesView := NewVolumesView(ui)
+	testVolume := models.Volume{
+		Name:       "volume1",
+		Driver:     "local",
+		Mountpoint: "/var/lib/docker/volumes/volume1/_data",
+		Created:    time.Now(),
+		Size:       "100MB",
 	}
+	volumesView.items = []models.Volume{testVolume}
 	volumesView.table.Select(1, 0)
 
-	// Test that the method exists and can be called
-	// We'll avoid calling handleAction since it triggers complex UI operations
+	// Test action handling
+	volumesView.handleAction('d', &testVolume)
+	volumesView.handleAction('i', &testVolume)
+
 	assert.NotNil(t, volumesView)
-	assert.NotNil(t, volumesView.handleVolumeKey)
 }
 
 func TestVolumesView_HandleAction_InvalidSelection(t *testing.T) {
-	mockUI := NewMockUI()
-
-	volumesView := NewVolumesView(mockUI)
+	ui := newUIMockWithServices(t, nil)
+	volumesView := NewVolumesView(ui)
+	testVolume := models.Volume{
+		Name:       "volume1",
+		Driver:     "local",
+		Mountpoint: "/var/lib/docker/volumes/volume1/_data",
+		Created:    time.Now(),
+		Size:       "100MB",
+	}
 	volumesView.items = []models.Volume{}
 	volumesView.table.Select(0, 0)
-	volumesView.handleAction('d')
-	volumesView.handleAction('i')
+
+	volumesView.handleAction('d', &testVolume)
+	volumesView.handleAction('i', &testVolume)
 
 	assert.NotNil(t, volumesView)
 }
 
 func TestVolumesView_ShowTable(t *testing.T) {
-	mockUI := NewMockUI()
-	volumesView := NewVolumesView(mockUI)
+	ui := newUIMockWithServices(t, nil)
+	volumesView := NewVolumesView(ui)
 
-	// Test that the method exists and can be called
-	// We'll avoid calling showTable since it triggers complex UI operations
-	assert.NotNil(t, volumesView)
 	assert.NotNil(t, volumesView.showTable)
 }
 
 func TestVolumesView_DeleteVolume(t *testing.T) {
-	mockUI := NewMockUI()
-	volumesView := NewVolumesView(mockUI)
+	ui := newUIMockWithServices(t, nil)
+	volumesView := NewVolumesView(ui)
 
-	// Test that the method exists and can be called
-	// We'll avoid calling deleteVolume since it triggers complex UI operations
-	assert.NotNil(t, volumesView)
 	assert.NotNil(t, volumesView.deleteVolume)
 }
 
 func TestVolumesView_InspectVolume(t *testing.T) {
-	mockUI := NewMockUI()
-	volumesView := NewVolumesView(mockUI)
+	ui := newUIMockWithServices(t, nil)
+	volumesView := NewVolumesView(ui)
 
-	// Test that the method exists and can be called
-	// We'll avoid calling inspectVolume since it triggers complex UI operations
-	assert.NotNil(t, volumesView)
 	assert.NotNil(t, volumesView.inspectVolume)
 }
 
 func TestVolumesView_SetupKeyBindings(t *testing.T) {
-	mockUI := NewMockUI()
-
-	volumesView := NewVolumesView(mockUI)
-	volumesView.items = []models.Volume{
-		{
-			Name:       "volume1",
-			Driver:     "local",
-			Mountpoint: "/var/lib/docker/volumes/volume1/_data",
-			Created:    time.Now(),
-			Size:       "100MB",
-		},
-	}
+	ui := newUIMockWithServices(t, nil)
+	volumesView := NewVolumesView(ui)
+	volumesView.items = []models.Volume{{Name: "volume1", Driver: "local", Created: time.Now()}}
 	volumesView.table.Select(1, 0)
 
-	// Test key bindings - just verify they don't panic
-	// Note: We can't easily test tcell.EventKey creation in tests
-	// but we can verify the input capture function exists
 	assert.NotNil(t, volumesView.table.GetInputCapture())
 }
 
 func TestVolumesView_SetupKeyBindings_InvalidSelection(t *testing.T) {
-	mockUI := NewMockUI()
-
-	volumesView := NewVolumesView(mockUI)
+	ui := newUIMockWithServices(t, nil)
+	volumesView := NewVolumesView(ui)
 	volumesView.items = []models.Volume{}
 	volumesView.table.Select(0, 0)
 
-	// Test key bindings with invalid selection - just verify they don't panic
 	assert.NotNil(t, volumesView.table.GetInputCapture())
 }
