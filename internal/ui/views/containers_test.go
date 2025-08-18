@@ -5,24 +5,29 @@ import (
 
 	"github.com/rivo/tview"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	uimocks "github.com/wikczerski/D5r/internal/ui/interfaces/mocks"
 )
 
+func newContainersUIMock(t *testing.T) *uimocks.MockUIInterface {
+	ui := uimocks.NewMockUIInterface(t)
+	ui.On("GetApp").Return(tview.NewApplication()).Maybe()
+	ui.On("GetPages").Return(tview.NewPages()).Maybe()
+	ui.On("GetServices").Return(nil).Maybe()
+	return ui
+}
+
 func TestNewContainersView(t *testing.T) {
-	ui := NewMockUI()
+	ui := newContainersUIMock(t)
 	containersView := NewContainersView(ui)
 
-	require.NotNil(t, containersView)
-	// Note: ui field is internal, we can't test it directly
+	assert.NotNil(t, containersView)
 	assert.NotNil(t, containersView.view)
 	assert.NotNil(t, containersView.table)
 	assert.Empty(t, containersView.items)
-	assert.IsType(t, &tview.Flex{}, containersView.view)
-	assert.IsType(t, &tview.Table{}, containersView.table)
 }
 
 func TestContainersView_GetView(t *testing.T) {
-	ui := NewMockUI()
+	ui := newContainersUIMock(t)
 	containersView := NewContainersView(ui)
 	view := containersView.GetView()
 
@@ -30,30 +35,15 @@ func TestContainersView_GetView(t *testing.T) {
 	assert.Equal(t, containersView.view, view)
 }
 
-func TestContainersView_Refresh(t *testing.T) {
-	ui := NewMockUI()
+func TestContainersView_Refresh_NoServices(t *testing.T) {
+	ui := newContainersUIMock(t)
 	containersView := NewContainersView(ui)
-
 	containersView.Refresh()
-
 	assert.Empty(t, containersView.items)
 }
 
-func TestContainersView_TableStructure(t *testing.T) {
-	ui := NewMockUI()
+func TestContainersView_SetupKeyBindings(t *testing.T) {
+	ui := newContainersUIMock(t)
 	containersView := NewContainersView(ui)
-	table := containersView.table
-
-	assert.NotNil(t, table)
-	// Note: We can't easily test the exact content without a full tview application
-	assert.NotNil(t, table)
-}
-
-func TestContainersView_EmptyState(t *testing.T) {
-	ui := NewMockUI()
-	containersView := NewContainersView(ui)
-
-	assert.Empty(t, containersView.items)
-	assert.NotNil(t, containersView.table)
-	assert.NotNil(t, containersView.view)
+	assert.NotNil(t, containersView.table.GetInputCapture())
 }

@@ -80,3 +80,26 @@ func (s *containerService) ExecContainer(ctx context.Context, id string, command
 func (s *containerService) AttachContainer(ctx context.Context, id string) (any, error) {
 	return s.operations.AttachContainer(ctx, id)
 }
+
+// GetActions returns the available actions for containers as a map
+func (s *containerService) GetActions() map[rune]string {
+	return map[rune]string{
+		's': "Start",
+		'S': "Stop",
+		'r': "Restart",
+		'd': "Delete",
+		'a': "Attach",
+		'l': "View Logs",
+		'i': "Inspect",
+		'n': "New",
+		'e': "Exec",
+		'f': "Filter",
+		't': "Sort",
+		'h': "History",
+	}
+}
+
+// GetActionsString returns the available actions for containers as a formatted string
+func (s *containerService) GetActionsString() string {
+	return "<s> Start\n<S> Stop\n<r> Restart\n<d> Delete\n<a> Attach\n<l> Logs\n<i> Inspect\n<n> New\n<e> Exec\n<f> Filter\n<t> Sort\n<h> History\n<enter> Details\n<:> Command"
+}

@@ -7,6 +7,8 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/wikczerski/D5r/internal/config"
+	"github.com/wikczerski/D5r/internal/models"
+	"github.com/wikczerski/D5r/internal/services"
 	"github.com/wikczerski/D5r/internal/ui/constants"
 	"github.com/wikczerski/D5r/internal/ui/interfaces"
 )
@@ -90,31 +92,56 @@ func (hm *HeaderManager) UpdateDockerInfo() {
 
 	services := hm.ui.GetServices()
 	if services == nil {
-		hm.dockerInfoCol.SetText("Context: docker\nCluster: local\nUser: docker\nD5r Rev: dev\nDocker Rev: --\nCPU: --\nMEM: --")
+		hm.setDefaultDockerInfo()
+		return
+	}
+
+	hm.updateDockerInfoFromService(services)
+}
+
+// setDefaultDockerInfo sets the default Docker info when services are not available
+func (hm *HeaderManager) setDefaultDockerInfo() {
+	hm.dockerInfoCol.SetText("Context: docker\nCluster: local\nUser: docker\nD5r Rev: dev\nDocker Rev: --\nCPU: --\nMEM: --")
+}
+
+// updateDockerInfoFromService updates Docker info from the service
+func (hm *HeaderManager) updateDockerInfoFromService(services services.ServiceFactoryInterface) {
+	if services == nil {
+		hm.setDefaultDockerInfo()
+		return
+	}
+
+	dockerInfoService := services.GetDockerInfoService()
+	if dockerInfoService == nil {
+		hm.setDefaultDockerInfo()
 		return
 	}
 
 	ctx := context.Background()
-	dockerInfo, err := services.DockerInfoService.GetDockerInfo(ctx)
-
-	var infoText string
+	dockerInfo, err := dockerInfoService.GetDockerInfo(ctx)
 	if err != nil {
 		// Show connection info even if Docker info fails
-		infoText = "Context: docker\nCluster: local\nUser: docker\nD5r Rev: dev\nDocker Rev: --\nCPU: --\nMEM: --"
-	} else {
-		// Use the DockerInfoTemplate constant with comprehensive information
-		infoText = fmt.Sprintf(constants.DockerInfoTemplate,
-			dockerInfo.Version,
-			dockerInfo.Containers,
-			dockerInfo.Images,
-			dockerInfo.Volumes,
-			dockerInfo.Networks,
-			dockerInfo.OperatingSystem,
-			dockerInfo.Architecture,
-			dockerInfo.Driver,
-			dockerInfo.LoggingDriver,
-		)
+		hm.setDefaultDockerInfo()
+		return
 	}
+
+	hm.setDockerInfoFromData(dockerInfo)
+}
+
+// setDockerInfoFromData sets Docker info from the retrieved data
+func (hm *HeaderManager) setDockerInfoFromData(dockerInfo *models.DockerInfo) {
+	// Use the DockerInfoTemplate constant with comprehensive information
+	infoText := fmt.Sprintf(constants.DockerInfoTemplate,
+		dockerInfo.Version,
+		dockerInfo.Containers,
+		dockerInfo.Images,
+		dockerInfo.Volumes,
+		dockerInfo.Networks,
+		dockerInfo.OperatingSystem,
+		dockerInfo.Architecture,
+		dockerInfo.Driver,
+		dockerInfo.LoggingDriver,
+	)
 
 	hm.dockerInfoCol.SetText(infoText)
 }
@@ -146,36 +173,48 @@ func (hm *HeaderManager) UpdateActions() {
 
 	// If in logs mode, show logs actions
 	if hm.ui.IsInLogsMode() {
-		logsActions := map[rune]string{
-			'f': "Follow logs",
-			't': "Tail logs",
-			's': "Save logs",
-			'c': "Clear logs",
-			'w': "Wrap text",
-		}
-		var actionsText string
-		for key, action := range logsActions {
-			actionsText += fmt.Sprintf("<%c> %s\n", key, action)
-		}
-		actionsText += "ESC/Enter: Back to table"
-		hm.actionsCol.SetText(actionsText)
+		hm.updateLogsActions()
 		return
 	}
 
 	// If in details mode, show current actions
 	if hm.ui.IsInDetailsMode() {
-		currentActions := hm.ui.GetCurrentActions()
-		if currentActions != nil {
-			var actionsText string
-			for key, action := range currentActions {
-				actionsText += fmt.Sprintf("<%c> %s\n", key, action)
-			}
-			actionsText += "ESC/Enter: Back\n<up/down> Scroll JSON\n<:> Command mode"
-			hm.actionsCol.SetText(actionsText)
-			return
-		}
+		hm.updateDetailsActions()
+		return
 	}
 
+	// Get actions for current view from registry
+	hm.updateViewActions()
+}
+
+// updateLogsActions updates the actions column with logs-specific actions
+func (hm *HeaderManager) updateLogsActions() {
+	logsActions := hm.ui.GetServices().GetLogsService().GetActions()
+
+	var actionsText string
+	for key, action := range logsActions {
+		actionsText += fmt.Sprintf("<%c> %s\n", key, action)
+	}
+	actionsText += "ESC/Enter: Back to table"
+	hm.actionsCol.SetText(actionsText)
+}
+
+// updateDetailsActions updates the actions column with details-specific actions
+func (hm *HeaderManager) updateDetailsActions() {
+	currentActions := hm.ui.GetCurrentActions()
+	if currentActions != nil {
+		var actionsText string
+		for key, action := range currentActions {
+			actionsText += fmt.Sprintf("<%c> %s\n", key, action)
+		}
+		actionsText += "ESC/Enter: Back\n<up/down> Scroll JSON\n<:> Command mode"
+		hm.actionsCol.SetText(actionsText)
+		return
+	}
+}
+
+// updateViewActions updates the actions column with view-specific actions
+func (hm *HeaderManager) updateViewActions() {
 	// Get actions for current view from registry
 	viewActions := hm.ui.GetCurrentViewActions()
 	if viewActions != "" {
@@ -184,7 +223,12 @@ func (hm *HeaderManager) UpdateActions() {
 	}
 
 	// Fallback to default container actions
-	defaultActions := "<s> Start\n<S> Stop\n<r> Restart\n<d> Delete\n<a> Attach\n<l> Logs\n<i> Inspect\n<n> New\n<e> Exec\n<f> Filter\n<t> Sort\n<h> History\n<enter> Details\n<:> Command"
+	hm.setDefaultContainerActions()
+}
+
+// setDefaultContainerActions sets the default container actions
+func (hm *HeaderManager) setDefaultContainerActions() {
+	defaultActions := hm.ui.GetServices().GetContainerService().GetActionsString()
 	hm.actionsCol.SetText(defaultActions)
 }
 

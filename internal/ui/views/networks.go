@@ -30,7 +30,7 @@ func NewNetworksView(ui interfaces.UIInterface) *NetworksView {
 	nv.FormatRow = func(n models.Network) []string { return nv.formatNetworkRow(&n) }
 	nv.GetItemID = func(n models.Network) string { return n.ID }
 	nv.GetItemName = func(n models.Network) string { return n.Name }
-	nv.HandleKeyPress = func(key rune, n models.Network) { nv.handleNetworkKey(key, &n) }
+	nv.HandleKeyPress = func(key rune, n models.Network) { nv.handleAction(key, &n) }
 	nv.ShowDetails = func(n models.Network) { nv.showNetworkDetails(&n) }
 	nv.GetActions = nv.getNetworkActions
 
@@ -39,10 +39,10 @@ func NewNetworksView(ui interfaces.UIInterface) *NetworksView {
 
 func (nv *NetworksView) listNetworks(ctx context.Context) ([]models.Network, error) {
 	services := nv.ui.GetServices()
-	if services == nil || services.NetworkService == nil {
+	if services == nil || services.GetNetworkService() == nil {
 		return []models.Network{}, nil
 	}
-	return services.NetworkService.ListNetworks(ctx)
+	return services.GetNetworkService().ListNetworks(ctx)
 }
 
 func (nv *NetworksView) formatNetworkRow(network *models.Network) []string {
@@ -62,10 +62,15 @@ func (nv *NetworksView) getNetworkActions() map[rune]string {
 	}
 }
 
-func (nv *NetworksView) handleNetworkKey(key rune, network *models.Network) {
+func (nv *NetworksView) handleAction(key rune, network *models.Network) {
+	services := nv.ui.GetServices()
+	if services == nil || services.GetNetworkService() == nil {
+		return
+	}
+
 	switch key {
 	case 'd':
-		nv.deleteNetwork(network.ID, network.Name)
+		nv.deleteNetwork(network.ID)
 	case 'i':
 		nv.inspectNetwork(network.ID)
 	}
@@ -74,18 +79,18 @@ func (nv *NetworksView) handleNetworkKey(key rune, network *models.Network) {
 func (nv *NetworksView) showNetworkDetails(network *models.Network) {
 	ctx := context.Background()
 	services := nv.ui.GetServices()
-	inspectData, err := services.NetworkService.InspectNetwork(ctx, network.ID)
+	inspectData, err := services.GetNetworkService().InspectNetwork(ctx, network.ID)
 	nv.ShowItemDetails(*network, inspectData, err)
 }
 
-func (nv *NetworksView) deleteNetwork(id, name string) {
+func (nv *NetworksView) deleteNetwork(id string) {
 	services := nv.ui.GetServices()
-	nv.handlers.HandleResourceAction('d', "network", id, name,
-		services.NetworkService.InspectNetwork, nil, func() { nv.Refresh() })
+	nv.handlers.HandleResourceAction('d', "network", id, "",
+		services.GetNetworkService().InspectNetwork, nil, func() { nv.Refresh() })
 }
 
 func (nv *NetworksView) inspectNetwork(id string) {
 	services := nv.ui.GetServices()
 	nv.handlers.HandleResourceAction('i', "network", id, "",
-		services.NetworkService.InspectNetwork, nil, func() { nv.Refresh() })
+		services.GetNetworkService().InspectNetwork, nil, func() { nv.Refresh() })
 }

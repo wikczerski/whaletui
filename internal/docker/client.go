@@ -77,17 +77,37 @@ func New(cfg *config.Config) (*Client, error) {
 	log := logger.GetLogger()
 	log.SetPrefix("Docker")
 
+	client, err := createDockerClient(cfg, log)
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
+}
+
+// createDockerClient creates a Docker client with the given configuration
+func createDockerClient(cfg *config.Config, log *logger.Logger) (*Client, error) {
+	opts, err := buildClientOptions(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	cli, err := client.NewClientWithOpts(opts...)
+	if err != nil {
+		return handleClientCreationError(cfg, log, err)
+	}
+
+	return testAndCreateClient(cfg, log, cli)
+}
+
+// buildClientOptions builds the client options based on configuration
+func buildClientOptions(cfg *config.Config) ([]client.Opt, error) {
 	var opts []client.Opt
 
-	// Handle remote host connection
 	if cfg.RemoteHost != "" {
-		log.Info("Connecting to remote Docker host: %s", cfg.RemoteHost)
-
-		// Validate remote host format
 		if err := validateRemoteHost(cfg.RemoteHost); err != nil {
 			return nil, fmt.Errorf("invalid remote host format: %w", err)
 		}
-
 		opts = append(opts, client.WithHost(cfg.RemoteHost), client.WithTimeout(30*time.Second))
 	} else if cfg.DockerHost != "" {
 		opts = append(opts, client.WithHost(cfg.DockerHost))
@@ -98,50 +118,48 @@ func New(cfg *config.Config) (*Client, error) {
 		client.WithTimeout(10*time.Second),
 	)
 
-	cli, err := client.NewClientWithOpts(opts...)
-	if err != nil {
-		// On Windows, try to auto-detect the correct Docker host if client creation fails
-		if runtime.GOOS == "windows" && cfg.RemoteHost == "" {
-			log.Warn("Docker client creation failed, attempting to auto-detect correct host...")
+	return opts, nil
+}
 
-			detectedHost, detectErr := detectWindowsDockerHost(log)
-			if detectErr == nil {
-				log.Info("Detected working Docker host: %s", detectedHost)
+// handleClientCreationError handles errors during client creation, including Windows auto-detection
+func handleClientCreationError(cfg *config.Config, log *logger.Logger, err error) (*Client, error) {
+	if runtime.GOOS == "windows" && cfg.RemoteHost == "" {
+		return tryWindowsAutoDetection(cfg, log)
+	}
+	return nil, fmt.Errorf("failed to create Docker client: %w", err)
+}
 
-				// Try to connect with the detected host
-				detectedOpts := []client.Opt{
-					client.WithHost(detectedHost),
-					client.WithAPIVersionNegotiation(),
-					client.WithTimeout(10 * time.Second),
-				}
+// tryWindowsAutoDetection attempts to auto-detect the correct Docker host on Windows
+func tryWindowsAutoDetection(cfg *config.Config, log *logger.Logger) (*Client, error) {
+	log.Warn("Docker client creation failed, attempting to auto-detect correct host...")
 
-				detectedCli, detectedErr := client.NewClientWithOpts(detectedOpts...)
-				if detectedErr == nil {
-					detectedCtx, detectedCancel := context.WithTimeout(context.Background(), 10*time.Second)
-					if _, detectedPingErr := detectedCli.Ping(detectedCtx); detectedPingErr == nil {
-						detectedCancel()
-						log.Info("Successfully connected with auto-detected host")
-
-						client := &Client{
-							cli: detectedCli,
-							cfg: cfg,
-							log: log,
-						}
-
-						return client, nil
-					}
-					detectedCancel()
-					if closeErr := detectedCli.Close(); closeErr != nil {
-						log.Warn("Failed to close detected Docker client: %v", closeErr)
-					}
-				}
-			}
-		}
-
-		return nil, fmt.Errorf("failed to create Docker client: %w", err)
+	detectedHost, detectErr := detectWindowsDockerHost(log)
+	if detectErr != nil {
+		return nil, fmt.Errorf("failed to create Docker client: %w", detectErr)
 	}
 
-	// Test connection
+	log.Info("Detected working Docker host: %s", detectedHost)
+	return createClientWithHost(cfg, log, detectedHost)
+}
+
+// createClientWithHost creates a client with a specific host
+func createClientWithHost(cfg *config.Config, log *logger.Logger, host string) (*Client, error) {
+	detectedOpts := []client.Opt{
+		client.WithHost(host),
+		client.WithAPIVersionNegotiation(),
+		client.WithTimeout(10 * time.Second),
+	}
+
+	detectedCli, detectedErr := client.NewClientWithOpts(detectedOpts...)
+	if detectedErr != nil {
+		return nil, fmt.Errorf("failed to create Docker client with detected host: %w", detectedErr)
+	}
+
+	return testAndCreateClient(cfg, log, detectedCli)
+}
+
+// testAndCreateClient tests the connection and creates the client
+func testAndCreateClient(cfg *config.Config, log *logger.Logger, cli *client.Client) (*Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -161,13 +179,17 @@ func New(cfg *config.Config) (*Client, error) {
 		log: log,
 	}
 
+	logConnectionSuccess(cfg, log)
+	return client, nil
+}
+
+// logConnectionSuccess logs the successful connection
+func logConnectionSuccess(cfg *config.Config, log *logger.Logger) {
 	if cfg.RemoteHost != "" {
 		log.Info("Successfully connected to remote Docker host: %s", cfg.RemoteHost)
 	} else {
 		log.Info("Successfully connected to local Docker instance")
 	}
-
-	return client, nil
 }
 
 // validateRemoteHost validates the format of a remote Docker host

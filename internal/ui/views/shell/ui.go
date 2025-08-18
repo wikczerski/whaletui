@@ -8,6 +8,14 @@ import (
 
 // createView creates the shell view UI components
 func (sv *View) createView() {
+	sv.createOutputView()
+	sv.createInputField()
+	sv.createMainLayout()
+	sv.addWelcomeMessage()
+}
+
+// createOutputView creates and configures the output view
+func (sv *View) createOutputView() {
 	themeManager := sv.ui.GetThemeManager()
 
 	sv.outputView = tview.NewTextView()
@@ -19,6 +27,11 @@ func (sv *View) createView() {
 	sv.outputView.SetBorderColor(themeManager.GetShellBorderColor())
 	sv.outputView.SetTextColor(themeManager.GetShellTextColor())
 	sv.outputView.SetBackgroundColor(themeManager.GetShellBackgroundColor())
+}
+
+// createInputField creates and configures the input field
+func (sv *View) createInputField() {
+	themeManager := sv.ui.GetThemeManager()
 
 	sv.inputField = tview.NewInputField()
 	sv.inputField.SetLabel("$ ")
@@ -31,11 +44,17 @@ func (sv *View) createView() {
 
 	sv.inputField.SetDoneFunc(sv.handleCommand)
 	sv.inputField.SetInputCapture(sv.handleInputCapture)
+}
 
+// createMainLayout creates the main layout and adds components
+func (sv *View) createMainLayout() {
 	sv.view = tview.NewFlex().SetDirection(tview.FlexRow)
 	sv.view.AddItem(sv.outputView, 0, 1, false)
 	sv.view.AddItem(sv.inputField, 3, 0, true)
+}
 
+// addWelcomeMessage adds the initial welcome message to the output view
+func (sv *View) addWelcomeMessage() {
 	sv.addOutput(fmt.Sprintf("Welcome to shell for container: %s (%s)\n", sv.containerName, sv.containerID[:12]))
 	sv.addOutput("Type 'exit' or press ESC to return to container view\n\n")
 }

@@ -27,6 +27,30 @@ go.work
 *.swo
 *~
 
+# Major IDEs
+.eclipse/
+.netbeans/
+.visualstudio/
+.vs/
+.cursorrules
+.cursor/
+*.sublime-project
+*.sublime-workspace
+.sublime/
+
+# Text editors and additional IDEs
+.vim/
+.nvim/
+*.vim
+*.nvim
+.emacs.d/
+.emacs.desktop
+.emacs.desktop.lock
+*.orig
+*.rej
+*.tmp
+*.temp
+
 # OS generated files
 .DS_Store
 .DS_Store?

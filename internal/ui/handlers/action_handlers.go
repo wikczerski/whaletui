@@ -8,6 +8,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"github.com/wikczerski/D5r/internal/config"
 	"github.com/wikczerski/D5r/internal/services"
 	"github.com/wikczerski/D5r/internal/ui/builders"
 	"github.com/wikczerski/D5r/internal/ui/interfaces"
@@ -105,6 +106,83 @@ func (ah *ActionHandlers) HandleContainerAction(
 	containerService services.ContainerService,
 	onRefresh func(),
 ) {
+	if ah.handleContainerLifecycleAction(action, containerID, containerService, onRefresh) {
+		return
+	}
+
+	if ah.handleContainerManagementAction(action, containerID, containerName, containerService, onRefresh) {
+		return
+	}
+
+	ah.handleContainerAccessAction(action, containerID, containerName, containerService)
+}
+
+// handleContainerLifecycleAction handles container lifecycle operations (start, stop, restart)
+func (ah *ActionHandlers) handleContainerLifecycleAction(
+	action rune,
+	containerID string,
+	containerService services.ContainerService,
+	onRefresh func(),
+) bool {
+	switch action {
+	case 's':
+		ah.executor.StartOperation("container", containerID, containerService.StartContainer, onRefresh)
+		return true
+	case 'S':
+		ah.executor.StopOperation("container", containerID, containerService.StopContainer, onRefresh)
+		return true
+	case 'r':
+		ah.executor.RestartOperation("container", containerID, containerService.RestartContainer, onRefresh)
+		return true
+	}
+	return false
+}
+
+// handleContainerManagementAction handles container management operations (delete, inspect)
+func (ah *ActionHandlers) handleContainerManagementAction(
+	action rune,
+	containerID, containerName string,
+	containerService services.ContainerService,
+	onRefresh func(),
+) bool {
+	switch action {
+	case 'd':
+		ah.HandleDeleteAction("container", containerID, containerName, containerService.RemoveContainer, onRefresh)
+		return true
+	case 'i':
+		ah.HandleInspectAction("container", containerID, containerService.InspectContainer)
+		return true
+	}
+	return false
+}
+
+// handleContainerAccessAction handles container access operations (attach, logs, exec)
+func (ah *ActionHandlers) handleContainerAccessAction(
+	action rune,
+	containerID, containerName string,
+	containerService services.ContainerService,
+) bool {
+	switch action {
+	case 'a':
+		ah.HandleAttachAction(containerID, containerName)
+		return true
+	case 'l':
+		ah.ui.ShowLogs(containerID, containerName)
+		return true
+	case 'e':
+		ah.HandleExecAction(containerID, containerName, containerService.ExecContainer)
+		return true
+	}
+	return false
+}
+
+// HandleContainerLifecycleAction handles container lifecycle operations (start, stop, restart)
+func (ah *ActionHandlers) HandleContainerLifecycleAction(
+	action rune,
+	containerID string,
+	containerService services.ContainerService,
+	onRefresh func(),
+) {
 	switch action {
 	case 's':
 		ah.executor.StartOperation("container", containerID, containerService.StartContainer, onRefresh)
@@ -112,14 +190,35 @@ func (ah *ActionHandlers) HandleContainerAction(
 		ah.executor.StopOperation("container", containerID, containerService.StopContainer, onRefresh)
 	case 'r':
 		ah.executor.RestartOperation("container", containerID, containerService.RestartContainer, onRefresh)
+	}
+}
+
+// HandleContainerManagementAction handles container management operations (delete, inspect)
+func (ah *ActionHandlers) HandleContainerManagementAction(
+	action rune,
+	containerID, containerName string,
+	containerService services.ContainerService,
+	onRefresh func(),
+) {
+	switch action {
 	case 'd':
 		ah.HandleDeleteAction("container", containerID, containerName, containerService.RemoveContainer, onRefresh)
+	case 'i':
+		ah.HandleInspectAction("container", containerID, containerService.InspectContainer)
+	}
+}
+
+// HandleContainerAccessAction handles container access operations (attach, logs, exec)
+func (ah *ActionHandlers) HandleContainerAccessAction(
+	action rune,
+	containerID, containerName string,
+	containerService services.ContainerService,
+) {
+	switch action {
 	case 'a':
 		ah.HandleAttachAction(containerID, containerName)
 	case 'l':
 		ah.ui.ShowLogs(containerID, containerName)
-	case 'i':
-		ah.HandleInspectAction("container", containerID, containerService.InspectContainer)
 	case 'e':
 		ah.HandleExecAction(containerID, containerName, containerService.ExecContainer)
 	}
@@ -147,6 +246,14 @@ func (ah *ActionHandlers) createExecInput(containerName string) *tview.InputFiel
 	themeManager := ah.ui.GetThemeManager()
 
 	execInput := tview.NewInputField()
+	ah.configureExecInputStyling(execInput, themeManager, containerName)
+	ah.configureExecInputBehavior(execInput, themeManager)
+
+	return execInput
+}
+
+// configureExecInputStyling configures the visual styling of the exec input
+func (ah *ActionHandlers) configureExecInputStyling(execInput *tview.InputField, themeManager *config.ThemeManager, containerName string) {
 	execInput.SetLabel(" Exec Command: ")
 	execInput.SetLabelColor(themeManager.GetContainerExecLabelColor())
 	execInput.SetFieldTextColor(themeManager.GetContainerExecTextColor())
@@ -155,11 +262,13 @@ func (ah *ActionHandlers) createExecInput(containerName string) *tview.InputFiel
 	execInput.SetTitle(fmt.Sprintf(" Execute in %s ", containerName))
 	execInput.SetTitleColor(themeManager.GetContainerExecTitleColor())
 	execInput.SetBackgroundColor(themeManager.GetContainerExecBackgroundColor())
+}
+
+// configureExecInputBehavior configures the behavior of the exec input
+func (ah *ActionHandlers) configureExecInputBehavior(execInput *tview.InputField, themeManager *config.ThemeManager) {
 	execInput.SetPlaceholder("Type command to execute (e.g., ls -la, pwd, whoami)")
 	execInput.SetPlaceholderTextColor(themeManager.GetContainerExecPlaceholderColor())
 	execInput.SetFieldWidth(80)
-
-	return execInput
 }
 
 // setupExecInputHandlers configures the event handlers for the exec input
@@ -200,12 +309,22 @@ func (ah *ActionHandlers) handleExecCommand(
 
 // parseExecCommand parses the command string into arguments
 func (ah *ActionHandlers) parseExecCommand(command string) []string {
-	if strings.Contains(command, "|") || strings.Contains(command, ">") ||
-		strings.Contains(command, "<") || strings.Contains(command, "&&") ||
-		strings.Contains(command, "||") {
-		return []string{"/bin/sh", "-c", command}
+	if ah.isComplexCommand(command) {
+		return ah.parseComplexCommand(command)
 	}
 	return strings.Fields(command)
+}
+
+// isComplexCommand checks if the command contains shell operators
+func (ah *ActionHandlers) isComplexCommand(command string) bool {
+	return strings.Contains(command, "|") || strings.Contains(command, ">") ||
+		strings.Contains(command, "<") || strings.Contains(command, "&&") ||
+		strings.Contains(command, "||")
+}
+
+// parseComplexCommand parses a complex command with shell operators
+func (ah *ActionHandlers) parseComplexCommand(command string) []string {
+	return []string{"/bin/sh", "-c", command}
 }
 
 // executeCommand executes the command and handles the result

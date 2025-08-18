@@ -40,10 +40,10 @@ func NewImagesView(ui interfaces.UIInterface) *ImagesView {
 
 func (iv *ImagesView) listImages(ctx context.Context) ([]models.Image, error) {
 	services := iv.ui.GetServices()
-	if services == nil || services.ImageService == nil {
+	if services == nil || services.GetImageService() == nil {
 		return []models.Image{}, nil
 	}
-	return services.ImageService.ListImages(ctx)
+	return services.GetImageService().ListImages(ctx)
 }
 
 func (iv *ImagesView) formatImageRow(image *models.Image) []string {
@@ -65,29 +65,38 @@ func (iv *ImagesView) getImageActions() map[rune]string {
 }
 
 func (iv *ImagesView) handleImageKey(key rune, image *models.Image) {
-	switch key {
-	case 'd':
-		iv.deleteImage(image.ID, image.Repository)
-	case 'i':
-		iv.inspectImage(image.ID)
-	}
+	iv.handleAction(key, image)
 }
 
 func (iv *ImagesView) showImageDetails(image *models.Image) {
 	ctx := context.Background()
 	services := iv.ui.GetServices()
-	inspectData, err := services.ImageService.InspectImage(ctx, image.ID)
+	inspectData, err := services.GetImageService().InspectImage(ctx, image.ID)
 	iv.ShowItemDetails(*image, inspectData, err)
 }
 
-func (iv *ImagesView) deleteImage(id, repository string) {
+func (iv *ImagesView) handleAction(key rune, image *models.Image) {
 	services := iv.ui.GetServices()
-	iv.handlers.HandleResourceAction('d', "image", id, repository,
-		services.ImageService.InspectImage, nil, func() { iv.Refresh() })
+	if services == nil || services.GetImageService() == nil {
+		return
+	}
+
+	switch key {
+	case 'd':
+		iv.deleteImage(image.ID)
+	case 'i':
+		iv.inspectImage(image.ID)
+	}
+}
+
+func (iv *ImagesView) deleteImage(id string) {
+	services := iv.ui.GetServices()
+	iv.handlers.HandleResourceAction('d', "image", id, "",
+		services.GetImageService().InspectImage, nil, func() { iv.Refresh() })
 }
 
 func (iv *ImagesView) inspectImage(id string) {
 	services := iv.ui.GetServices()
 	iv.handlers.HandleResourceAction('i', "image", id, "",
-		services.ImageService.InspectImage, nil, func() { iv.Refresh() })
+		services.GetImageService().InspectImage, nil, func() { iv.Refresh() })
 }

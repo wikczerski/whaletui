@@ -44,10 +44,10 @@ func NewContainersView(ui interfaces.UIInterface) *ContainersView {
 
 func (cv *ContainersView) listContainers(ctx context.Context) ([]models.Container, error) {
 	services := cv.ui.GetServices()
-	if services == nil || services.ContainerService == nil {
+	if services == nil || services.GetContainerService() == nil {
 		return []models.Container{}, nil
 	}
-	return services.ContainerService.ListContainers(ctx)
+	return services.GetContainerService().ListContainers(ctx)
 }
 
 func (cv *ContainersView) formatContainerRow(container *models.Container) []string {
@@ -63,21 +63,12 @@ func (cv *ContainersView) formatContainerRow(container *models.Container) []stri
 }
 
 func (cv *ContainersView) getContainerActions() map[rune]string {
-	return map[rune]string{
-		's': "Start",
-		'S': "Stop",
-		'r': "Restart",
-		'd': "Delete",
-		'a': "Attach",
-		'l': "View Logs",
-		'i': "Inspect",
-		'e': "Exec",
-	}
+	return cv.ui.GetServices().GetContainerService().GetActions()
 }
 
 func (cv *ContainersView) handleContainerKey(key rune, container *models.Container) {
 	services := cv.ui.GetServices()
-	cv.handlers.HandleContainerAction(key, container.ID, container.Name, services.ContainerService, func() { cv.Refresh() })
+	cv.handlers.HandleContainerAction(key, container.ID, container.Name, services.GetContainerService(), func() { cv.Refresh() })
 }
 
 func (cv *ContainersView) getStateColor(container *models.Container) tcell.Color {
@@ -96,6 +87,6 @@ func (cv *ContainersView) getStateColor(container *models.Container) tcell.Color
 func (cv *ContainersView) showContainerDetails(container *models.Container) {
 	ctx := context.Background()
 	services := cv.ui.GetServices()
-	inspectData, err := services.ContainerService.InspectContainer(ctx, container.ID)
+	inspectData, err := services.GetContainerService().InspectContainer(ctx, container.ID)
 	cv.ShowItemDetails(*container, inspectData, err)
 }

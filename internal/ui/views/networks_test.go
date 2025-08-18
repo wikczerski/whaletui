@@ -5,55 +5,71 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rivo/tview"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/wikczerski/D5r/internal/models"
 	"github.com/wikczerski/D5r/internal/services"
+	servicemocks "github.com/wikczerski/D5r/internal/services/mocks"
+	uimocks "github.com/wikczerski/D5r/internal/ui/interfaces/mocks"
 )
 
-// MockNetworkService is a mock implementation of NetworkService
-type MockNetworkService struct {
-	networks    []models.Network
-	inspectData map[string]any
-	inspectErr  error
-	listErr     error
+func newNetworksUIMockWithServices(t *testing.T, sf *services.ServiceFactory) *uimocks.MockUIInterface {
+	ui := uimocks.NewMockUIInterface(t)
+	ui.On("GetApp").Return(tview.NewApplication()).Maybe()
+	ui.On("GetPages").Return(tview.NewPages()).Maybe()
+	ui.On("GetServices").Return(sf).Maybe()
+	return ui
 }
 
-func (m *MockNetworkService) ListNetworks(_ context.Context) ([]models.Network, error) {
-	return m.networks, m.listErr
-}
-
-func (m *MockNetworkService) InspectNetwork(_ context.Context, _ string) (map[string]any, error) {
-	return m.inspectData, m.inspectErr
-}
-
-func (m *MockNetworkService) RemoveNetwork(_ context.Context, _ string) error {
-	return nil
-}
-
-func TestNewNetworksView(t *testing.T) {
-	mockUI := NewMockUI()
-	networksView := NewNetworksView(mockUI)
+func TestNewNetworksView_Creation(t *testing.T) {
+	ui := newNetworksUIMockWithServices(t, nil)
+	networksView := NewNetworksView(ui)
 
 	assert.NotNil(t, networksView)
+}
+
+func TestNewNetworksView_ViewField(t *testing.T) {
+	ui := newNetworksUIMockWithServices(t, nil)
+	networksView := NewNetworksView(ui)
+
 	assert.NotNil(t, networksView.view)
+}
+
+func TestNewNetworksView_TableField(t *testing.T) {
+	ui := newNetworksUIMockWithServices(t, nil)
+	networksView := NewNetworksView(ui)
+
 	assert.NotNil(t, networksView.table)
+}
+
+func TestNewNetworksView_ItemsField(t *testing.T) {
+	ui := newNetworksUIMockWithServices(t, nil)
+	networksView := NewNetworksView(ui)
+
 	assert.Empty(t, networksView.items)
 }
 
 func TestNetworksView_GetView(t *testing.T) {
-	mockUI := NewMockUI()
-	networksView := NewNetworksView(mockUI)
+	ui := newNetworksUIMockWithServices(t, nil)
+	networksView := NewNetworksView(ui)
 	view := networksView.GetView()
 
 	assert.NotNil(t, view)
+}
+
+func TestNetworksView_GetView_ReturnsCorrectView(t *testing.T) {
+	ui := newNetworksUIMockWithServices(t, nil)
+	networksView := NewNetworksView(ui)
+	view := networksView.GetView()
+
 	assert.Equal(t, networksView.view, view)
 }
 
 func TestNetworksView_Refresh_NoServices(t *testing.T) {
-	mockUI := NewMockUI()
-	mockUI.services = nil
+	ui := newNetworksUIMockWithServices(t, nil)
+	networksView := NewNetworksView(ui)
 
-	networksView := NewNetworksView(mockUI)
 	networksView.Refresh()
 
 	assert.Empty(t, networksView.items)
@@ -77,43 +93,35 @@ func TestNetworksView_Refresh_WithServices(t *testing.T) {
 		},
 	}
 
-	mockNetworkService := &MockNetworkService{
-		networks: mockNetworks,
-		listErr:  nil,
-	}
+	ns := servicemocks.NewMockNetworkService(t)
+	ns.On("ListNetworks", context.Background()).Return(mockNetworks, nil)
 
-	mockUI := NewMockUI()
-	mockUI.services = &services.ServiceFactory{
-		NetworkService: mockNetworkService,
-	}
+	sf := &services.ServiceFactory{NetworkService: ns}
+	ui := newNetworksUIMockWithServices(t, sf)
 
-	networksView := NewNetworksView(mockUI)
+	networksView := NewNetworksView(ui)
 	networksView.Refresh()
 
 	assert.Equal(t, mockNetworks, networksView.items)
 }
 
 func TestNetworksView_Refresh_ServiceError(t *testing.T) {
-	mockNetworkService := &MockNetworkService{
-		networks: []models.Network{},
-		listErr:  assert.AnError,
-	}
+	ns := servicemocks.NewMockNetworkService(t)
+	ns.On("ListNetworks", context.Background()).Return([]models.Network{}, assert.AnError)
 
-	mockUI := NewMockUI()
-	mockUI.services = &services.ServiceFactory{
-		NetworkService: mockNetworkService,
-	}
+	sf := &services.ServiceFactory{NetworkService: ns}
+	ui := newNetworksUIMockWithServices(t, sf)
+	ui.On("ShowError", assert.AnError).Return().Maybe()
 
-	networksView := NewNetworksView(mockUI)
+	networksView := NewNetworksView(ui)
 	networksView.Refresh()
 
 	assert.Empty(t, networksView.items)
 }
 
 func TestNetworksView_ShowNetworkDetails_Success(t *testing.T) {
-	mockNetworkService := &MockNetworkService{
-		inspectErr: nil,
-	}
+	ns := servicemocks.NewMockNetworkService(t)
+	ns.On("InspectNetwork", context.Background(), "network1").Return(map[string]any{"ok": true}, nil).Maybe()
 
 	mockNetwork := models.Network{
 		ID:      "network1",
@@ -123,23 +131,19 @@ func TestNetworksView_ShowNetworkDetails_Success(t *testing.T) {
 		Created: time.Now(),
 	}
 
-	mockUI := NewMockUI()
-	mockUI.services = &services.ServiceFactory{
-		NetworkService: mockNetworkService,
-	}
+	sf := &services.ServiceFactory{NetworkService: ns}
+	ui := newNetworksUIMockWithServices(t, sf)
+	ui.On("ShowDetails", mock.AnythingOfType("*tview.Flex")).Return().Maybe()
 
-	networksView := NewNetworksView(mockUI)
+	networksView := NewNetworksView(ui)
 	networksView.items = []models.Network{mockNetwork}
 
-	// We'll avoid calling showNetworkDetails since it triggers complex UI operations
-	assert.NotNil(t, networksView)
 	assert.NotNil(t, networksView.showNetworkDetails)
 }
 
 func TestNetworksView_ShowNetworkDetails_InspectError(t *testing.T) {
-	mockNetworkService := &MockNetworkService{
-		inspectErr: assert.AnError,
-	}
+	ns := servicemocks.NewMockNetworkService(t)
+	ns.On("InspectNetwork", context.Background(), "network1").Return(map[string]any(nil), assert.AnError).Maybe()
 
 	mockNetwork := models.Network{
 		ID:      "network1",
@@ -149,102 +153,99 @@ func TestNetworksView_ShowNetworkDetails_InspectError(t *testing.T) {
 		Created: time.Now(),
 	}
 
-	mockUI := NewMockUI()
-	mockUI.services = &services.ServiceFactory{
-		NetworkService: mockNetworkService,
-	}
+	sf := &services.ServiceFactory{NetworkService: ns}
+	ui := newNetworksUIMockWithServices(t, sf)
+	ui.On("ShowDetails", mock.AnythingOfType("*tview.Flex")).Return().Maybe()
 
-	networksView := NewNetworksView(mockUI)
+	networksView := NewNetworksView(ui)
 	networksView.items = []models.Network{mockNetwork}
 
-	// We'll avoid calling showNetworkDetails since it triggers complex UI operations
-	assert.NotNil(t, networksView)
 	assert.NotNil(t, networksView.showNetworkDetails)
 }
 
 func TestNetworksView_HandleAction_Delete(t *testing.T) {
-	mockUI := NewMockUI()
-
-	networksView := NewNetworksView(mockUI)
-	networksView.items = []models.Network{
-		{
-			ID:      "network1",
-			Name:    "bridge",
-			Driver:  "bridge",
-			Scope:   "local",
-			Created: time.Now(),
-		},
+	ui := newNetworksUIMockWithServices(t, nil)
+	networksView := NewNetworksView(ui)
+	testNetwork := models.Network{
+		ID:      "network1",
+		Name:    "test-network",
+		Driver:  "bridge",
+		Scope:   "local",
+		Created: time.Now(),
 	}
+	networksView.items = []models.Network{testNetwork}
 	networksView.table.Select(1, 0)
 
-	// We'll avoid calling handleAction since it triggers complex UI operations
+	// Test action handling
+	networksView.handleAction('d', &testNetwork)
+	networksView.handleAction('i', &testNetwork)
+
 	assert.NotNil(t, networksView)
-	assert.NotNil(t, networksView.handleNetworkKey)
 }
 
 func TestNetworksView_HandleAction_Inspect(t *testing.T) {
-	mockUI := NewMockUI()
-
-	networksView := NewNetworksView(mockUI)
-	networksView.items = []models.Network{
-		{
-			ID:      "network1",
-			Name:    "bridge",
-			Driver:  "bridge",
-			Scope:   "local",
-			Created: time.Now(),
-		},
+	ui := newNetworksUIMockWithServices(t, nil)
+	networksView := NewNetworksView(ui)
+	testNetwork := models.Network{
+		ID:      "network1",
+		Name:    "bridge",
+		Driver:  "bridge",
+		Scope:   "local",
+		Created: time.Now(),
 	}
+	networksView.items = []models.Network{testNetwork}
 	networksView.table.Select(1, 0)
 
-	// We'll avoid calling handleAction since it triggers complex UI operations
+	// Test action handling
+	networksView.handleAction('d', &testNetwork)
+	networksView.handleAction('i', &testNetwork)
+
 	assert.NotNil(t, networksView)
-	assert.NotNil(t, networksView.handleNetworkKey)
 }
 
 func TestNetworksView_HandleAction_InvalidSelection(t *testing.T) {
-	mockUI := NewMockUI()
-
-	networksView := NewNetworksView(mockUI)
+	ui := newNetworksUIMockWithServices(t, nil)
+	networksView := NewNetworksView(ui)
+	testNetwork := models.Network{
+		ID:      "network1",
+		Name:    "test-network",
+		Driver:  "bridge",
+		Scope:   "local",
+		Created: time.Now(),
+	}
 	networksView.items = []models.Network{}
 	networksView.table.Select(0, 0)
-	networksView.handleAction('d')
-	networksView.handleAction('i')
+
+	networksView.handleAction('d', &testNetwork)
+	networksView.handleAction('i', &testNetwork)
 
 	assert.NotNil(t, networksView)
 }
 
 func TestNetworksView_ShowTable(t *testing.T) {
-	mockUI := NewMockUI()
-	networksView := NewNetworksView(mockUI)
+	ui := newNetworksUIMockWithServices(t, nil)
+	networksView := NewNetworksView(ui)
 
-	// We'll avoid calling showTable since it triggers complex UI operations
-	assert.NotNil(t, networksView)
 	assert.NotNil(t, networksView.showTable)
 }
 
 func TestNetworksView_DeleteNetwork(t *testing.T) {
-	mockUI := NewMockUI()
-	networksView := NewNetworksView(mockUI)
+	ui := newNetworksUIMockWithServices(t, nil)
+	networksView := NewNetworksView(ui)
 
-	// We'll avoid calling deleteNetwork since it triggers complex UI operations
-	assert.NotNil(t, networksView)
 	assert.NotNil(t, networksView.deleteNetwork)
 }
 
 func TestNetworksView_InspectNetwork(t *testing.T) {
-	mockUI := NewMockUI()
-	networksView := NewNetworksView(mockUI)
+	ui := newNetworksUIMockWithServices(t, nil)
+	networksView := NewNetworksView(ui)
 
-	// We'll avoid calling inspectNetwork since it triggers complex UI operations
-	assert.NotNil(t, networksView)
 	assert.NotNil(t, networksView.inspectNetwork)
 }
 
 func TestNetworksView_SetupKeyBindings(t *testing.T) {
-	mockUI := NewMockUI()
-
-	networksView := NewNetworksView(mockUI)
+	ui := newNetworksUIMockWithServices(t, nil)
+	networksView := NewNetworksView(ui)
 	networksView.items = []models.Network{
 		{
 			ID:      "network1",
@@ -256,19 +257,14 @@ func TestNetworksView_SetupKeyBindings(t *testing.T) {
 	}
 	networksView.table.Select(1, 0)
 
-	// Test key bindings - just verify they don't panic
-	// Note: We can't easily test tcell.EventKey creation in tests
-	// but we can verify the input capture function exists
 	assert.NotNil(t, networksView.table.GetInputCapture())
 }
 
 func TestNetworksView_SetupKeyBindings_InvalidSelection(t *testing.T) {
-	mockUI := NewMockUI()
-
-	networksView := NewNetworksView(mockUI)
+	ui := newNetworksUIMockWithServices(t, nil)
+	networksView := NewNetworksView(ui)
 	networksView.items = []models.Network{}
 	networksView.table.Select(0, 0)
 
-	// Test key bindings with invalid selection - just verify they don't panic
 	assert.NotNil(t, networksView.table.GetInputCapture())
 }
