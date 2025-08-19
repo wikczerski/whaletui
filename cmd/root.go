@@ -14,6 +14,7 @@ import (
 
 var (
 	remoteHost string
+	remotePort int
 	refresh    int
 	logLevel   string
 	theme      string
@@ -40,7 +41,9 @@ Features:
   • Image Management: Browse, inspect, and remove Docker images
   • Volume Management: Manage Docker volumes with ease
   • Network Management: View and manage Docker networks
-  • Remote Host Support: Connect to Docker hosts on different machines
+  • Remote Host Support: Connect to Docker hosts on different machines with SSH fallback
+  • SSH Fallback: Automatic SSH connection when direct Docker connection fails
+  • Configurable Ports: Customize SSH fallback proxy ports to avoid conflicts
   • Theme Support: Customizable color schemes via YAML/JSON configuration`,
 	RunE: runApp,
 }
@@ -54,7 +57,8 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&remoteHost, "host", "", "Remote Docker host (e.g., tcp://192.168.1.100:2375)")
+	rootCmd.PersistentFlags().StringVar(&remoteHost, "host", "", "Remote Docker host (e.g., 192.168.1.100 or tcp://192.168.1.100). Port is optional when using --port flag. TCP:// prefix is automatically added if not provided. If direct connection fails, SSH fallback will be attempted.")
+	rootCmd.PersistentFlags().IntVar(&remotePort, "port", 2375, "Port for SSH fallback Docker proxy (default: 2375)")
 	rootCmd.PersistentFlags().IntVar(&refresh, "refresh", 5, "Refresh interval in seconds")
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "INFO", "Log level (DEBUG, INFO, WARN, ERROR)")
 	rootCmd.PersistentFlags().StringVar(&theme, "theme", "", "Path to theme configuration file (YAML/JSON)")
@@ -162,6 +166,10 @@ func applyFlagOverrides(cfg *config.Config) {
 	if remoteHost != "" {
 		cfg.RemoteHost = remoteHost
 		cfg.DockerHost = remoteHost
+	}
+
+	if remotePort != 2375 {
+		cfg.RemotePort = remotePort
 	}
 
 	if refresh != 5 {

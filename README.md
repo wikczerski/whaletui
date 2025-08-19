@@ -97,18 +97,28 @@ The project includes a build system that generates binaries and packages for mul
 D5r supports connecting to remote Docker hosts via command line arguments:
 
 ```bash
-# Connect to a remote Docker host
-./d5r --host tcp://192.168.1.100:2375
+# Connect to a remote Docker host (simplified)
+./d5r --host 192.168.1.100 --port 2375
 
 # Connect with custom refresh interval
-./d5r --host tcp://192.168.1.100:2375 --refresh 10
+./d5r --host 192.168.1.100 --port 2375 --refresh 10
 
 # Connect with custom log level
-./d5r --host tcp://192.168.1.100:2375 --log-level DEBUG
+./d5r --host 192.168.1.100 --port 2375 --log-level DEBUG
+
+# Connect with custom port (avoid conflicts)
+./d5r --host 192.168.1.100 --port 2376
+
+# TCP:// prefix is automatically added, but you can still use it
+./d5r --host tcp://192.168.1.100 --port 2375
+
+# Port in host is supported (backward compatible)
+./d5r --host 192.168.1.100:2375
 ```
 
 **Available flags:**
-- `--host`: Remote Docker host (e.g., `tcp://192.168.1.100:2375`, `http://docker.example.com:2375`) - **⚠️ Not tested yet**
+- `--host`: Remote Docker host (e.g., `192.168.1.100` or `tcp://192.168.1.100`) - Port is optional when using `--port` flag. TCP:// prefix is automatically added if not provided.
+- `--port`: Port for SSH fallback Docker proxy (default: 2375) - Customize proxy ports to avoid conflicts
 - `--refresh`: Refresh interval in seconds (default: 5)
 - `--log-level`: Log level (DEBUG, INFO, WARN, ERROR, default: INFO)
 - `--theme`: UI theme (default: default) - supports both YAML and JSON formats
