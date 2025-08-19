@@ -40,10 +40,15 @@ func NewImagesView(ui interfaces.UIInterface) *ImagesView {
 
 func (iv *ImagesView) listImages(ctx context.Context) ([]models.Image, error) {
 	services := iv.ui.GetServices()
-	if services == nil || services.GetImageService() == nil {
+	if services == nil {
 		return []models.Image{}, nil
 	}
-	return services.GetImageService().ListImages(ctx)
+
+	if imageService := services.GetImageService(); imageService != nil {
+		return imageService.ListImages(ctx)
+	}
+
+	return []models.Image{}, nil
 }
 
 func (iv *ImagesView) formatImageRow(image *models.Image) []string {
@@ -71,13 +76,21 @@ func (iv *ImagesView) handleImageKey(key rune, image *models.Image) {
 func (iv *ImagesView) showImageDetails(image *models.Image) {
 	ctx := context.Background()
 	services := iv.ui.GetServices()
+	if services == nil || services.GetImageService() == nil {
+		iv.ShowItemDetails(*image, nil, fmt.Errorf("image service not available"))
+		return
+	}
 	inspectData, err := services.GetImageService().InspectImage(ctx, image.ID)
 	iv.ShowItemDetails(*image, inspectData, err)
 }
 
 func (iv *ImagesView) handleAction(key rune, image *models.Image) {
 	services := iv.ui.GetServices()
-	if services == nil || services.GetImageService() == nil {
+	if services == nil {
+		return
+	}
+
+	if services.GetImageService() == nil {
 		return
 	}
 
@@ -91,12 +104,18 @@ func (iv *ImagesView) handleAction(key rune, image *models.Image) {
 
 func (iv *ImagesView) deleteImage(id string) {
 	services := iv.ui.GetServices()
+	if services == nil || services.GetImageService() == nil {
+		return
+	}
 	iv.handlers.HandleResourceAction('d', "image", id, "",
 		services.GetImageService().InspectImage, nil, func() { iv.Refresh() })
 }
 
 func (iv *ImagesView) inspectImage(id string) {
 	services := iv.ui.GetServices()
+	if services == nil || services.GetImageService() == nil {
+		return
+	}
 	iv.handlers.HandleResourceAction('i', "image", id, "",
 		services.GetImageService().InspectImage, nil, func() { iv.Refresh() })
 }

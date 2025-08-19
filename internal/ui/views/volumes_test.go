@@ -17,7 +17,21 @@ func newUIMockWithServices(t *testing.T, sf *services.ServiceFactory) *uimocks.M
 	ui := uimocks.NewMockUIInterface(t)
 	ui.On("GetApp").Return(tview.NewApplication()).Maybe()
 	ui.On("GetPages").Return(tview.NewPages()).Maybe()
-	ui.On("GetServices").Return(sf).Maybe()
+
+	if sf == nil {
+		// Create a mock service factory that returns nil for all services
+		mockSF := servicemocks.NewMockServiceFactoryInterface(t)
+		mockSF.On("GetImageService").Return(nil).Maybe()
+		mockSF.On("GetContainerService").Return(nil).Maybe()
+		mockSF.On("GetVolumeService").Return(nil).Maybe()
+		mockSF.On("GetNetworkService").Return(nil).Maybe()
+		mockSF.On("GetDockerInfoService").Return(nil).Maybe()
+		mockSF.On("GetLogsService").Return(nil).Maybe()
+		ui.On("GetServices").Return(mockSF).Maybe()
+	} else {
+		ui.On("GetServices").Return(sf).Maybe()
+	}
+
 	return ui
 }
 

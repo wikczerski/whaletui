@@ -15,6 +15,9 @@ type imageService struct {
 
 // NewImageService creates a new image service
 func NewImageService(client *docker.Client) ImageService {
+	if client == nil {
+		return nil
+	}
 	return &imageService{
 		client: client,
 	}
@@ -31,7 +34,6 @@ func (s *imageService) ListImages(ctx context.Context) ([]models.Image, error) {
 	for _, img := range images {
 		result = append(result, models.Image(img))
 	}
-
 	return result, nil
 }
 

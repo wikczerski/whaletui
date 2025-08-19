@@ -57,8 +57,14 @@ type UI struct {
 
 // New creates a new UI
 func New(serviceFactory *services.ServiceFactory, themePath string) (*UI, error) {
+	var services services.ServiceFactoryInterface
+	if serviceFactory != nil {
+		services = serviceFactory
+	}
+	// If serviceFactory is nil, services remains nil interface
+
 	ui := &UI{
-		services:       serviceFactory,
+		services:       services,
 		app:            tview.NewApplication(),
 		pages:          tview.NewPages(),
 		log:            logger.GetLogger(),
@@ -125,7 +131,9 @@ func (ui *UI) setupMainPages(commandInput *tview.InputField) {
 
 // initializeUIState initializes the initial UI state
 func (ui *UI) initializeUIState() {
-	ui.headerManager.UpdateAll()
+	if ui.services != nil {
+		ui.headerManager.UpdateAll()
+	}
 	ui.refreshCurrentView()
 }
 
@@ -146,21 +154,53 @@ func (ui *UI) createResourceViews() {
 
 // registerViewsWithActions registers views with their metadata and actions
 func (ui *UI) registerViewsWithActions() {
-	ui.registerContainerView()
-	ui.registerResourceViews()
+	if ui.services != nil {
+		ui.registerContainerView()
+		ui.registerResourceViews()
+	} else {
+		// Register views without actions when services are not available
+		ui.registerViewsWithoutServices()
+	}
 }
 
 // registerContainerView registers the containers view with its actions
 func (ui *UI) registerContainerView() {
-	containerActions := ui.services.GetContainerService().GetActionsString()
+	containerActions := ""
+	if ui.services != nil && ui.services.GetContainerService() != nil {
+		containerActions = ui.services.GetContainerService().GetActionsString()
+	}
 	ui.viewRegistry.Register("containers", "Containers", 'c', ui.containersView.GetView(), ui.containersView.Refresh, containerActions)
 }
 
 // registerResourceViews registers the resource views with their actions
 func (ui *UI) registerResourceViews() {
-	ui.viewRegistry.Register("images", "Images", 'i', ui.imagesView.GetView(), ui.imagesView.Refresh, ui.services.GetImageService().GetActionsString())
-	ui.viewRegistry.Register("volumes", "Volumes", 'v', ui.volumesView.GetView(), ui.volumesView.Refresh, ui.services.GetVolumeService().GetActionsString())
-	ui.viewRegistry.Register("networks", "Networks", 'n', ui.networksView.GetView(), ui.networksView.Refresh, ui.services.GetNetworkService().GetActionsString())
+	imageActions := ""
+	volumeActions := ""
+	networkActions := ""
+
+	if ui.services != nil {
+		if ui.services.GetImageService() != nil {
+			imageActions = ui.services.GetImageService().GetActionsString()
+		}
+		if ui.services.GetVolumeService() != nil {
+			volumeActions = ui.services.GetVolumeService().GetActionsString()
+		}
+		if ui.services.GetNetworkService() != nil {
+			networkActions = ui.services.GetNetworkService().GetActionsString()
+		}
+	}
+
+	ui.viewRegistry.Register("images", "Images", 'i', ui.imagesView.GetView(), ui.imagesView.Refresh, imageActions)
+	ui.viewRegistry.Register("volumes", "Volumes", 'v', ui.volumesView.GetView(), ui.volumesView.Refresh, volumeActions)
+	ui.viewRegistry.Register("networks", "Networks", 'n', ui.networksView.GetView(), ui.networksView.Refresh, networkActions)
+}
+
+// registerViewsWithoutServices registers views without service actions
+func (ui *UI) registerViewsWithoutServices() {
+	ui.viewRegistry.Register("containers", "Containers", 'c', ui.containersView.GetView(), ui.containersView.Refresh, "")
+	ui.viewRegistry.Register("images", "Images", 'i', ui.imagesView.GetView(), ui.imagesView.Refresh, "")
+	ui.viewRegistry.Register("volumes", "Volumes", 'v', ui.volumesView.GetView(), ui.volumesView.Refresh, "")
+	ui.viewRegistry.Register("networks", "Networks", 'n', ui.networksView.GetView(), ui.networksView.Refresh, "")
 }
 
 // setDefaultView sets the default view for the application
