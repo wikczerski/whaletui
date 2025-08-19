@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0-alpha] - 2025-01-27
+
+### Added
+- **SSH Client for Remote Docker**: New SSH client functionality for secure remote Docker connections
+- **Comprehensive Testing Infrastructure**: Extensive test coverage for all major components
+- **Mock Service Implementations**: Mock interfaces for improved testing capabilities
+- **Enhanced UI Testing**: Test infrastructure for UI components and interactions
+- **Security Considerations**: Proper security documentation for SSH host key handling
+- **Named Return Values**: Improved function readability with named return values
+- **Helper Function Library**: Reusable helper functions for common operations
+
+### Changed
+- **Docker Client Architecture**: Major refactoring to follow single responsibility principle
+- **Function Structure**: Long functions broken down into focused, single-responsibility functions
+- **Code Organization**: Better separation of concerns and improved maintainability
+- **Type System**: Updated to use modern, non-deprecated Docker API types
+- **Error Handling**: Standardized error handling patterns across all components
+- **Parameter Optimization**: Resolved unused parameters and huge parameter issues
+- **Code Formatting**: Fixed all gofmt issues and improved code consistency
+
+### Fixed
+- **All golangci-lint Issues**: Complete resolution of all code quality warnings
+- **Deprecated Types**: Fixed usage of deprecated Docker API types
+- **Code Quality**: Resolved parameter optimization and naming issues
+- **Linting Errors**: All static analysis issues resolved
+
+### Technical Improvements
+- **Function Refactoring**: Extracted common logic into reusable helper functions
+- **Type Safety**: Updated from `types.Port` to `container.Port`, `types.IDResponse` to `container.ExecCreateResponse`
+- **Code Maintainability**: Significantly improved code structure and readability
+- **Architecture**: Better separation of concerns and single responsibility principle
+- **Future Development**: Solid foundation for continued development and feature additions
+
+### Files Changed
+- **Modified**: 50+ files with improvements and refactoring
+- **Added**: 20+ new test files and mock implementations
+- **New**: SSH client functionality and enhanced testing infrastructure
+- **Removed**: Obsolete test utilities and deprecated code
+
 ## [0.2.0a] - 2025-08-16
 
 ### Added
