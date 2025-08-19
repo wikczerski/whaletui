@@ -271,7 +271,8 @@ func TestCommonOperations_ContextHandling_BackgroundContext(t *testing.T) {
 func TestCommonOperations_ContextHandling_ValueContext(t *testing.T) {
 	co := &CommonOperations{client: nil}
 	containerID := "test-container"
-	ctx := context.WithValue(context.Background(), "key", "value")
+	type contextKey string
+	ctx := context.WithValue(context.Background(), contextKey("key"), "value")
 
 	err := co.StartContainer(ctx, containerID)
 	assert.Error(t, err)
@@ -289,7 +290,8 @@ func TestCommonOperations_ContextHandling_BackgroundContext_ErrorMessage(t *test
 func TestCommonOperations_ContextHandling_ValueContext_ErrorMessage(t *testing.T) {
 	co := &CommonOperations{client: nil}
 	containerID := "test-container"
-	ctx := context.WithValue(context.Background(), "key", "value")
+	type contextKey string
+	ctx := context.WithValue(context.Background(), contextKey("key"), "value")
 
 	err := co.StartContainer(ctx, containerID)
 	assert.Contains(t, err.Error(), "docker client is not initialized")

@@ -59,6 +59,6 @@ func TestDockerInfoService_GetDockerInfo_NilClient(t *testing.T) {
 	ctx := context.Background()
 
 	assert.Panics(t, func() {
-		service.GetDockerInfo(ctx)
+		_, _ = service.GetDockerInfo(ctx)
 	})
 }

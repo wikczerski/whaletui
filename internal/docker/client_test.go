@@ -661,10 +661,10 @@ func TestClient_ConcurrentAccess(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		go func() {
 			defer func() { done <- true }()
-			client.ListContainers(ctx, true)
-			client.ListImages(ctx)
-			client.ListVolumes(ctx)
-			client.ListNetworks(ctx)
+			_, _ = client.ListContainers(ctx, true)
+			_, _ = client.ListImages(ctx)
+			_, _ = client.ListVolumes(ctx)
+			_, _ = client.ListNetworks(ctx)
 		}()
 	}
 

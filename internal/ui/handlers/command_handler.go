@@ -219,7 +219,7 @@ func (ch *CommandHandler) handleQuitCommand() {
 }
 
 // handleUnknownCommand handles unknown commands by showing an error message in the command input
-func (ch *CommandHandler) handleUnknownCommand(command string) {
+func (ch *CommandHandler) handleUnknownCommand(_ string) {
 	ch.showCommandError("Wrong command")
 	// Don't exit automatically - let the user see the error and continue typing
 	// The error message will disappear after 3 seconds

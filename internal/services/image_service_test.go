@@ -52,7 +52,7 @@ func TestImageService_ListImages_NilClient(t *testing.T) {
 	ctx := context.Background()
 
 	assert.Panics(t, func() {
-		service.ListImages(ctx)
+		_, _ = service.ListImages(ctx)
 	})
 }
 
