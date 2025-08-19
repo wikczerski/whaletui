@@ -15,6 +15,7 @@ type Config struct {
 	DockerHost      string `json:"docker_host"`
 	Theme           string `json:"theme"`
 	RemoteHost      string `json:"remote_host,omitempty"` // Command line specified remote host
+	RemotePort      int    `json:"remote_port,omitempty"` // Command line specified remote port for SSH fallback
 }
 
 // DefaultConfig returns the default configuration
@@ -31,6 +32,7 @@ func DefaultConfig() *Config {
 		LogLevel:        "INFO",
 		DockerHost:      host,
 		Theme:           "default",
+		RemotePort:      2375, // Default port for SSH fallback
 	}
 }
 

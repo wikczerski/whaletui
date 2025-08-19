@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"runtime"
 	"sort"
 	"strings"
@@ -21,9 +22,10 @@ import (
 
 // Client represents a Docker client wrapper
 type Client struct {
-	cli *client.Client
-	cfg *config.Config
-	log *logger.Logger
+	cli     *client.Client
+	cfg     *config.Config
+	log     *logger.Logger
+	sshConn *SSHConnection
 }
 
 // detectWindowsDockerHost attempts to find the correct Docker host on Windows
@@ -40,32 +42,40 @@ func detectWindowsDockerHost(log *logger.Logger) (string, error) {
 	}
 
 	for _, host := range possibleHosts {
-		opts := []client.Opt{
-			client.WithHost(host),
-			client.WithAPIVersionNegotiation(),
-			client.WithTimeout(5 * time.Second),
-		}
-
-		cli, err := client.NewClientWithOpts(opts...)
-		if err != nil {
-			continue
-		}
-
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		if _, err = cli.Ping(ctx); err == nil {
-			cancel()
-			if closeErr := cli.Close(); closeErr != nil {
-				log.Warn("Failed to close Docker client during host detection: %v", closeErr)
-			}
+		if isHostWorking(host, log) {
 			return host, nil
-		}
-		cancel()
-		if closeErr := cli.Close(); closeErr != nil {
-			log.Warn("Failed to close Docker client during host detection: %v", closeErr)
 		}
 	}
 
 	return "", fmt.Errorf("no working Docker host found")
+}
+
+// isHostWorking tests if a Docker host is working
+func isHostWorking(host string, log *logger.Logger) bool {
+	opts := []client.Opt{
+		client.WithHost(host),
+		client.WithAPIVersionNegotiation(),
+		client.WithTimeout(5 * time.Second),
+	}
+
+	cli, err := client.NewClientWithOpts(opts...)
+	if err != nil {
+		return false
+	}
+	defer closeClientSafely(cli, log)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err = cli.Ping(ctx)
+	return err == nil
+}
+
+// closeClientSafely closes a Docker client and logs any errors
+func closeClientSafely(cli *client.Client, log *logger.Logger) {
+	if err := cli.Close(); err != nil {
+		log.Warn("Failed to close Docker client during host detection: %v", err)
+	}
 }
 
 // New creates a new Docker client
@@ -105,10 +115,11 @@ func buildClientOptions(cfg *config.Config) ([]client.Opt, error) {
 	var opts []client.Opt
 
 	if cfg.RemoteHost != "" {
-		if err := validateRemoteHost(cfg.RemoteHost); err != nil {
+		dockerHost, err := formatRemoteHost(cfg.RemoteHost)
+		if err != nil {
 			return nil, fmt.Errorf("invalid remote host format: %w", err)
 		}
-		opts = append(opts, client.WithHost(cfg.RemoteHost), client.WithTimeout(30*time.Second))
+		opts = append(opts, client.WithHost(dockerHost), client.WithTimeout(30*time.Second))
 	} else if cfg.DockerHost != "" {
 		opts = append(opts, client.WithHost(cfg.DockerHost))
 	}
@@ -119,6 +130,20 @@ func buildClientOptions(cfg *config.Config) ([]client.Opt, error) {
 	)
 
 	return opts, nil
+}
+
+// formatRemoteHost formats and validates a remote host URL
+func formatRemoteHost(host string) (string, error) {
+	if err := validateRemoteHost(host); err != nil {
+		return "", err
+	}
+
+	// Automatically add tcp:// prefix if user didn't provide a scheme
+	if !strings.Contains(host, "://") {
+		host = "tcp://" + host
+	}
+
+	return host, nil
 }
 
 // handleClientCreationError handles errors during client creation, including Windows auto-detection
@@ -167,9 +192,12 @@ func testAndCreateClient(cfg *config.Config, log *logger.Logger, cli *client.Cli
 		if closeErr := cli.Close(); closeErr != nil {
 			log.Warn("Failed to close Docker client: %v", closeErr)
 		}
+
+		// If this is a remote host and direct connection failed, try SSH fallback
 		if cfg.RemoteHost != "" {
-			return nil, fmt.Errorf("failed to connect to remote Docker host '%s': %w", cfg.RemoteHost, err)
+			return trySSHFallback(cfg, log)
 		}
+
 		return nil, fmt.Errorf("failed to connect to Docker: %w", err)
 	}
 
@@ -192,39 +220,156 @@ func logConnectionSuccess(cfg *config.Config, log *logger.Logger) {
 	}
 }
 
+// Close closes the Docker client and cleans up SSH connections
+func (c *Client) Close() error {
+	var errors []string
+
+	if c.cli != nil {
+		if err := c.cli.Close(); err != nil {
+			errors = append(errors, fmt.Sprintf("Docker client close: %v", err))
+		}
+	}
+
+	if c.sshConn != nil {
+		if err := c.sshConn.Close(); err != nil {
+			errors = append(errors, fmt.Sprintf("SSH connection close: %v", err))
+		}
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("failed to close client: %s", strings.Join(errors, "; "))
+	}
+
+	return nil
+}
+
+// trySSHFallback attempts to connect via SSH when direct connection fails
+func trySSHFallback(cfg *config.Config, log *logger.Logger) (*Client, error) {
+	log.Info("Direct connection failed, attempting SSH fallback...")
+
+	host, err := extractHostFromURL(cfg.RemoteHost)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract host from URL: %w", err)
+	}
+
+	sshConn, err := establishSSHConnection(host, log)
+	if err != nil {
+		return nil, err
+	}
+
+	cli, err := createDockerClientViaSSH(sshConn, log)
+	if err != nil {
+		sshConn.Close()
+		return nil, err
+	}
+
+	client := &Client{
+		cli:     cli,
+		cfg:     cfg,
+		log:     log,
+		sshConn: sshConn,
+	}
+
+	log.Info("Successfully connected to remote Docker via SSH: %s", cfg.RemoteHost)
+	return client, nil
+}
+
+// establishSSHConnection establishes an SSH connection to the remote host
+func establishSSHConnection(host string, log *logger.Logger) (*SSHConnection, error) {
+	log.Info("Attempting SSH connection to: %s", host)
+	log.Info("Note: SSH key-based authentication required (no password will be provided)")
+
+	sshClient, err := NewSSHClient(host, 22) // Default SSH port
+	if err != nil {
+		return nil, fmt.Errorf("failed to create SSH client: %w", err)
+	}
+
+	sshConn, err := sshClient.Connect(0) // Use default remote port
+	if err != nil {
+		return nil, fmt.Errorf("failed to establish SSH connection: %w", err)
+	}
+
+	localProxyHost := sshConn.GetLocalProxyHost()
+	log.Info("SSH connection established, socat proxy running on: %s", localProxyHost)
+
+	return sshConn, nil
+}
+
+// createDockerClientViaSSH creates a Docker client using the SSH proxy
+func createDockerClientViaSSH(sshConn *SSHConnection, _ *logger.Logger) (*client.Client, error) {
+	localProxyHost := sshConn.GetLocalProxyHost()
+
+	opts := []client.Opt{
+		client.WithHost(localProxyHost),
+		client.WithAPIVersionNegotiation(),
+		client.WithTimeout(30 * time.Second),
+	}
+
+	cli, err := client.NewClientWithOpts(opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Docker client via SSH proxy: %w", err)
+	}
+
+	// Test the connection
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if _, err := cli.Ping(ctx); err != nil {
+		cli.Close()
+		return nil, fmt.Errorf("failed to connect to Docker via SSH proxy: %w", err)
+	}
+
+	return cli, nil
+}
+
+// extractHostFromURL extracts the hostname from a Docker host URL
+func extractHostFromURL(hostURL string) (string, error) {
+	// Remove scheme (tcp://, http://, https://)
+	if strings.Contains(hostURL, "://") {
+		parts := strings.Split(hostURL, "://")
+		if len(parts) != 2 {
+			return "", fmt.Errorf("invalid host URL format: %s", hostURL)
+		}
+		hostURL = parts[1]
+	}
+
+	// Extract hostname (remove port if present)
+	if strings.Contains(hostURL, ":") {
+		parts := strings.Split(hostURL, ":")
+		if len(parts) != 2 {
+			return "", fmt.Errorf("invalid host:port format: %s", hostURL)
+		}
+		return parts[0], nil
+	}
+
+	return hostURL, nil
+}
+
 // validateRemoteHost validates the format of a remote Docker host
 func validateRemoteHost(host string) error {
 	if host == "" {
 		return fmt.Errorf("host cannot be empty")
 	}
 
-	// Check for valid URL schemes
-	validSchemes := []string{"tcp://", "http://", "https://"}
-	hasValidScheme := false
-
-	for _, scheme := range validSchemes {
-		if len(host) > len(scheme) && host[:len(scheme)] == scheme {
-			hasValidScheme = true
-			break
-		}
-	}
-
-	if !hasValidScheme {
-		return fmt.Errorf("host must use a valid scheme (tcp://, http://, or https://)")
-	}
-
-	// Basic format validation for tcp://host:port
-	if host[:4] == "tcp:" {
-		// Remove scheme
-		hostPart := host[6:] // "tcp://" is 6 characters
-
-		// Check if it contains a colon (for port)
-		if !strings.Contains(hostPart, ":") {
-			return fmt.Errorf("tcp:// host must include port (e.g., tcp://192.168.1.100:2375)")
+	// Check if user provided a scheme
+	if strings.Contains(host, "://") {
+		// User provided a scheme, validate it's tcp://
+		if !strings.HasPrefix(host, "tcp://") {
+			return fmt.Errorf("only tcp:// scheme is supported (e.g., tcp://192.168.1.100)")
 		}
 
-		// Split host and port
-		parts := strings.Split(hostPart, ":")
+		// Remove scheme for further validation
+		host = host[6:] // "tcp://" is 6 characters
+	}
+
+	// Validate hostname part
+	if host == "" {
+		return fmt.Errorf("hostname cannot be empty")
+	}
+
+	// If port is specified in host, validate it
+	if strings.Contains(host, ":") {
+		parts := strings.Split(host, ":")
 		if len(parts) != 2 {
 			return fmt.Errorf("invalid host:port format")
 		}
@@ -271,24 +416,35 @@ func (c *Client) GetContainerLogs(ctx context.Context, id string) (string, error
 	}
 	defer logs.Close()
 
+	return c.readAndFormatLogs(logs), nil
+}
+
+// readAndFormatLogs reads logs from the response and formats them
+func (c *Client) readAndFormatLogs(logs io.ReadCloser) string {
 	var logLines []string
 	buffer := make([]byte, 1024)
+
 	for {
 		n, err := logs.Read(buffer)
 		if n > 0 {
 			line := string(buffer[:n])
-			if len(line) >= 8 {
-				logLines = append(logLines, line[8:])
-			} else {
-				logLines = append(logLines, line)
-			}
+			formattedLine := c.formatLogLine(line)
+			logLines = append(logLines, formattedLine)
 		}
 		if err != nil {
 			break
 		}
 	}
 
-	return strings.Join(logLines, ""), nil
+	return strings.Join(logLines, "")
+}
+
+// formatLogLine formats a single log line by removing timestamp prefix if present
+func (c *Client) formatLogLine(line string) string {
+	if len(line) >= 8 {
+		return line[8:] // Remove timestamp prefix
+	}
+	return line
 }
 
 // InspectImage inspects an image
@@ -311,8 +467,8 @@ func (c *Client) InspectVolume(ctx context.Context, name string) (map[string]any
 
 // RemoveVolume removes a volume
 func (c *Client) RemoveVolume(ctx context.Context, name string, force bool) error {
-	if name == "" {
-		return fmt.Errorf("volume name cannot be empty")
+	if err := validateID(name, "volume name"); err != nil {
+		return err
 	}
 
 	if err := c.cli.VolumeRemove(ctx, name, force); err != nil {
@@ -331,11 +487,6 @@ func (c *Client) InspectNetwork(ctx context.Context, id string) (map[string]any,
 	return marshalToMap(networkInfo)
 }
 
-// Close closes the Docker client connection
-func (c *Client) Close() error {
-	return c.cli.Close()
-}
-
 // ListContainers lists all containers
 func (c *Client) ListContainers(ctx context.Context, all bool) ([]Container, error) {
 	opts := container.ListOptions{
@@ -350,21 +501,7 @@ func (c *Client) ListContainers(ctx context.Context, all bool) ([]Container, err
 	result := make([]Container, 0, len(containers))
 	for i := range containers {
 		cont := &containers[i]
-		// Format ports
-		ports := ""
-		for _, p := range cont.Ports {
-			if p.PublicPort > 0 {
-				if ports != "" {
-					ports += ", "
-				}
-				ports += fmt.Sprintf("%d:%d/%s", p.PublicPort, p.PrivatePort, p.Type)
-			} else if p.PrivatePort > 0 {
-				if ports != "" {
-					ports += ", "
-				}
-				ports += fmt.Sprintf("%d/%s", p.PrivatePort, p.Type)
-			}
-		}
+		ports := formatContainerPorts(cont.Ports)
 
 		result = append(result, Container{
 			ID:      cont.ID[:12],
@@ -378,11 +515,33 @@ func (c *Client) ListContainers(ctx context.Context, all bool) ([]Container, err
 		})
 	}
 
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].Created.After(result[j].Created)
-	})
-
+	sortContainersByCreationTime(result)
 	return result, nil
+}
+
+// formatContainerPorts formats container ports into a readable string
+func formatContainerPorts(ports []container.Port) string {
+	if len(ports) == 0 {
+		return ""
+	}
+
+	var formattedPorts []string
+	for _, p := range ports {
+		if p.PublicPort > 0 {
+			formattedPorts = append(formattedPorts, fmt.Sprintf("%d:%d/%s", p.PublicPort, p.PrivatePort, p.Type))
+		} else if p.PrivatePort > 0 {
+			formattedPorts = append(formattedPorts, fmt.Sprintf("%d/%s", p.PrivatePort, p.Type))
+		}
+	}
+
+	return strings.Join(formattedPorts, ", ")
+}
+
+// sortContainersByCreationTime sorts containers by creation time (newest first)
+func sortContainersByCreationTime(containers []Container) {
+	sort.Slice(containers, func(i, j int) bool {
+		return containers[i].Created.After(containers[j].Created)
+	})
 }
 
 // GetContainerStats gets container stats
@@ -393,11 +552,15 @@ func (c *Client) GetContainerStats(ctx context.Context, id string) (map[string]a
 	}
 	defer stats.Body.Close()
 
+	return c.decodeStatsResponse(stats.Body)
+}
+
+// decodeStatsResponse decodes the stats response body into a map
+func (c *Client) decodeStatsResponse(body io.ReadCloser) (map[string]any, error) {
 	var statsJSON map[string]any
-	if err := json.NewDecoder(stats.Body).Decode(&statsJSON); err != nil {
+	if err := json.NewDecoder(body).Decode(&statsJSON); err != nil {
 		return nil, fmt.Errorf("failed to decode container stats: %w", err)
 	}
-
 	return statsJSON, nil
 }
 
@@ -413,17 +576,7 @@ func (c *Client) ListImages(ctx context.Context) ([]Image, error) {
 	result := make([]Image, 0, len(images))
 	for i := range images {
 		img := &images[i]
-		// Format repository and tag
-		repo := "<none>"
-		tag := "<none>"
-		if len(img.RepoTags) > 0 && img.RepoTags[0] != "<none>:<none>" {
-			parts := strings.Split(img.RepoTags[0], ":")
-			if len(parts) >= 2 {
-				repo = parts[0]
-				tag = parts[1]
-			}
-		}
-
+		repo, tag := parseImageRepository(img.RepoTags)
 		size := formatSize(img.Size)
 
 		result = append(result, Image{
@@ -436,12 +589,28 @@ func (c *Client) ListImages(ctx context.Context) ([]Image, error) {
 		})
 	}
 
-	// Sort by creation time (newest first)
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].Created.After(result[j].Created)
-	})
-
+	sortImagesByCreationTime(result)
 	return result, nil
+}
+
+// parseImageRepository parses repository and tag from image repoTags
+func parseImageRepository(repoTags []string) (repository, tag string) {
+	if len(repoTags) == 0 || repoTags[0] == "<none>:<none>" {
+		return "<none>", "<none>"
+	}
+
+	parts := strings.Split(repoTags[0], ":")
+	if len(parts) >= 2 {
+		return parts[0], parts[1]
+	}
+	return repoTags[0], "<none>"
+}
+
+// sortImagesByCreationTime sorts images by creation time (newest first)
+func sortImagesByCreationTime(images []Image) {
+	sort.Slice(images, func(i, j int) bool {
+		return images[i].Created.After(images[j].Created)
+	})
 }
 
 // ListVolumes lists all volumes
@@ -453,25 +622,35 @@ func (c *Client) ListVolumes(ctx context.Context) ([]Volume, error) {
 
 	result := make([]Volume, 0, len(vols.Volumes))
 	for _, vol := range vols.Volumes {
-		created := time.Time{}
-		if vol.CreatedAt != "" {
-			created, _ = time.Parse(time.RFC3339, vol.CreatedAt)
-		}
-
-		result = append(result, Volume{
-			Name:       vol.Name,
-			Driver:     vol.Driver,
-			Mountpoint: vol.Mountpoint,
-			Created:    created,
-			Size:       "", // Size is not available in VolumeList
-		})
+		volume := c.createVolumeFromAPI(vol)
+		result = append(result, volume)
 	}
 
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].Name < result[j].Name
-	})
-
+	sortVolumesByName(result)
 	return result, nil
+}
+
+// createVolumeFromAPI creates a Volume from the API response
+func (c *Client) createVolumeFromAPI(vol *volume.Volume) Volume {
+	created := time.Time{}
+	if vol.CreatedAt != "" {
+		created, _ = time.Parse(time.RFC3339, vol.CreatedAt)
+	}
+
+	return Volume{
+		Name:       vol.Name,
+		Driver:     vol.Driver,
+		Mountpoint: vol.Mountpoint,
+		Created:    created,
+		Size:       "", // Size is not available in VolumeList
+	}
+}
+
+// sortVolumesByName sorts volumes by name
+func sortVolumesByName(volumes []Volume) {
+	sort.Slice(volumes, func(i, j int) bool {
+		return volumes[i].Name < volumes[j].Name
+	})
 }
 
 // ListNetworks lists all networks
@@ -514,23 +693,13 @@ func (c *Client) StartContainer(ctx context.Context, id string) error {
 
 // StopContainer stops a container
 func (c *Client) StopContainer(ctx context.Context, id string, timeout *time.Duration) error {
-	opts := container.StopOptions{}
-	if timeout != nil {
-		opts.Signal = "SIGTERM"
-		seconds := int(timeout.Seconds())
-		opts.Timeout = &seconds
-	}
+	opts := buildStopOptions(timeout)
 	return c.cli.ContainerStop(ctx, id, opts)
 }
 
 // RestartContainer restarts a container
 func (c *Client) RestartContainer(ctx context.Context, id string, timeout *time.Duration) error {
-	opts := container.StopOptions{}
-	if timeout != nil {
-		opts.Signal = "SIGTERM"
-		seconds := int(timeout.Seconds())
-		opts.Timeout = &seconds
-	}
+	opts := buildStopOptions(timeout)
 	return c.cli.ContainerRestart(ctx, id, opts)
 }
 
@@ -540,15 +709,34 @@ func (c *Client) RemoveContainer(ctx context.Context, id string, force bool) err
 		Force: force,
 	}
 
+	if err := validateID(id, "container ID"); err != nil {
+		return err
+	}
+
 	return c.cli.ContainerRemove(ctx, id, opts)
 }
 
 // ExecContainer executes a command in a running container and returns the output
 func (c *Client) ExecContainer(ctx context.Context, id string, command []string, _ bool) (string, error) {
-	if c.cli == nil {
-		return "", fmt.Errorf("docker client is not initialized")
+	if err := c.validateClient(); err != nil {
+		return "", err
 	}
 
+	execResp, err := c.createExecInstance(ctx, id, command)
+	if err != nil {
+		return "", err
+	}
+
+	output, err := c.executeAndCollectOutput(ctx, execResp.ID)
+	if err != nil {
+		return "", err
+	}
+
+	return output, nil
+}
+
+// createExecInstance creates an exec instance in the container
+func (c *Client) createExecInstance(ctx context.Context, id string, command []string) (*container.ExecCreateResponse, error) {
 	execConfig := container.ExecOptions{
 		Cmd:          command,
 		Tty:          false, // Set to false to capture output
@@ -560,24 +748,33 @@ func (c *Client) ExecContainer(ctx context.Context, id string, command []string,
 
 	execResp, err := c.cli.ContainerExecCreate(ctx, id, execConfig)
 	if err != nil {
-		return "", fmt.Errorf("failed to create exec instance: %w", err)
+		return nil, fmt.Errorf("failed to create exec instance: %w", err)
 	}
 
+	return &execResp, nil
+}
+
+// executeAndCollectOutput executes the exec instance and collects the output
+func (c *Client) executeAndCollectOutput(ctx context.Context, execID string) (string, error) {
 	attachConfig := container.ExecStartOptions{
 		Tty: false,
 	}
 
-	hijackedResp, err := c.cli.ContainerExecAttach(ctx, execResp.ID, attachConfig)
+	hijackedResp, err := c.cli.ContainerExecAttach(ctx, execID, attachConfig)
 	if err != nil {
 		return "", fmt.Errorf("failed to attach to exec instance: %w", err)
 	}
 	defer hijackedResp.Close()
 
-	err = c.cli.ContainerExecStart(ctx, execResp.ID, attachConfig)
-	if err != nil {
+	if err := c.cli.ContainerExecStart(ctx, execID, attachConfig); err != nil {
 		return "", fmt.Errorf("failed to start exec instance: %w", err)
 	}
 
+	return c.readExecOutput(hijackedResp), nil
+}
+
+// readExecOutput reads the output from the hijacked response
+func (c *Client) readExecOutput(hijackedResp types.HijackedResponse) string {
 	var output strings.Builder
 	buffer := make([]byte, 1024)
 
@@ -591,13 +788,13 @@ func (c *Client) ExecContainer(ctx context.Context, id string, command []string,
 		}
 	}
 
-	return output.String(), nil
+	return output.String()
 }
 
 // AttachContainer attaches to a running container
 func (c *Client) AttachContainer(ctx context.Context, id string) (types.HijackedResponse, error) {
-	if c.cli == nil {
-		return types.HijackedResponse{}, fmt.Errorf("docker client is not initialized")
+	if err := c.validateClient(); err != nil {
+		return types.HijackedResponse{}, err
 	}
 
 	attachConfig := container.AttachOptions{
@@ -606,6 +803,10 @@ func (c *Client) AttachContainer(ctx context.Context, id string) (types.Hijacked
 		Stdout: true,
 		Stderr: true,
 		Logs:   false,
+	}
+
+	if err := validateID(id, "container ID"); err != nil {
+		return types.HijackedResponse{}, err
 	}
 
 	response, err := c.cli.ContainerAttach(ctx, id, attachConfig)
@@ -618,8 +819,8 @@ func (c *Client) AttachContainer(ctx context.Context, id string) (types.Hijacked
 
 // RemoveImage removes an image
 func (c *Client) RemoveImage(ctx context.Context, id string, force bool) error {
-	if id == "" {
-		return fmt.Errorf("image ID cannot be empty")
+	if err := validateID(id, "image ID"); err != nil {
+		return err
 	}
 
 	opts := image.RemoveOptions{
@@ -637,13 +838,40 @@ func (c *Client) RemoveImage(ctx context.Context, id string, force bool) error {
 
 // RemoveNetwork removes a network
 func (c *Client) RemoveNetwork(ctx context.Context, id string) error {
-	if id == "" {
-		return fmt.Errorf("network ID cannot be empty")
+	if err := validateID(id, "network ID"); err != nil {
+		return err
 	}
 
 	if err := c.cli.NetworkRemove(ctx, id); err != nil {
 		return fmt.Errorf("failed to remove network %s: %w", id, err)
 	}
 
+	return nil
+}
+
+// buildStopOptions builds stop options with optional timeout
+func buildStopOptions(timeout *time.Duration) container.StopOptions {
+	opts := container.StopOptions{}
+	if timeout != nil {
+		opts.Signal = "SIGTERM"
+		seconds := int(timeout.Seconds())
+		opts.Timeout = &seconds
+	}
+	return opts
+}
+
+// validateID validates that an ID is not empty
+func validateID(id, idType string) error {
+	if id == "" {
+		return fmt.Errorf("%s cannot be empty", idType)
+	}
+	return nil
+}
+
+// validateClient validates that the Docker client is initialized
+func (c *Client) validateClient() error {
+	if c.cli == nil {
+		return fmt.Errorf("docker client is not initialized")
+	}
 	return nil
 }
