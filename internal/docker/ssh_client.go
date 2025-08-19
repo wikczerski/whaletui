@@ -165,12 +165,37 @@ func createSSHConfig(username, keyPath string) (*ssh.ClientConfig, error) {
 	}, nil
 }
 
+// validateHostname checks if the hostname can be resolved to an IP address
+func (s *SSHClient) validateHostname() error {
+	// Check if the host is already an IP address
+	if net.ParseIP(s.host) != nil {
+		return nil // It's a valid IP address
+	}
+
+	// Try to resolve the hostname
+	ips, err := net.LookupHost(s.host)
+	if err != nil {
+		return fmt.Errorf("cannot resolve hostname '%s': %w", s.host, err)
+	}
+
+	if len(ips) == 0 {
+		return fmt.Errorf("hostname '%s' resolved to no IP addresses", s.host)
+	}
+
+	return nil
+}
+
 // Connect establishes an SSH connection and sets up a socat proxy
 func (s *SSHClient) Connect(remotePort int) (*SSHConnection, error) {
+	// Validate that the hostname can be resolved
+	if err := s.validateHostname(); err != nil {
+		return nil, fmt.Errorf("hostname validation failed: %w", err)
+	}
+
 	// Connect to SSH server
 	client, err := ssh.Dial("tcp", net.JoinHostPort(s.host, s.port), s.config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to SSH server: %w", err)
+		return nil, fmt.Errorf("failed to connect to SSH server %s:%s: %w", s.host, s.port, err)
 	}
 
 	// Find an available local port for the proxy

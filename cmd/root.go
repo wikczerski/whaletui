@@ -13,12 +13,25 @@ import (
 )
 
 var (
-	remoteHost string
-	remotePort int
-	refresh    int
-	logLevel   string
-	theme      string
+	refresh  int
+	logLevel string
+	theme    string
 )
+
+// connectCmd represents the connect command for remote Docker hosts
+var connectCmd = &cobra.Command{
+	Use:   "connect [flags]",
+	Short: "Connect to a remote Docker host via SSH",
+	Long: `Connect to a remote Docker host using SSH fallback when direct connection fails.
+This command establishes an SSH connection to the remote host and sets up a Docker proxy.
+
+Example:
+  d5r connect --host 192.168.1.100 --user admin --port 2375`,
+	RunE: runConnectCommand,
+	// Disable automatic help display on errors
+	SilenceUsage:  true,
+	SilenceErrors: true,
+}
 
 // themeCmd represents the theme command
 var themeCmd = &cobra.Command{
@@ -26,6 +39,9 @@ var themeCmd = &cobra.Command{
 	Short: "Manage theme configuration",
 	Long:  `Manage theme configuration for the D5r UI.`,
 	RunE:  runThemeCommand,
+	// Disable automatic help display on errors
+	SilenceUsage:  true,
+	SilenceErrors: true,
 }
 
 // rootCmd represents the base command when called without any subcommands
@@ -44,27 +60,107 @@ Features:
   • Remote Host Support: Connect to Docker hosts on different machines with SSH fallback
   • SSH Fallback: Automatic SSH connection when direct Docker connection fails
   • Configurable Ports: Customize SSH fallback proxy ports to avoid conflicts
-  • Theme Support: Customizable color schemes via YAML/JSON configuration`,
+  • Theme Support: Customizable color schemes via YAML/JSON configuration
+
+Commands:
+  connect  - Connect to a remote Docker host via SSH
+  theme    - Manage theme configuration
+
+Examples:
+  d5r                    - Start with local Docker instance
+  d5r connect --host 192.168.1.100 --user admin  - Connect to remote host
+  d5r theme             - Manage theme configuration`,
 	RunE: runApp,
+	// Disable automatic help display on errors
+	SilenceUsage:  true,
+	SilenceErrors: true,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 func Execute() {
+	// Set up the command to not show help on errors
+	rootCmd.SilenceUsage = true
+	rootCmd.SilenceErrors = true
+
 	err := rootCmd.Execute()
 	if err != nil {
+		// Log the error and exit without showing help
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&remoteHost, "host", "", "Remote Docker host (e.g., 192.168.1.100 or tcp://192.168.1.100). Port is optional when using --port flag. TCP:// prefix is automatically added if not provided. If direct connection fails, SSH fallback will be attempted.")
-	rootCmd.PersistentFlags().IntVar(&remotePort, "port", 2375, "Port for SSH fallback Docker proxy (default: 2375)")
 	rootCmd.PersistentFlags().IntVar(&refresh, "refresh", 5, "Refresh interval in seconds")
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "INFO", "Log level (DEBUG, INFO, WARN, ERROR)")
 	rootCmd.PersistentFlags().StringVar(&theme, "theme", "", "Path to theme configuration file (YAML/JSON)")
 
-	// Add theme subcommand
+	// Connect command flags
+	connectCmd.Flags().String("host", "", "Remote Docker host (e.g., 192.168.1.100 or tcp://192.168.1.100)")
+	connectCmd.Flags().String("user", "", "SSH username for remote host connection")
+	connectCmd.Flags().Int("port", 2375, "Port for SSH fallback Docker proxy (default: 2375)")
+	_ = connectCmd.MarkFlagRequired("host")
+	_ = connectCmd.MarkFlagRequired("user")
+
+	// Add subcommands
+	rootCmd.AddCommand(connectCmd)
 	rootCmd.AddCommand(themeCmd)
+}
+
+// runConnectCommand handles the connect subcommand for remote Docker hosts
+func runConnectCommand(cmd *cobra.Command, _ []string) error {
+	log := logger.GetLogger()
+	log.SetPrefix("Connect")
+
+	// Get flags from the connect command
+	host, _ := cmd.Flags().GetString("host")
+	user, _ := cmd.Flags().GetString("user")
+	port, _ := cmd.Flags().GetInt("port")
+
+	cfg, err := config.Load()
+	if err != nil {
+		log.Error("Config load failed: %v", err)
+		return err
+	}
+
+	// Set remote connection parameters
+	cfg.RemoteHost = host
+	cfg.RemoteUser = user
+	cfg.RemotePort = port
+	cfg.DockerHost = host
+
+	setLogLevel(log, cfg.LogLevel)
+
+	log.Info("Connecting to remote Docker host: %s as user: %s", host, user)
+
+	application, err := app.New(cfg)
+	if err != nil {
+		log.Error("App init failed: %v", err)
+		return err
+	}
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+	uiShutdownCh := application.GetUI().GetShutdownChan()
+
+	go func() {
+		if err := application.Run(); err != nil {
+			log.Error("App run failed: %v", err)
+		}
+	}()
+
+	select {
+	case <-sigCh:
+		log.Info("Received shutdown signal, shutting down gracefully...")
+	case <-uiShutdownCh:
+		log.Info("Received UI shutdown signal, shutting down gracefully...")
+	}
+
+	defer cleanupTerminal()
+
+	application.Shutdown()
+	return nil
 }
 
 // runApp runs the main application with the provided configuration
@@ -81,6 +177,7 @@ func runApp(_ *cobra.Command, _ []string) error {
 	applyFlagOverrides(cfg)
 	setLogLevel(log, cfg.LogLevel)
 
+	// Validate that --user is provided when --host is specified
 	if cfg.RemoteHost != "" {
 		log.Info("Connecting to remote Docker host: %s", cfg.RemoteHost)
 	} else {
@@ -163,15 +260,6 @@ func cleanupTerminalSyncStdout() {
 
 // applyFlagOverrides applies command line flag values to the configuration
 func applyFlagOverrides(cfg *config.Config) {
-	if remoteHost != "" {
-		cfg.RemoteHost = remoteHost
-		cfg.DockerHost = remoteHost
-	}
-
-	if remotePort != 2375 {
-		cfg.RemotePort = remotePort
-	}
-
 	if refresh != 5 {
 		cfg.RefreshInterval = refresh
 	}

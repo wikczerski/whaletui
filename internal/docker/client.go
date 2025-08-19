@@ -249,18 +249,21 @@ func trySSHFallback(cfg *config.Config, log *logger.Logger) (*Client, error) {
 
 	host, err := extractHostFromURL(cfg.RemoteHost)
 	if err != nil {
-		return nil, fmt.Errorf("failed to extract host from URL: %w", err)
+		// SSH fallback failed - return clean error without help message
+		return nil, fmt.Errorf("SSH connection failed: %w", err)
 	}
 
-	sshConn, err := establishSSHConnection(host, log)
+	sshConn, err := establishSSHConnection(host, cfg.RemoteUser, log)
 	if err != nil {
-		return nil, err
+		// SSH connection failed - return clean error without help message
+		return nil, fmt.Errorf("SSH connection failed: %w", err)
 	}
 
 	cli, err := createDockerClientViaSSH(sshConn, log)
 	if err != nil {
 		sshConn.Close()
-		return nil, err
+		// Docker client creation via SSH failed - return clean error without help message
+		return nil, fmt.Errorf("SSH connection failed: %w", err)
 	}
 
 	client := &Client{
@@ -275,11 +278,14 @@ func trySSHFallback(cfg *config.Config, log *logger.Logger) (*Client, error) {
 }
 
 // establishSSHConnection establishes an SSH connection to the remote host
-func establishSSHConnection(host string, log *logger.Logger) (*SSHConnection, error) {
-	log.Info("Attempting SSH connection to: %s", host)
+func establishSSHConnection(host, username string, log *logger.Logger) (*SSHConnection, error) {
+	log.Info("Attempting SSH connection to: %s as user: %s", host, username)
 	log.Info("Note: SSH key-based authentication required (no password will be provided)")
 
-	sshClient, err := NewSSHClient(host, 22) // Default SSH port
+	// Format the host with username for SSH connection
+	sshHost := fmt.Sprintf("%s@%s", username, host)
+
+	sshClient, err := NewSSHClient(sshHost, 22) // Default SSH port
 	if err != nil {
 		return nil, fmt.Errorf("failed to create SSH client: %w", err)
 	}
@@ -324,7 +330,6 @@ func createDockerClientViaSSH(sshConn *SSHConnection, _ *logger.Logger) (*client
 
 // extractHostFromURL extracts the hostname from a Docker host URL
 func extractHostFromURL(hostURL string) (string, error) {
-	// Remove scheme (tcp://, http://, https://)
 	if strings.Contains(hostURL, "://") {
 		parts := strings.Split(hostURL, "://")
 		if len(parts) != 2 {
@@ -339,7 +344,21 @@ func extractHostFromURL(hostURL string) (string, error) {
 		if len(parts) != 2 {
 			return "", fmt.Errorf("invalid host:port format: %s", hostURL)
 		}
-		return parts[0], nil
+		hostURL = parts[0]
+	}
+
+	// Basic hostname validation
+	if hostURL == "" {
+		return "", fmt.Errorf("hostname cannot be empty")
+	}
+
+	// Check for common invalid hostname patterns
+	if strings.HasPrefix(hostURL, ".") || strings.HasSuffix(hostURL, ".") {
+		return "", fmt.Errorf("hostname '%s' cannot start or end with a dot", hostURL)
+	}
+
+	if strings.Contains(hostURL, "..") {
+		return "", fmt.Errorf("hostname '%s' cannot contain consecutive dots", hostURL)
 	}
 
 	return hostURL, nil
