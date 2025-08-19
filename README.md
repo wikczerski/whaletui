@@ -131,8 +131,6 @@ D5r supports connecting to remote Docker hosts via command line arguments:
 
 **Note:** Remote Docker hosts must have the Docker daemon configured to accept remote connections. For security, consider using TLS certificates for production environments.
 
-**⚠️ Warning:** Remote Docker host functionality (`--host` flag) has not been tested yet. It might not work at all also use at your own risk and only in development/testing environments.
-
 ### 🎨 Theme Configuration
 
 D5r supports multiple theme formats for customizing the UI appearance:

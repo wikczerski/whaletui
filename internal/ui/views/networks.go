@@ -2,6 +2,7 @@ package views
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/wikczerski/D5r/internal/models"
 	"github.com/wikczerski/D5r/internal/ui/builders"
@@ -39,10 +40,15 @@ func NewNetworksView(ui interfaces.UIInterface) *NetworksView {
 
 func (nv *NetworksView) listNetworks(ctx context.Context) ([]models.Network, error) {
 	services := nv.ui.GetServices()
-	if services == nil || services.GetNetworkService() == nil {
+	if services == nil {
 		return []models.Network{}, nil
 	}
-	return services.GetNetworkService().ListNetworks(ctx)
+
+	if networkService := services.GetNetworkService(); networkService != nil {
+		return networkService.ListNetworks(ctx)
+	}
+
+	return []models.Network{}, nil
 }
 
 func (nv *NetworksView) formatNetworkRow(network *models.Network) []string {
@@ -64,7 +70,11 @@ func (nv *NetworksView) getNetworkActions() map[rune]string {
 
 func (nv *NetworksView) handleAction(key rune, network *models.Network) {
 	services := nv.ui.GetServices()
-	if services == nil || services.GetNetworkService() == nil {
+	if services == nil {
+		return
+	}
+
+	if services.GetNetworkService() == nil {
 		return
 	}
 
@@ -79,18 +89,34 @@ func (nv *NetworksView) handleAction(key rune, network *models.Network) {
 func (nv *NetworksView) showNetworkDetails(network *models.Network) {
 	ctx := context.Background()
 	services := nv.ui.GetServices()
+	if services == nil {
+		nv.ShowItemDetails(*network, nil, fmt.Errorf("network service not available"))
+		return
+	}
+
+	if services.GetNetworkService() == nil {
+		nv.ShowItemDetails(*network, nil, fmt.Errorf("network service not available"))
+		return
+	}
+
 	inspectData, err := services.GetNetworkService().InspectNetwork(ctx, network.ID)
 	nv.ShowItemDetails(*network, inspectData, err)
 }
 
 func (nv *NetworksView) deleteNetwork(id string) {
 	services := nv.ui.GetServices()
+	if services == nil || services.GetNetworkService() == nil {
+		return
+	}
 	nv.handlers.HandleResourceAction('d', "network", id, "",
 		services.GetNetworkService().InspectNetwork, nil, func() { nv.Refresh() })
 }
 
 func (nv *NetworksView) inspectNetwork(id string) {
 	services := nv.ui.GetServices()
+	if services == nil || services.GetNetworkService() == nil {
+		return
+	}
 	nv.handlers.HandleResourceAction('i', "network", id, "",
 		services.GetNetworkService().InspectNetwork, nil, func() { nv.Refresh() })
 }

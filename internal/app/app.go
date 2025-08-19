@@ -43,7 +43,9 @@ func New(cfg *config.Config) (*App, error) {
 	ui, err := core.New(services, cfg.Theme)
 	if err != nil {
 		cancel()
-		client.Close()
+		if client != nil {
+			client.Close()
+		}
 		return nil, fmt.Errorf("UI creation failed: %w", err)
 	}
 
@@ -91,8 +93,10 @@ func (a *App) refreshLoop(ticker *time.Ticker) {
 func (a *App) Shutdown() {
 	a.cancel()
 	a.ui.Stop()
-	if err := a.docker.Close(); err != nil {
-		a.log.Error("Failed to close Docker client: %v", err)
+	if a.docker != nil {
+		if err := a.docker.Close(); err != nil {
+			a.log.Error("Failed to close Docker client: %v", err)
+		}
 	}
 }
 

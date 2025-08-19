@@ -24,6 +24,18 @@ type ServiceFactory struct {
 
 // NewServiceFactory creates a new service factory
 func NewServiceFactory(client *docker.Client) *ServiceFactory {
+	// If client is nil, return nil for all services that require it
+	if client == nil {
+		return &ServiceFactory{
+			ContainerService:  nil,
+			ImageService:      nil,
+			VolumeService:     nil,
+			NetworkService:    nil,
+			DockerInfoService: nil,
+			LogsService:       NewLogsService(), // LogsService doesn't need a client
+		}
+	}
+
 	return &ServiceFactory{
 		ContainerService:  NewContainerService(client),
 		ImageService:      NewImageService(client),

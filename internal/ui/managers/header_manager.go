@@ -189,7 +189,13 @@ func (hm *HeaderManager) UpdateActions() {
 
 // updateLogsActions updates the actions column with logs-specific actions
 func (hm *HeaderManager) updateLogsActions() {
-	logsActions := hm.ui.GetServices().GetLogsService().GetActions()
+	services := hm.ui.GetServices()
+	if services == nil || services.GetLogsService() == nil {
+		hm.actionsCol.SetText("ESC/Enter: Back to table")
+		return
+	}
+
+	logsActions := services.GetLogsService().GetActions()
 
 	var actionsText string
 	for key, action := range logsActions {
@@ -228,7 +234,13 @@ func (hm *HeaderManager) updateViewActions() {
 
 // setDefaultContainerActions sets the default container actions
 func (hm *HeaderManager) setDefaultContainerActions() {
-	defaultActions := hm.ui.GetServices().GetContainerService().GetActionsString()
+	services := hm.ui.GetServices()
+	if services == nil || services.GetContainerService() == nil {
+		hm.actionsCol.SetText("")
+		return
+	}
+
+	defaultActions := services.GetContainerService().GetActionsString()
 	hm.actionsCol.SetText(defaultActions)
 }
 

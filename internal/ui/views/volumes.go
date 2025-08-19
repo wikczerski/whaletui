@@ -40,10 +40,15 @@ func NewVolumesView(ui interfaces.UIInterface) *VolumesView {
 
 func (vv *VolumesView) listVolumes(ctx context.Context) ([]models.Volume, error) {
 	services := vv.ui.GetServices()
-	if services == nil || services.GetVolumeService() == nil {
+	if services == nil {
 		return []models.Volume{}, nil
 	}
-	return services.GetVolumeService().ListVolumes(ctx)
+
+	if volumeService := services.GetVolumeService(); volumeService != nil {
+		return volumeService.ListVolumes(ctx)
+	}
+
+	return []models.Volume{}, nil
 }
 
 func (vv *VolumesView) formatVolumeRow(volume *models.Volume) []string {
@@ -65,7 +70,11 @@ func (vv *VolumesView) getVolumeActions() map[rune]string {
 
 func (vv *VolumesView) handleAction(key rune, volume *models.Volume) {
 	services := vv.ui.GetServices()
-	if services == nil || services.GetVolumeService() == nil {
+	if services == nil {
+		return
+	}
+
+	if services.GetVolumeService() == nil {
 		return
 	}
 
@@ -80,6 +89,16 @@ func (vv *VolumesView) handleAction(key rune, volume *models.Volume) {
 func (vv *VolumesView) showVolumeDetails(volume *models.Volume) {
 	ctx := context.Background()
 	services := vv.ui.GetServices()
+	if services == nil {
+		vv.ShowItemDetails(*volume, nil, fmt.Errorf("volume service not available"))
+		return
+	}
+
+	if services.GetVolumeService() == nil {
+		vv.ShowItemDetails(*volume, nil, fmt.Errorf("volume service not available"))
+		return
+	}
+
 	inspectData, err := services.GetVolumeService().InspectVolume(ctx, volume.Name)
 	vv.ShowItemDetails(*volume, inspectData, err)
 }

@@ -10,11 +10,11 @@ func TestNewServiceFactory(t *testing.T) {
 	factory := NewServiceFactory(nil)
 
 	assert.NotNil(t, factory)
-	assert.NotNil(t, factory.ContainerService)
-	assert.NotNil(t, factory.ImageService)
-	assert.NotNil(t, factory.VolumeService)
-	assert.NotNil(t, factory.NetworkService)
-	assert.NotNil(t, factory.DockerInfoService)
+	assert.Nil(t, factory.ContainerService)
+	assert.Nil(t, factory.ImageService)
+	assert.Nil(t, factory.VolumeService)
+	assert.Nil(t, factory.NetworkService)
+	assert.Nil(t, factory.DockerInfoService)
 }
 
 func TestServiceFactory_ServiceInstances(t *testing.T) {
@@ -24,57 +24,57 @@ func TestServiceFactory_ServiceInstances(t *testing.T) {
 	containerService2 := factory.ContainerService
 
 	assert.Equal(t, containerService1, containerService2)
-	assert.NotEqual(t, factory.ContainerService, factory.ImageService)
-	assert.NotEqual(t, factory.ContainerService, factory.VolumeService)
-	assert.NotEqual(t, factory.ContainerService, factory.NetworkService)
-	assert.NotEqual(t, factory.ContainerService, factory.DockerInfoService)
+	assert.Equal(t, factory.ContainerService, factory.ImageService)      // Both should be nil
+	assert.Equal(t, factory.ContainerService, factory.VolumeService)     // All should be nil
+	assert.Equal(t, factory.ContainerService, factory.NetworkService)    // All should be nil
+	assert.Equal(t, factory.ContainerService, factory.DockerInfoService) // All should be nil
 }
 
 func TestServiceFactory_NilClient(t *testing.T) {
 	factory := NewServiceFactory(nil)
 
 	assert.NotNil(t, factory)
-	assert.NotNil(t, factory.ContainerService)
-	assert.NotNil(t, factory.ImageService)
-	assert.NotNil(t, factory.VolumeService)
-	assert.NotNil(t, factory.NetworkService)
-	assert.NotNil(t, factory.DockerInfoService)
+	assert.Nil(t, factory.ContainerService)
+	assert.Nil(t, factory.ImageService)
+	assert.Nil(t, factory.VolumeService)
+	assert.Nil(t, factory.NetworkService)
+	assert.Nil(t, factory.DockerInfoService)
 }
 
 func TestServiceFactory_ServiceCreation(t *testing.T) {
 	factory := NewServiceFactory(nil)
 
 	containerService := factory.ContainerService
-	assert.NotNil(t, containerService)
+	assert.Nil(t, containerService)
 
 	imageService := factory.ImageService
-	assert.NotNil(t, imageService)
+	assert.Nil(t, imageService)
 
 	volumeService := factory.VolumeService
-	assert.NotNil(t, volumeService)
+	assert.Nil(t, volumeService)
 
 	networkService := factory.NetworkService
-	assert.NotNil(t, networkService)
+	assert.Nil(t, networkService)
 
 	dockerInfoService := factory.DockerInfoService
-	assert.NotNil(t, dockerInfoService)
+	assert.Nil(t, dockerInfoService)
 }
 
 func TestServiceFactory_InterfaceCompliance(t *testing.T) {
 	factory := NewServiceFactory(nil)
 
 	containerService := factory.ContainerService
-	assert.NotNil(t, containerService)
+	assert.Nil(t, containerService)
 
 	imageService := factory.ImageService
-	assert.NotNil(t, imageService)
+	assert.Nil(t, imageService)
 
 	volumeService := factory.VolumeService
-	assert.NotNil(t, volumeService)
+	assert.Nil(t, volumeService)
 
 	networkService := factory.NetworkService
-	assert.NotNil(t, networkService)
+	assert.Nil(t, networkService)
 
 	dockerInfoService := factory.DockerInfoService
-	assert.NotNil(t, dockerInfoService)
+	assert.Nil(t, dockerInfoService)
 }

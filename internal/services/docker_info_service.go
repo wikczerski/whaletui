@@ -15,6 +15,9 @@ type dockerInfoService struct {
 
 // NewDockerInfoService creates a new Docker info service
 func NewDockerInfoService(client *docker.Client) DockerInfoService {
+	if client == nil {
+		return nil
+	}
 	return &dockerInfoService{
 		client: client,
 	}
