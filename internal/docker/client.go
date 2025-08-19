@@ -290,7 +290,8 @@ func establishSSHConnection(host, username string, log *logger.Logger) (*SSHConn
 		return nil, fmt.Errorf("failed to create SSH client: %w", err)
 	}
 
-	sshConn, err := sshClient.Connect(0) // Use default remote port
+	// Pass port 0 to trigger dynamic port finding in the SSH client
+	sshConn, err := sshClient.Connect(0)
 	if err != nil {
 		return nil, fmt.Errorf("failed to establish SSH connection: %w", err)
 	}

@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/wikczerski/D5r/internal/app"
 	"github.com/wikczerski/D5r/internal/config"
+	"github.com/wikczerski/D5r/internal/docker"
 	"github.com/wikczerski/D5r/internal/logger"
 )
 
@@ -99,6 +100,7 @@ func init() {
 	connectCmd.Flags().String("host", "", "Remote Docker host (e.g., 192.168.1.100 or tcp://192.168.1.100)")
 	connectCmd.Flags().String("user", "", "SSH username for remote host connection")
 	connectCmd.Flags().Int("port", 2375, "Port for SSH fallback Docker proxy (default: 2375)")
+	connectCmd.Flags().Bool("diagnose", false, "Run SSH connection diagnostics before connecting")
 	_ = connectCmd.MarkFlagRequired("host")
 	_ = connectCmd.MarkFlagRequired("user")
 
@@ -116,6 +118,7 @@ func runConnectCommand(cmd *cobra.Command, _ []string) error {
 	host, _ := cmd.Flags().GetString("host")
 	user, _ := cmd.Flags().GetString("user")
 	port, _ := cmd.Flags().GetInt("port")
+	diagnose, _ := cmd.Flags().GetBool("diagnose")
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -130,6 +133,17 @@ func runConnectCommand(cmd *cobra.Command, _ []string) error {
 	cfg.DockerHost = host
 
 	setLogLevel(log, cfg.LogLevel)
+
+	// Run diagnostics if requested
+	if diagnose {
+		log.Info("Running SSH connection diagnostics...")
+		if err := runSSHDiagnostics(host, user, port); err != nil {
+			log.Error("SSH diagnostics failed: %v", err)
+			log.Info("Continuing with connection attempt...")
+		} else {
+			log.Info("SSH diagnostics passed successfully")
+		}
+	}
 
 	log.Info("Connecting to remote Docker host: %s as user: %s", host, user)
 
@@ -160,6 +174,23 @@ func runConnectCommand(cmd *cobra.Command, _ []string) error {
 	defer cleanupTerminal()
 
 	application.Shutdown()
+	return nil
+}
+
+// runSSHDiagnostics runs SSH connection diagnostics
+func runSSHDiagnostics(host, user string, _ int) error {
+	// Create SSH client for diagnostics
+	sshHost := fmt.Sprintf("%s@%s", user, host)
+	sshClient, err := docker.NewSSHClient(sshHost, 22) // Default SSH port
+	if err != nil {
+		return fmt.Errorf("failed to create SSH client for diagnostics: %w", err)
+	}
+
+	// Run diagnostics
+	if err := sshClient.DiagnoseConnection(); err != nil {
+		return fmt.Errorf("SSH diagnostics failed: %w", err)
+	}
+
 	return nil
 }
 
