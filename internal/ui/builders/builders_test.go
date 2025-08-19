@@ -117,7 +117,7 @@ func TestComponentBuilder_CreateInputField_Label(t *testing.T) {
 	assert.Equal(t, label, input.GetLabel())
 }
 
-func TestComponentBuilder_Consistency_TextViewStyling(t *testing.T) {
+func TestComponentBuilder_Consistency_TextViewStyling(_ *testing.T) {
 	cb := NewComponentBuilder()
 
 	// Test that multiple components have consistent styling

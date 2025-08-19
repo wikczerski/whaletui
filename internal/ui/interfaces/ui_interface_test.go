@@ -9,11 +9,11 @@ import (
 // Ensure the mockery-generated mock implements UIInterface at compile time
 var _ UIInterface = (*uimocks.MockUIInterface)(nil)
 
-func TestUIInterfaceImplementation(t *testing.T) {
+func TestUIInterfaceImplementation(_ *testing.T) {
 	// Compile-time assertion above is sufficient; this test ensures the file is exercised
 }
 
-func TestUIInterfaceMethodCount(t *testing.T) {
+func TestUIInterfaceMethodCount(_ *testing.T) {
 	// This test intentionally has no runtime checks; it's a placeholder for interface evolution notes
 }
 
@@ -28,7 +28,7 @@ func TestMockUIFunctionality(t *testing.T) {
 	}
 }
 
-func TestUIInterfaceCompatibility(t *testing.T) {
+func TestUIInterfaceCompatibility(_ *testing.T) {
 	// Interface variable assignment should compile
 	var ui UIInterface
 	_ = ui

@@ -3,7 +3,6 @@ package core
 import (
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -296,7 +295,7 @@ func (ui *UI) handleRuneKeyBindings(event *tcell.EventKey) *tcell.EventKey {
 }
 
 // handleCtrlCKeyBinding handles Ctrl+C key binding
-func (ui *UI) handleCtrlCKeyBinding(event *tcell.EventKey) *tcell.EventKey {
+func (ui *UI) handleCtrlCKeyBinding(_ *tcell.EventKey) *tcell.EventKey {
 	ui.log.Info("Received Ctrl+C, shutting down...")
 	select {
 	case ui.shutdownChan <- struct{}{}:
@@ -639,7 +638,7 @@ func (ui *UI) updateViewDisplay() {
 }
 
 // refreshViewAndFocus refreshes the view and sets focus
-func (ui *UI) refreshViewAndFocus(view string) {
+func (ui *UI) refreshViewAndFocus(_ string) {
 	viewInfo := ui.viewRegistry.GetCurrent()
 
 	ui.updateStatusBar()
@@ -765,29 +764,6 @@ func (ui *UI) setLogsMode() {
 // setupLogsActions sets up the available actions for logs view
 func (ui *UI) setupLogsActions() {
 	ui.currentActions = ui.services.GetLogsService().GetActions()
-}
-
-// parseActionsString parses an action string into a map of rune to action description
-func (ui *UI) parseActionsString(actionsString string) map[rune]string {
-	actions := make(map[rune]string)
-	lines := strings.Split(actionsString, "\n")
-
-	for _, line := range lines {
-		if strings.Contains(line, "<") && strings.Contains(line, ">") {
-			// Extract the key and description
-			start := strings.Index(line, "<") + 1
-			end := strings.Index(line, ">")
-			if start < end && end < len(line) {
-				key := line[start:end]
-				description := strings.TrimSpace(line[end+1:])
-				if len(key) == 1 {
-					actions[rune(key[0])] = description
-				}
-			}
-		}
-	}
-
-	return actions
 }
 
 // updateLogsViewTitle updates the view container title for logs

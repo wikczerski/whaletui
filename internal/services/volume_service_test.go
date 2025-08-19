@@ -212,7 +212,8 @@ func TestVolumeService_ContextHandling_BackgroundContext(t *testing.T) {
 
 func TestVolumeService_ContextHandling_ValueContext(t *testing.T) {
 	service := NewVolumeService(nil)
-	ctx := context.WithValue(context.Background(), "key", "value")
+	type contextKey string
+	ctx := context.WithValue(context.Background(), contextKey("key"), "value")
 	_, err := service.ListVolumes(ctx)
 
 	assert.Error(t, err)
@@ -237,7 +238,8 @@ func TestVolumeService_ContextHandling_BackgroundContext_ErrorMessage(t *testing
 
 func TestVolumeService_ContextHandling_ValueContext_ErrorMessage(t *testing.T) {
 	service := NewVolumeService(nil)
-	ctx := context.WithValue(context.Background(), "key", "value")
+	type contextKey string
+	ctx := context.WithValue(context.Background(), contextKey("key"), "value")
 	_, err := service.ListVolumes(ctx)
 
 	assert.Contains(t, err.Error(), "docker client is not initialized")

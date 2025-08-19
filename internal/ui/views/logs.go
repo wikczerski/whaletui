@@ -7,7 +7,6 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/wikczerski/D5r/internal/config"
-	"github.com/wikczerski/D5r/internal/models"
 	"github.com/wikczerski/D5r/internal/ui/builders"
 	"github.com/wikczerski/D5r/internal/ui/constants"
 	"github.com/wikczerski/D5r/internal/ui/interfaces"
@@ -129,14 +128,6 @@ func (lv *LogsView) LoadLogs() {
 	}
 
 	lv.logsText.SetText(logs)
-}
-
-func (lv *LogsView) listContainers(ctx context.Context) ([]models.Container, error) {
-	services := lv.ui.GetServices()
-	if services == nil || services.GetContainerService() == nil {
-		return []models.Container{}, nil
-	}
-	return services.GetContainerService().ListContainers(ctx)
 }
 
 func (lv *LogsView) getContainerLogs(ctx context.Context) (string, error) {
