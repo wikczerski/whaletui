@@ -15,6 +15,7 @@ type Config struct {
 	DockerHost      string `json:"docker_host"`
 	Theme           string `json:"theme"`
 	RemoteHost      string `json:"remote_host,omitempty"` // Command line specified remote host
+	RemoteUser      string `json:"remote_user,omitempty"` // Command line specified SSH username
 	RemotePort      int    `json:"remote_port,omitempty"` // Command line specified remote port for SSH fallback
 }
 

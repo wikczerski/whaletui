@@ -36,8 +36,6 @@ func TestNew(t *testing.T) {
 				assert.Error(t, err)
 				assert.Nil(t, client)
 			} else {
-				// Note: This will fail if Docker is not running
-				// In a real test environment, you might want to mock this
 				if err != nil {
 					t.Skipf("Docker not available: %v", err)
 				}
@@ -76,7 +74,6 @@ func TestClient_GetInfo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, info)
 
-	// Check if ID and Driver exist in the map
 	id, hasID := info["ID"]
 	assert.True(t, hasID, "Docker info should contain ID field")
 	if hasID {
@@ -293,12 +290,10 @@ func TestClient_ListImages(t *testing.T) {
 	}
 
 	assert.NoError(t, err)
-	// Images can be nil or empty slice - both are valid
 	if images == nil {
 		images = []Image{}
 	}
 	assert.IsType(t, []Image{}, images)
-	// Note: images might be empty if no images exist
 }
 
 func TestClient_ListVolumes(t *testing.T) {
@@ -321,12 +316,10 @@ func TestClient_ListVolumes(t *testing.T) {
 	}
 
 	assert.NoError(t, err)
-	// Volumes can be nil or empty slice - both are valid
 	if volumes == nil {
 		volumes = []Volume{}
 	}
 	assert.IsType(t, []Volume{}, volumes)
-	// Note: volumes might be empty if no volumes exist
 }
 
 func TestClient_ListNetworks(t *testing.T) {
@@ -349,12 +342,10 @@ func TestClient_ListNetworks(t *testing.T) {
 	}
 
 	assert.NoError(t, err)
-	// Networks can be nil or empty slice - both are valid
 	if networks == nil {
 		networks = []Network{}
 	}
 	assert.IsType(t, []Network{}, networks)
-	// Note: networks might be empty if no networks exist
 }
 
 func TestClient_ListNetworks_CreatedField(t *testing.T) {
@@ -376,10 +367,8 @@ func TestClient_ListNetworks_CreatedField(t *testing.T) {
 		t.Skipf("Docker networks not available: %v", err)
 	}
 
-	// Check that networks have proper creation times (not zero time)
 	for _, net := range networks {
 		assert.NotZero(t, net.Created, "Network %s should have a creation time", net.Name)
-		// Creation time should be reasonable (not in the future, not too far in the past)
 		assert.True(t, net.Created.Before(time.Now().Add(24*time.Hour)), "Network %s creation time should not be in the future", net.Name)
 		assert.True(t, net.Created.After(time.Date(2010, 1, 1, 0, 0, 0, 0, time.UTC)), "Network %s creation time should be reasonable", net.Name)
 	}
@@ -494,12 +483,10 @@ func TestClient_RemoveImage(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Test with empty ID
 	err = client.RemoveImage(ctx, "", false)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "image ID cannot be empty")
 
-	// Test with invalid ID (this will fail but should not panic)
 	err = client.RemoveImage(ctx, "invalid-image-id", false)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to remove image")
@@ -519,12 +506,10 @@ func TestClient_RemoveNetwork(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Test with empty ID
 	err = client.RemoveNetwork(ctx, "")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "network ID cannot be empty")
 
-	// Test with invalid ID (this will fail but should not panic)
 	err = client.RemoveNetwork(ctx, "invalid-network-id")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to remove network")
@@ -670,5 +655,98 @@ func TestClient_ConcurrentAccess(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		<-done
+	}
+}
+
+func TestExtractHostFromURL(t *testing.T) {
+	tests := []struct {
+		name        string
+		hostURL     string
+		expected    string
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name:        "ValidTCPURL",
+			hostURL:     "tcp://192.168.1.100:2375",
+			expected:    "192.168.1.100",
+			expectError: false,
+		},
+		{
+			name:        "ValidTCPURLNoPort",
+			hostURL:     "tcp://192.168.1.100",
+			expected:    "192.168.1.100",
+			expectError: false,
+		},
+		{
+			name:        "ValidHostnameURL",
+			hostURL:     "tcp://myserver.example.com:2375",
+			expected:    "myserver.example.com",
+			expectError: false,
+		},
+		{
+			name:        "ValidHostnameURLNoPort",
+			hostURL:     "tcp://myserver.example.com",
+			expected:    "myserver.example.com",
+			expectError: false,
+		},
+		{
+			name:        "NoScheme",
+			hostURL:     "192.168.1.100:2375",
+			expected:    "192.168.1.100",
+			expectError: false,
+		},
+		{
+			name:        "NoSchemeNoPort",
+			hostURL:     "192.168.1.100",
+			expected:    "192.168.1.100",
+			expectError: false,
+		},
+		{
+			name:        "InvalidURLFormat",
+			hostURL:     "tcp://192.168.1.100:2375:extra",
+			expectError: true,
+			errorMsg:    "invalid host:port format",
+		},
+		{
+			name:        "EmptyHostname",
+			hostURL:     "tcp://:2375",
+			expectError: true,
+			errorMsg:    "hostname cannot be empty",
+		},
+		{
+			name:        "HostnameStartingWithDot",
+			hostURL:     "tcp://.example.com:2375",
+			expectError: true,
+			errorMsg:    "hostname '.example.com' cannot start or end with a dot",
+		},
+		{
+			name:        "HostnameEndingWithDot",
+			hostURL:     "tcp://example.com.:2375",
+			expectError: true,
+			errorMsg:    "hostname 'example.com.' cannot start or end with a dot",
+		},
+		{
+			name:        "HostnameWithConsecutiveDots",
+			hostURL:     "tcp://example..com:2375",
+			expectError: true,
+			errorMsg:    "hostname 'example..com' cannot contain consecutive dots",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := extractHostFromURL(tt.hostURL)
+
+			if tt.expectError {
+				assert.Error(t, err)
+				if tt.errorMsg != "" {
+					assert.Contains(t, err.Error(), tt.errorMsg)
+				}
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expected, result)
+			}
+		})
 	}
 }

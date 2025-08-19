@@ -28,12 +28,8 @@ func TestThemeCmd(t *testing.T) {
 }
 
 func TestRootCmdFlags(t *testing.T) {
-	// Test that all expected flags are registered
+	// Test that all expected global flags are registered
 	flags := rootCmd.PersistentFlags()
-
-	hostFlag := flags.Lookup("host")
-	assert.NotNil(t, hostFlag)
-	assert.Equal(t, "host", hostFlag.Name)
 
 	refreshFlag := flags.Lookup("refresh")
 	assert.NotNil(t, refreshFlag)
@@ -58,12 +54,6 @@ func TestApplyFlagOverrides(t *testing.T) {
 		Theme:           "default",
 	}
 
-	// Test remote host override
-	remoteHost = "tcp://192.168.1.100:2375"
-	applyFlagOverrides(cfg)
-	assert.Equal(t, "tcp://192.168.1.100:2375", cfg.RemoteHost)
-	assert.Equal(t, "tcp://192.168.1.100:2375", cfg.DockerHost)
-
 	// Test refresh interval override
 	refresh = 15
 	applyFlagOverrides(cfg)
@@ -80,7 +70,6 @@ func TestApplyFlagOverrides(t *testing.T) {
 	assert.Equal(t, "dark", cfg.Theme)
 
 	// Reset global variables
-	remoteHost = ""
 	refresh = 5
 	logLevel = "INFO"
 	theme = ""
@@ -115,17 +104,34 @@ func TestSetLogLevel(t *testing.T) {
 func TestRootCmdSubcommands(t *testing.T) {
 	// Test that all expected subcommands are added
 	subcommands := rootCmd.Commands()
-	assert.Len(t, subcommands, 3) // config, theme, and version commands
 
-	// Check that all expected commands are present
+	// Check that expected commands are present (don't check exact count as cobra may add built-in commands)
 	commandNames := make([]string, len(subcommands))
 	for i, cmd := range subcommands {
 		commandNames[i] = cmd.Use
 	}
 
-	assert.Contains(t, commandNames, "config")
+	assert.Contains(t, commandNames, "connect [flags]")
 	assert.Contains(t, commandNames, "theme")
-	assert.Contains(t, commandNames, "version")
+}
+
+func TestConnectCommand(t *testing.T) {
+	// Test connect command flags
+	connectFlags := connectCmd.Flags()
+
+	// Check that required flags exist
+	hostFlag := connectFlags.Lookup("host")
+	assert.NotNil(t, hostFlag)
+	assert.Equal(t, "host", hostFlag.Name)
+
+	userFlag := connectFlags.Lookup("user")
+	assert.NotNil(t, userFlag)
+	assert.Equal(t, "user", userFlag.Name)
+
+	portFlag := connectFlags.Lookup("port")
+	assert.NotNil(t, portFlag)
+	assert.Equal(t, "port", portFlag.Name)
+	assert.Equal(t, "2375", portFlag.DefValue)
 }
 
 func TestRootCmdIntegration(t *testing.T) {

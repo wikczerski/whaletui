@@ -7,7 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.0-alpha] - 2025-01-27
+## [1.0.0-alpha] - 2025-08-19
+
+### Added
+- **Subcommand Architecture**: New `connect` subcommand for remote Docker host connections
+- **Required Parameter Enforcement**: Automatic validation of required `--host` and `--user` flags for SSH connections
+- **Enhanced SSH Client**: Username parameter support in SSH client for secure remote connections
+- **Improved Error Handling**: Clean error messages without automatic help display on connection failures
+
+### Changed
+- **CLI Restructure**: Migrated from flag-based remote connection to intuitive subcommand approach
+- **Command Structure**:
+  - `d5r` - Local Docker instance (default)
+  - `d5r connect --host <host> --user <user>` - Remote Docker host via SSH
+  - `d5r theme` - Theme configuration management
+- **SSH Connection Flow**: Updated SSH client to accept username from configuration
+- **Help Suppression**: Disabled automatic help display on errors for cleaner user experience
+
+### Fixed
+- **Help Message Display**: Prevented help messages from appearing when SSH connections fail
+
+### Technical Improvements
+- **Configuration Management**: Added `RemoteUser` field to config structure for SSH connections
+- **Test Coverage**: Updated test suite to reflect new subcommand architecture
+
+### Breaking Changes
+- **CLI Interface**: Remote connections now require `d5r connect` subcommand instead of `--host` and `--user` flags
+- **Required Flags**: Both `--host` and `--user` are now required when using the connect command
+
+### Migration Guide
+- **Old Usage**: `d5r --host 192.168.1.100 --user admin`
+- **New Usage**: `d5r connect --host 192.168.1.100 --user admin`
+- **Local Usage**: `d5r` (unchanged)
+
+## [0.3.0-alpha] - 2025-08-19
 
 ### Added
 - **SSH Client for Remote Docker**: New SSH client functionality for secure remote Docker connections
