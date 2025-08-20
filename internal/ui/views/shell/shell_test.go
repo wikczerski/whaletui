@@ -105,7 +105,3 @@ func TestGetInputField_Type(t *testing.T) {
 
 	assert.IsType(t, &tview.InputField{}, result)
 }
-
-// Note: Private methods like exitShell, addOutput, isMultiLineCommand, etc.
-// are not directly testable from outside the package.
-// They are tested indirectly through the public interface.

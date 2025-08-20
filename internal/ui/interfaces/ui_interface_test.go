@@ -3,7 +3,7 @@ package interfaces
 import (
 	"testing"
 
-	uimocks "github.com/wikczerski/D5r/internal/ui/interfaces/mocks"
+	uimocks "github.com/wikczerski/whaletui/internal/ui/interfaces/mocks"
 )
 
 // Ensure the mockery-generated mock implements UIInterface at compile time

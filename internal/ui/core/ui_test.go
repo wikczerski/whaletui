@@ -7,10 +7,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"github.com/wikczerski/D5r/internal/models"
-	"github.com/wikczerski/D5r/internal/services"
-	"github.com/wikczerski/D5r/internal/services/mocks"
-	"github.com/wikczerski/D5r/internal/ui/constants"
+	"github.com/wikczerski/whaletui/internal/models"
+	"github.com/wikczerski/whaletui/internal/services"
+	"github.com/wikczerski/whaletui/internal/services/mocks"
+	"github.com/wikczerski/whaletui/internal/ui/constants"
 )
 
 // createMinimalMockServices creates minimal mock services for testing
@@ -579,11 +579,8 @@ func TestUI_KeyBindingHandlers_CommandModeKeyBindings(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, ui)
 
-	// Simulate command mode
 	ui.app.SetFocus(ui.commandHandler.GetInput())
 
-	// Note: We can't easily test tcell.EventKey creation in tests
-	// but we can test that the function exists and doesn't panic
 	assert.NotNil(t, ui.handleCommandModeKeyBindings)
 }
 
@@ -748,9 +745,6 @@ func TestUI_InitializationFunctions_InitializeUIState(t *testing.T) {
 	// Test UI state initialization
 	ui.initializeUIState()
 
-	// Verify that header manager was updated
-	// Note: We can't easily test the actual update without mocking,
-	// but we can verify the function doesn't panic
 	assert.NotNil(t, ui.headerManager)
 }
 

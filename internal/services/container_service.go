@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/wikczerski/D5r/internal/docker"
-	"github.com/wikczerski/D5r/internal/models"
+	"github.com/wikczerski/whaletui/internal/docker"
+	"github.com/wikczerski/whaletui/internal/models"
 )
 
 type containerService struct {

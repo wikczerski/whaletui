@@ -7,9 +7,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/wikczerski/D5r/internal/config"
-	"github.com/wikczerski/D5r/internal/docker"
-	"github.com/wikczerski/D5r/internal/models"
+	"github.com/wikczerski/whaletui/internal/config"
+	"github.com/wikczerski/whaletui/internal/docker"
+	"github.com/wikczerski/whaletui/internal/models"
 )
 
 func TestNewImageService(t *testing.T) {

@@ -146,9 +146,6 @@ func TestLoad_InvalidConfig(t *testing.T) {
 }
 
 func TestSave(t *testing.T) {
-	// Test that Save method doesn't panic and returns appropriate error
-	// Since we can't easily mock the home directory in tests, we'll test error handling
-
 	cfg := &Config{
 		RefreshInterval: 15,
 		LogLevel:        "WARN",
@@ -206,11 +203,9 @@ func TestConfig_JSONTags(t *testing.T) {
 }
 
 func TestThemeLoading(t *testing.T) {
-	// Test that theme loading works correctly with the fixed MergeWith methods
 	tempDir := t.TempDir()
 	themePath := filepath.Join(tempDir, "test_theme.yaml")
 
-	// Create a test theme file
 	themeContent := `colors:
   header: "red"
   border: "blue"
@@ -224,20 +219,14 @@ func TestThemeLoading(t *testing.T) {
 	err := os.WriteFile(themePath, []byte(themeContent), 0o644)
 	require.NoError(t, err)
 
-	// Create a theme manager and load the theme
 	tm := NewThemeManager(themePath)
 
-	// Verify that the theme was loaded correctly
-	// The default header color is yellow, so if it's red, the theme loaded
 	headerColor := tm.GetHeaderColor()
 	borderColor := tm.GetBorderColor()
 
-	// These should be different from the default colors if theme loading worked
 	assert.NotEqual(t, headerColor, tcell.ColorYellow, "Header color should not be default yellow")
 	assert.NotEqual(t, borderColor, tcell.ColorWhite, "Border color should not be default white")
 
-	// Verify that the colors are what we expect
-	// Note: We can't easily test exact color values in tests, but we can verify they're not the defaults
 	assert.True(t, headerColor != tcell.ColorYellow, "Custom header color should be loaded")
 	assert.True(t, borderColor != tcell.ColorWhite, "Custom border color should be loaded")
 }

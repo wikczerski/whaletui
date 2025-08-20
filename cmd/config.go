@@ -5,14 +5,14 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/wikczerski/D5r/internal/config"
+	"github.com/wikczerski/whaletui/internal/config"
 )
 
 // configCmd represents the config command
 var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "Show configuration information",
-	Long: `Display current configuration settings for D5r including:
+	Long: `Display current configuration settings for whaletui including:
   • Docker host configuration
   • Refresh interval
   • Log level
@@ -40,7 +40,7 @@ func showConfig() {
 		homeDir = "unknown"
 	}
 
-	fmt.Printf("D5r Configuration\n")
+	fmt.Printf("whaletui Configuration\n")
 	fmt.Printf("==================\n\n")
 
 	fmt.Printf("Docker Host: %s\n", cfg.DockerHost)

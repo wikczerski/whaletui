@@ -7,15 +7,15 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	"github.com/wikczerski/D5r/internal/config"
-	"github.com/wikczerski/D5r/internal/logger"
-	"github.com/wikczerski/D5r/internal/services"
-	"github.com/wikczerski/D5r/internal/ui/builders"
-	"github.com/wikczerski/D5r/internal/ui/constants"
-	"github.com/wikczerski/D5r/internal/ui/handlers"
-	"github.com/wikczerski/D5r/internal/ui/managers"
-	"github.com/wikczerski/D5r/internal/ui/views"
-	"github.com/wikczerski/D5r/internal/ui/views/shell"
+	"github.com/wikczerski/whaletui/internal/config"
+	"github.com/wikczerski/whaletui/internal/logger"
+	"github.com/wikczerski/whaletui/internal/services"
+	"github.com/wikczerski/whaletui/internal/ui/builders"
+	"github.com/wikczerski/whaletui/internal/ui/constants"
+	"github.com/wikczerski/whaletui/internal/ui/handlers"
+	"github.com/wikczerski/whaletui/internal/ui/managers"
+	"github.com/wikczerski/whaletui/internal/ui/views"
+	"github.com/wikczerski/whaletui/internal/ui/views/shell"
 )
 
 // UI represents the main UI

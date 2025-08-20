@@ -6,7 +6,7 @@
 
 ## Reporting Security Issues
 
-If you believe you have found a security vulnerability in D5r, please report it to us.
+If you believe you have found a security vulnerability in whaletui, please report it to us.
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 

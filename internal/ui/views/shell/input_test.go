@@ -6,7 +6,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/stretchr/testify/assert"
-	"github.com/wikczerski/D5r/internal/ui/interfaces/mocks"
+	"github.com/wikczerski/whaletui/internal/ui/interfaces/mocks"
 )
 
 func newTestViewForInput(t *testing.T) *View {

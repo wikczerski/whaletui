@@ -6,9 +6,9 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	"github.com/wikczerski/D5r/internal/ui/builders"
-	"github.com/wikczerski/D5r/internal/ui/constants"
-	"github.com/wikczerski/D5r/internal/ui/interfaces"
+	"github.com/wikczerski/whaletui/internal/ui/builders"
+	"github.com/wikczerski/whaletui/internal/ui/constants"
+	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 )
 
 // BaseView provides common functionality for all Docker resource views

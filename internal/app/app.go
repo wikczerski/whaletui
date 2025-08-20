@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/wikczerski/D5r/internal/config"
-	"github.com/wikczerski/D5r/internal/docker"
-	"github.com/wikczerski/D5r/internal/logger"
-	"github.com/wikczerski/D5r/internal/services"
-	"github.com/wikczerski/D5r/internal/ui/core"
+	"github.com/wikczerski/whaletui/internal/config"
+	"github.com/wikczerski/whaletui/internal/docker"
+	"github.com/wikczerski/whaletui/internal/logger"
+	"github.com/wikczerski/whaletui/internal/services"
+	"github.com/wikczerski/whaletui/internal/ui/core"
 )
 
 // App represents the main application instance

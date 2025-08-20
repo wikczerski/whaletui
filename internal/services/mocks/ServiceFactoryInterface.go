@@ -6,7 +6,7 @@ package mocks
 
 import (
 	mock "github.com/stretchr/testify/mock"
-	"github.com/wikczerski/D5r/internal/services"
+	"github.com/wikczerski/whaletui/internal/services"
 )
 
 // NewMockServiceFactoryInterface creates a new instance of MockServiceFactoryInterface. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

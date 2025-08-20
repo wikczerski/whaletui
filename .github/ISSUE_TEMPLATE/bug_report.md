@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Create a report to help us improve D5r
+about: Create a report to help us improve whaletui
 title: '[BUG] '
 labels: 'bug'
 assignees: ''
@@ -24,7 +24,7 @@ A clear and concise description of what actually happened.
 ## Environment
 - **OS**: [e.g. Windows 11, Ubuntu 22.04, macOS 14]
 - **Go Version**: [e.g. 1.25.0]
-- **D5r Version**: [e.g. 1.0.0]
+- **whaletui Version**: [e.g. 1.0.0]
 - **Docker Version**: [e.g. 24.0.7]
 
 ## Additional Context
@@ -38,4 +38,4 @@ Add any other context about the problem here, such as:
 - [ ] I have searched existing issues to avoid duplicates
 - [ ] I have provided all required information
 - [ ] I can reproduce this issue consistently
-- [ ] This is a bug in D5r (not a configuration issue)
+- [ ] This is a bug in whaletui (not a configuration issue)

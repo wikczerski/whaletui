@@ -1,4 +1,4 @@
-# Development Dockerfile for D5r
+# Development Dockerfile for whaletui
 FROM golang:1.25.0-alpine AS dev
 
 RUN apk add --no-cache \

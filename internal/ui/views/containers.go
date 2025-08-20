@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/wikczerski/D5r/internal/models"
-	"github.com/wikczerski/D5r/internal/ui/builders"
-	"github.com/wikczerski/D5r/internal/ui/constants"
-	"github.com/wikczerski/D5r/internal/ui/handlers"
-	"github.com/wikczerski/D5r/internal/ui/interfaces"
+	"github.com/wikczerski/whaletui/internal/models"
+	"github.com/wikczerski/whaletui/internal/ui/builders"
+	"github.com/wikczerski/whaletui/internal/ui/constants"
+	"github.com/wikczerski/whaletui/internal/ui/handlers"
+	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 )
 
 // ContainersView displays and manages Docker containers

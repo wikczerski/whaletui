@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest an idea for D5r
+about: Suggest an idea for whaletui
 title: '[FEATURE] '
 labels: 'enhancement'
 assignees: ''
@@ -36,4 +36,4 @@ Describe specific scenarios where this feature would be useful:
 - [ ] I have searched existing issues to avoid duplicates
 - [ ] I have provided a clear problem statement
 - [ ] I have described the proposed solution
-- [ ] This feature aligns with D5r's goals
+- [ ] This feature aligns with whaletui's goals

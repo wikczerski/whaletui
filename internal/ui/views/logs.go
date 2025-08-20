@@ -6,10 +6,10 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	"github.com/wikczerski/D5r/internal/config"
-	"github.com/wikczerski/D5r/internal/ui/builders"
-	"github.com/wikczerski/D5r/internal/ui/constants"
-	"github.com/wikczerski/D5r/internal/ui/interfaces"
+	"github.com/wikczerski/whaletui/internal/config"
+	"github.com/wikczerski/whaletui/internal/ui/builders"
+	"github.com/wikczerski/whaletui/internal/ui/constants"
+	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 )
 
 // LogsView represents a view for displaying container logs

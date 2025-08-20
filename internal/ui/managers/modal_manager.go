@@ -5,7 +5,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	"github.com/wikczerski/D5r/internal/ui/interfaces"
+	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 )
 
 // ModalManager handles various modal dialogs

@@ -8,10 +8,10 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	"github.com/wikczerski/D5r/internal/config"
-	"github.com/wikczerski/D5r/internal/services"
-	"github.com/wikczerski/D5r/internal/ui/builders"
-	"github.com/wikczerski/D5r/internal/ui/interfaces"
+	"github.com/wikczerski/whaletui/internal/config"
+	"github.com/wikczerski/whaletui/internal/services"
+	"github.com/wikczerski/whaletui/internal/ui/builders"
+	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 )
 
 // ActionHandlers provides common action handling patterns for different resource types

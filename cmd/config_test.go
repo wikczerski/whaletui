@@ -63,7 +63,7 @@ func TestShowConfig_PrintsConfiguration(t *testing.T) {
 	_, _ = buf.ReadFrom(r)
 	out := buf.String()
 
-	assert.Contains(t, out, "D5r Configuration")
+	assert.Contains(t, out, "whaletui Configuration")
 	assert.Contains(t, out, "Docker Host:")
 	assert.Contains(t, out, "Refresh Interval:")
 	assert.Contains(t, out, "Log Level:")

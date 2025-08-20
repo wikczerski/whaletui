@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  d5r:
+  whaletui:
     build: .
-    container_name: d5r-app
+    container_name: whaletui-app
     environment:
       - DOCKER_HOST=unix:///var/run/docker.sock
       - LOG_LEVEL=DEBUG
@@ -13,28 +13,28 @@ services:
     depends_on:
       - test-container
     networks:
-      - d5r-network
+      - whaletui-network
 
   # Test container for development
-  test-container:
+  test-nginx:
     image: nginx:alpine
-    container_name: d5r-test-nginx
+    container_name: whaletui-test-nginx
     ports:
       - "8080:80"
     networks:
-      - d5r-network
+      - whaletui-network
 
   # Test container for development
-  test-container-2:
+  test-redis:
     image: redis:alpine
-    container_name: d5r-test-redis
+    container_name: whaletui-test-redis
     ports:
       - "6379:6379"
     networks:
-      - d5r-network
+      - whaletui-network
 
 networks:
-  d5r-network:
+  whaletui-network:
     driver: bridge
 
 volumes:

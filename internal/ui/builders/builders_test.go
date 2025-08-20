@@ -120,12 +120,8 @@ func TestComponentBuilder_CreateInputField_Label(t *testing.T) {
 func TestComponentBuilder_Consistency_TextViewStyling(_ *testing.T) {
 	cb := NewComponentBuilder()
 
-	// Test that multiple components have consistent styling
 	_ = cb.CreateTextView("Text1", tview.AlignLeft, tcell.ColorWhite)
 	_ = cb.CreateTextView("Text2", tview.AlignRight, tcell.ColorBlack)
-
-	// Both should have no border and same background
-	// Note: Some methods are not available in this version of tview
 }
 
 func TestComponentBuilder_Consistency_TableStyling(t *testing.T) {

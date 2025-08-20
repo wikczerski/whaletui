@@ -6,11 +6,11 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	"github.com/wikczerski/D5r/internal/config"
-	"github.com/wikczerski/D5r/internal/models"
-	"github.com/wikczerski/D5r/internal/services"
-	"github.com/wikczerski/D5r/internal/ui/constants"
-	"github.com/wikczerski/D5r/internal/ui/interfaces"
+	"github.com/wikczerski/whaletui/internal/config"
+	"github.com/wikczerski/whaletui/internal/models"
+	"github.com/wikczerski/whaletui/internal/services"
+	"github.com/wikczerski/whaletui/internal/ui/constants"
+	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 )
 
 // HeaderManager manages the header columns and their updates
@@ -101,7 +101,7 @@ func (hm *HeaderManager) UpdateDockerInfo() {
 
 // setDefaultDockerInfo sets the default Docker info when services are not available
 func (hm *HeaderManager) setDefaultDockerInfo() {
-	hm.dockerInfoCol.SetText("Context: docker\nCluster: local\nUser: docker\nD5r Rev: dev\nDocker Rev: --\nCPU: --\nMEM: --")
+	hm.dockerInfoCol.SetText("Context: docker\nCluster: local\nUser: docker\nwhaletui Rev: dev\nDocker Rev: --\nCPU: --\nMEM: --")
 }
 
 // updateDockerInfoFromService updates Docker info from the service

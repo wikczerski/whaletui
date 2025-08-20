@@ -18,9 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **CLI Restructure**: Migrated from flag-based remote connection to intuitive subcommand approach
 - **Command Structure**:
-  - `d5r` - Local Docker instance (default)
-  - `d5r connect --host <host> --user <user>` - Remote Docker host via SSH
-  - `d5r theme` - Theme configuration management
+  - `whaletui` - Local Docker instance (default)
+- `whaletui connect --host <host> --user <user>` - Remote Docker host via SSH
+- `whaletui theme` - Theme configuration management
 - **SSH Connection Flow**: Updated SSH client to accept username from configuration
 - **Help Suppression**: Disabled automatic help display on errors for cleaner user experience
 
@@ -32,13 +32,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Test Coverage**: Updated test suite to reflect new subcommand architecture
 
 ### Breaking Changes
-- **CLI Interface**: Remote connections now require `d5r connect` subcommand instead of `--host` and `--user` flags
+- **CLI Interface**: Remote connections now require `whaletui connect` subcommand instead of `--host` and `--user` flags
 - **Required Flags**: Both `--host` and `--user` are now required when using the connect command
 
 ### Migration Guide
-- **Old Usage**: `d5r --host 192.168.1.100 --user admin`
-- **New Usage**: `d5r connect --host 192.168.1.100 --user admin`
-- **Local Usage**: `d5r` (unchanged)
+- **Old Usage**: `whaletui --host 192.168.1.100 --user admin`
+- **New Usage**: `whaletui connect --host 192.168.1.100 --user admin`
+- **Local Usage**: `whaletui` (unchanged)
 
 ## [0.3.0-alpha] - 2025-08-19
 
@@ -133,7 +133,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0a] - 2025-08-15
 
 ### Added
-- Initial alpha release of D5r Docker management tool
+- Initial alpha release of whaletui Docker management tool
 - Basic container, image, volume, and network management
 - TUI interface with tview
 - Docker client integration

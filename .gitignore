@@ -4,8 +4,11 @@
 *.dll
 *.so
 *.dylib
-d5r
-d5r.exe
+whaletui
+whaletui.exe
+
+# Temporary ignore while in progress
+docs/
 
 # Test binary, built with `go test -c`
 *.test

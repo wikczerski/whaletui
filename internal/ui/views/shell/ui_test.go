@@ -39,7 +39,6 @@ func TestViewUI_Layout_Direction(t *testing.T) {
 	result := view.GetView()
 	flex, ok := result.(*tview.Flex)
 	assert.True(t, ok)
-	// Note: tview.Flex doesn't expose direction directly, so we test the structure
 	assert.Greater(t, flex.GetItemCount(), 0)
 }
 

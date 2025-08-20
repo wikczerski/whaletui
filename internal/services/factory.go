@@ -1,6 +1,6 @@
 package services
 
-import "github.com/wikczerski/D5r/internal/docker"
+import "github.com/wikczerski/whaletui/internal/docker"
 
 // ServiceFactoryInterface defines the interface for service factory operations
 type ServiceFactoryInterface interface {
@@ -24,7 +24,6 @@ type ServiceFactory struct {
 
 // NewServiceFactory creates a new service factory
 func NewServiceFactory(client *docker.Client) *ServiceFactory {
-	// If client is nil, return nil for all services that require it
 	if client == nil {
 		return &ServiceFactory{
 			ContainerService:  nil,
@@ -32,7 +31,7 @@ func NewServiceFactory(client *docker.Client) *ServiceFactory {
 			VolumeService:     nil,
 			NetworkService:    nil,
 			DockerInfoService: nil,
-			LogsService:       NewLogsService(), // LogsService doesn't need a client
+			LogsService:       nil,
 		}
 	}
 

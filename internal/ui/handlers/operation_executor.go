@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/rivo/tview"
-	"github.com/wikczerski/D5r/internal/ui/interfaces"
+	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 )
 
 // OperationExecutor handles common async operations with error handling and refresh

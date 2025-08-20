@@ -1,6 +1,6 @@
 package models
 
-import "github.com/wikczerski/D5r/internal/docker"
+import "github.com/wikczerski/whaletui/internal/docker"
 
 // Container represents a Docker container
 type Container = docker.Container

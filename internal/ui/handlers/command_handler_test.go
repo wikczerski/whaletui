@@ -7,8 +7,8 @@ import (
 	"github.com/rivo/tview"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/wikczerski/D5r/internal/config"
-	uimocks "github.com/wikczerski/D5r/internal/ui/interfaces/mocks"
+	"github.com/wikczerski/whaletui/internal/config"
+	uimocks "github.com/wikczerski/whaletui/internal/ui/interfaces/mocks"
 )
 
 func TestNewCommandHandler(t *testing.T) {
@@ -41,14 +41,11 @@ func TestHideCommandInput(t *testing.T) {
 	mockUI := uimocks.NewMockUIInterface(t)
 	handler := NewCommandHandler(mockUI)
 
-	// Test with nil commandInput
 	handler.hideCommandInput()
 
-	// Test with initialized commandInput
 	handler.commandInput = tview.NewInputField()
 	handler.hideCommandInput()
 
-	// Verify input is hidden (though we can't easily test the visual state)
 	assert.NotNil(t, handler.commandInput)
 }
 
@@ -92,7 +89,7 @@ func TestExit(t *testing.T) {
 	themeManager := config.NewThemeManager("")
 
 	mockUI.On("GetMainFlex").Return(mockMainFlex)
-	mockUI.On("GetViewContainer").Return(nil) // Return nil to avoid focus issues
+	mockUI.On("GetViewContainer").Return(nil)
 	mockUI.On("GetApp").Return(mockApp).Maybe()
 	mockUI.On("GetThemeManager").Return(themeManager).Maybe()
 
@@ -142,14 +139,11 @@ func TestHandleInput(t *testing.T) {
 	handler.commandInput = tview.NewInputField()
 	handler.isActive = true
 
-	// Test Escape key
 	handler.HandleInput(tcell.KeyEscape)
 	assert.False(t, handler.isActive)
 
-	// Test Enter key with empty command
 	handler.isActive = true
 	handler.HandleInput(tcell.KeyEnter)
-	// Empty commands now keep the input open (don't exit)
 	assert.True(t, handler.isActive)
 
 	mockUI.AssertExpectations(t)
@@ -160,10 +154,8 @@ func TestProcessCommand(t *testing.T) {
 	handler := NewCommandHandler(mockUI)
 	handler.isActive = true
 
-	// Set up expectations for methods called by Exit()
 	mockUI.On("GetViewContainer").Return(nil).Maybe()
 
-	// Test view switching commands
 	mockUI.On("SwitchView", "containers").Once()
 	result := handler.processCommand("containers")
 	assert.True(t, result)
@@ -187,7 +179,6 @@ func TestProcessCommand(t *testing.T) {
 	assert.True(t, result)
 	assert.False(t, handler.isActive)
 
-	// Test quit command
 	handler.isActive = true
 	shutdownChan := make(chan struct{}, 1)
 	mockUI.On("GetShutdownChan").Return(shutdownChan)
@@ -195,20 +186,15 @@ func TestProcessCommand(t *testing.T) {
 	assert.True(t, result)
 	assert.False(t, handler.isActive)
 
-	// Test help command
 	handler.isActive = true
 	mockUI.On("ShowHelp").Once()
 	result = handler.processCommand("help")
 	assert.True(t, result)
 	assert.False(t, handler.isActive)
 
-	// Test unknown command
 	handler.isActive = true
-	// Note: Unknown commands now show error in command input instead of calling ShowError
 	result = handler.processCommand("unknown")
-	assert.False(t, result) // Should return false for unknown commands
-	// The command input will stay active for 2 seconds to show the error message
-	// We can't easily test the timing behavior in unit tests, so we just verify it doesn't call ShowError
+	assert.False(t, result)
 	mockUI.AssertNotCalled(t, "ShowError")
 
 	mockUI.AssertExpectations(t)
@@ -218,7 +204,6 @@ func TestGetAutocomplete(t *testing.T) {
 	mockUI := uimocks.NewMockUIInterface(t)
 	handler := NewCommandHandler(mockUI)
 
-	// Test empty input
 	suggestions := handler.getAutocomplete("")
 	assert.Len(t, suggestions, 9)
 	assert.Contains(t, suggestions, "containers")
@@ -231,17 +216,14 @@ func TestGetAutocomplete(t *testing.T) {
 	assert.Contains(t, suggestions, "help")
 	assert.Contains(t, suggestions, "?")
 
-	// Test partial input
 	suggestions = handler.getAutocomplete("c")
 	assert.Len(t, suggestions, 1)
 	assert.Contains(t, suggestions, "containers")
 
-	// Test case insensitive
 	suggestions = handler.getAutocomplete("C")
 	assert.Len(t, suggestions, 1)
 	assert.Contains(t, suggestions, "containers")
 
-	// Test no matches
 	suggestions = handler.getAutocomplete("xyz")
 	assert.Len(t, suggestions, 0)
 }
@@ -252,18 +234,13 @@ func TestShowCommandError(t *testing.T) {
 	handler.commandInput = tview.NewInputField()
 	handler.isActive = true
 
-	// Set up theme manager mock with proper initialization
 	themeManager := config.NewThemeManager("")
 	mockUI.On("GetThemeManager").Return(themeManager)
 
-	// Test showing error message
 	handler.showCommandError("Test error message")
 
-	// Verify the error message is displayed
 	assert.Equal(t, "Test error message", handler.commandInput.GetText())
 
-	// Verify the text color is set to red
-	// Note: We can't easily test the color in unit tests, but we can verify the text is set
 	assert.Equal(t, "Test error message", handler.commandInput.GetText())
 
 	mockUI.AssertExpectations(t)
@@ -275,18 +252,15 @@ func TestClearError(t *testing.T) {
 	handler.commandInput = tview.NewInputField()
 	handler.isActive = true
 
-	// Set up theme manager mock
 	themeManager := config.NewThemeManager("")
 	mockUI.On("GetThemeManager").Return(themeManager).Maybe()
 
-	// First show an error message
 	handler.showCommandError("Test error message")
 	assert.Equal(t, "Test error message", handler.commandInput.GetText())
-	assert.NotNil(t, handler.errorTimer) // Timer should be set
+	assert.NotNil(t, handler.errorTimer)
 
-	// Now clear the error
 	handler.clearError()
-	assert.Nil(t, handler.errorTimer) // Timer should be cleared
+	assert.Nil(t, handler.errorTimer)
 
 	mockUI.AssertExpectations(t)
 }

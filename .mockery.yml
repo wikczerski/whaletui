@@ -12,13 +12,13 @@ require-template-schema-exists: true
 template: testify
 template-schema: '{{.Template}}.schema.json'
 packages:
-  github.com/wikczerski/D5r/internal/ui/interfaces:
+  github.com/wikczerski/whaletui/internal/ui/interfaces:
     config:
       all: true
       dir: internal/ui/interfaces/mocks
       filename: '{{.InterfaceName}}.go'
       pkgname: mocks
-  github.com/wikczerski/D5r/internal/services:
+  github.com/wikczerski/whaletui/internal/services:
     config:
       all: true
       dir: internal/services/mocks

@@ -8,10 +8,10 @@ import (
 	"github.com/rivo/tview"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/wikczerski/D5r/internal/models"
-	"github.com/wikczerski/D5r/internal/services"
-	servicemocks "github.com/wikczerski/D5r/internal/services/mocks"
-	uimocks "github.com/wikczerski/D5r/internal/ui/interfaces/mocks"
+	"github.com/wikczerski/whaletui/internal/models"
+	"github.com/wikczerski/whaletui/internal/services"
+	servicemocks "github.com/wikczerski/whaletui/internal/services/mocks"
+	uimocks "github.com/wikczerski/whaletui/internal/ui/interfaces/mocks"
 )
 
 func newNetworksUIMockWithServices(t *testing.T, sf *services.ServiceFactory) *uimocks.MockUIInterface {

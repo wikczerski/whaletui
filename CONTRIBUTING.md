@@ -1,6 +1,6 @@
-# Contributing to D5r
+# Contributing to whaletui
 
-Thank you for your interest in contributing to D5r! This document provides guidelines and information for contributors.
+Thank you for your interest in contributing to whaletui! This document provides guidelines and information for contributors.
 
 ## Table of Contents
 
@@ -31,12 +31,12 @@ This project and everyone participating in it is governed by our Code of Conduct
 1. Fork the repository on GitHub
 2. Clone your fork locally:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/d5r.git
-   cd d5r
+   git clone https://github.com/YOUR_USERNAME/whaletui.git
+   cd whaletui
    ```
 3. Add the upstream remote:
    ```bash
-   git remote add upstream https://github.com/wikczerski/D5r.git
+   git remote add upstream https://github.com/wikczerski/whaletui.git
    ```
 
 ## Development Setup
@@ -63,7 +63,7 @@ go test ./...
 golangci-lint run
 
 # Build the application
-go build -o d5r.exe .
+go build -o whaletui.exe .
 ```
 
 
@@ -225,4 +225,4 @@ We follow [Semantic Versioning](https://semver.org/):
 
 ## Thank You
 
-Thank you for contributing to D5r! Your contributions help make this project better for everyone.
+Thank you for contributing to whaletui! Your contributions help make this project better for everyone.

@@ -5,7 +5,7 @@ import (
 
 	"github.com/rivo/tview"
 	"github.com/stretchr/testify/assert"
-	"github.com/wikczerski/D5r/internal/ui/interfaces/mocks"
+	"github.com/wikczerski/whaletui/internal/ui/interfaces/mocks"
 )
 
 // helper to create a minimal View with input field so history functions work
@@ -36,7 +36,3 @@ func TestHistory_NavigateHistory_Up(t *testing.T) {
 	v.navigateHistory(1) // up
 	assert.Equal(t, "two", v.inputField.GetText())
 }
-
-// Note: The navigation logic has complex behavior that's hard to test in isolation.
-// These tests focus on the basic addToHistory functionality which is more reliable.
-// The navigation behavior is tested in the main history_test.go file.

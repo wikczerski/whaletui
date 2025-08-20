@@ -5,15 +5,15 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
-	"github.com/wikczerski/D5r/internal/config"
-	"github.com/wikczerski/D5r/internal/logger"
+	"github.com/wikczerski/whaletui/internal/config"
+	"github.com/wikczerski/whaletui/internal/logger"
 )
 
 func TestRootCmd(t *testing.T) {
 	// Test that root command is properly configured
 	assert.NotNil(t, rootCmd)
-	assert.Equal(t, "d5r", rootCmd.Use)
-	assert.Equal(t, "D5r - Docker CLI Dashboard", rootCmd.Short)
+	assert.Equal(t, "whaletui", rootCmd.Use)
+	assert.Equal(t, "whaletui - Docker CLI Dashboard", rootCmd.Short)
 	assert.Contains(t, rootCmd.Long, "Container Management")
 	assert.Contains(t, rootCmd.Long, "Image Management")
 	assert.Contains(t, rootCmd.Long, "Volume Management")
@@ -142,5 +142,5 @@ func TestRootCmdIntegration(t *testing.T) {
 	// This is a basic test to ensure the command structure is valid
 	assert.NotNil(t, cmd.Commands())
 	assert.Len(t, cmd.Commands(), 1)
-	assert.Equal(t, "d5r", cmd.Commands()[0].Use)
+	assert.Equal(t, "whaletui", cmd.Commands()[0].Use)
 }

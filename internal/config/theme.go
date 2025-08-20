@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/wikczerski/D5r/internal/ui/constants"
+	"github.com/wikczerski/whaletui/internal/ui/constants"
 	"gopkg.in/yaml.v3"
 )
 
@@ -83,8 +83,8 @@ func (tm *ThemeManager) LoadTheme() {
 	configDirs := []string{
 		"./config",
 		"./themes",
-		"$HOME/.config/d5r",
-		"$HOME/.d5r",
+		"$HOME/.config/whaletui",
+		"$HOME/.whaletui",
 	}
 
 	for _, dir := range configDirs {

@@ -5,7 +5,7 @@ import (
 
 	"github.com/rivo/tview"
 	"github.com/stretchr/testify/assert"
-	uimocks "github.com/wikczerski/D5r/internal/ui/interfaces/mocks"
+	uimocks "github.com/wikczerski/whaletui/internal/ui/interfaces/mocks"
 )
 
 func newContainersUIMock(t *testing.T) *uimocks.MockUIInterface {

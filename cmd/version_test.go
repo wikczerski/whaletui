@@ -5,7 +5,6 @@ import (
 )
 
 func TestVersionConstants(t *testing.T) {
-	// Test that version constants are defined
 	if Version == "" {
 		t.Error("Version should not be empty")
 	}
@@ -16,7 +15,6 @@ func TestVersionConstants(t *testing.T) {
 		t.Error("BuildDate should not be empty")
 	}
 
-	// Test that version constants have reasonable values
 	if Version == "unknown" {
 		t.Log("Version is set to 'unknown', this might be expected in development")
 	}
@@ -29,7 +27,6 @@ func TestVersionConstants(t *testing.T) {
 }
 
 func TestVersionCommandStructure(t *testing.T) {
-	// Test that version command is properly configured
 	if versionCmd.Use != "version" {
 		t.Errorf("versionCmd.Use = %s, want 'version'", versionCmd.Use)
 	}
@@ -42,25 +39,22 @@ func TestVersionCommandStructure(t *testing.T) {
 		t.Error("versionCmd.Long should not be empty")
 	}
 
-	// Test that the command has a Run function
 	if versionCmd.Run == nil {
 		t.Error("versionCmd.Run should not be nil")
 	}
 }
 
 func TestVersionCommandDescription(t *testing.T) {
-	// Test that the command descriptions are meaningful
 	expectedShort := "Show version information"
 	if versionCmd.Short != expectedShort {
 		t.Errorf("versionCmd.Short = %s, want %s", versionCmd.Short, expectedShort)
 	}
 
-	// Test that long description contains expected content
 	longDesc := versionCmd.Long
 	expectedContent := []string{
-		"Display version information for D5r including:",
+		"Display version information for whaletui including:",
 		"Version number",
-		"Git commit SHA",
+		"Git commit hash",
 		"Build date",
 	}
 
@@ -72,10 +66,6 @@ func TestVersionCommandDescription(t *testing.T) {
 }
 
 func TestVersionCommandIntegration(t *testing.T) {
-	// Test that the version command is properly integrated with root command
-	// This tests the init() function indirectly
-
-	// Check if version command is in root command's commands
 	found := false
 	for _, cmd := range rootCmd.Commands() {
 		if cmd.Use == "version" {
@@ -90,19 +80,13 @@ func TestVersionCommandIntegration(t *testing.T) {
 }
 
 func TestVersionCommandRunFunction(t *testing.T) {
-	// Test that the Run function can be called without panicking
-	// This is a basic test that the function exists and can be executed
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("Version command Run function panicked: %v", r)
 		}
 	}()
 
-	// The Run function should not panic when called with nil arguments
-	// Note: We can't easily test the actual output without mocking fmt.Printf
 	if versionCmd.Run != nil {
-		// This just verifies the function exists and can be called
-		// The actual output testing would require more complex stdout mocking
 		t.Log("Version command Run function exists and can be called")
 	}
 }

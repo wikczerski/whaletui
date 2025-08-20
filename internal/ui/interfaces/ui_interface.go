@@ -1,8 +1,8 @@
 package interfaces
 
 import (
-	"github.com/wikczerski/D5r/internal/config"
-	"github.com/wikczerski/D5r/internal/services"
+	"github.com/wikczerski/whaletui/internal/config"
+	"github.com/wikczerski/whaletui/internal/services"
 )
 
 // UIInterface defines the interface that views need from the UI

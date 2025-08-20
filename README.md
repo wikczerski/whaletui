@@ -1,35 +1,22 @@
-# D5r - Docker CLI Dashboard
+# whaletui - Docker CLI Dashboard
 
 [![Go Version](https://img.shields.io/badge/Go-1.25.0+-blue.svg)](https://golang.org)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Cross--Platform-blue.svg)]()
 [![Docker](https://img.shields.io/badge/Docker-Required-blue.svg)](https://docker.com)
 
-A modern, terminal-based Docker management tool inspired by k9s for kubernetes, providing an intuitive interface for managing Docker containers, images, volumes, and networks with a responsive TUI built in Go.
+A terminal-based Docker management tool inspired by k9s, providing an intuitive and powerful interface for managing Docker containers, images, volumes, and networks with a modern, responsive TUI.
 
 ## ✨ Features
 
-### 🐳 Core Docker Management
-- **Container Management**: View, start, stop, restart, delete, and manage containers
-- **Image Management**: Browse, inspect, and remove Docker images
-- **Volume Management**: Manage Docker volumes with ease
-- **Network Management**: View and manage Docker networks
-
-### 🎨 Modern Terminal Interface
-- **Responsive Design**: Automatically adapts to terminal dimensions
-- **Dynamic Legend**: Context-sensitive shortcuts and actions
-- **Real-time Updates**: Live updates of Docker resources
-- **Theme Support**: Customizable color schemes with YAML and JSON format support
-
-### 🔍 Advanced Functionality
-- **Container Logs**: View real-time container logs with full scrolling support
-- **Resource Inspection**: Detailed JSON inspection of Docker resources
-- **Command Mode**: k9s-inspired `:` command input for view switching
-- **Smart Navigation**: Context-aware navigation hints
-
-### ⌨️ Enhanced Keyboard Controls
-- **Full Keyboard Navigation**: Complete keyboard-driven interface
-- **Context-Sensitive Shortcuts**: Different actions based on current view
+- **Container Management** - View, start, stop, restart, and manage containers
+- **Image Management** - Browse, pull, remove, and inspect Docker images
+- **Volume Management** - Manage Docker volumes and their data
+- **Network Management** - Configure and manage Docker networks
+- **Real-time Monitoring** - Live updates of container status and resource usage
+- **Theme Support** - Customizable color schemes and UI appearance
+- **Remote Host Support** - Connect to remote Docker hosts via SSH
+- **Log Viewing** - Real-time container logs with search and filtering
 
 ## 🚀 Quick Start
 
@@ -42,464 +29,160 @@ A modern, terminal-based Docker management tool inspired by k9s for kubernetes, 
 
 ### Installation
 
-#### Option 1: Build from Source (Recommended)
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/wikczerski/whaletui.git
+   cd whaletui
+   ```
+
+2. **Build the application**
+   ```bash
+   go build -o whaletui
+   ```
+
+3. **Run whaletui**
+   ```bash
+   ./whaletui
+   ```
+
+### Pre-built Binaries
+
+Visit the [Releases](https://github.com/wikczerski/whaletui/releases) page to download the latest pre-built binary for your platform.
+
+## Usage
+
+### Basic Commands
+
+1. **Launch whaletui** - Run `./whaletui` (or `whaletui.exe` on Windows)
+
+2. **Navigate the Interface** - Use arrow keys, Tab, and Enter to navigate
+
+3. **Container Operations** - Select containers and use keyboard shortcuts for actions
+
+### Remote Host Connection
+
+whaletui supports connecting to remote Docker hosts using the `connect` subcommand:
 
 ```bash
-# Clone the repository
-git clone https://github.com/wikczerski/D5r.git
-cd d5r
+# Basic SSH connection
+./whaletui connect --host 192.168.1.100 --user admin
 
-# Build the application
-go build -o d5r
+# With custom port
+./whaletui connect --host 192.168.1.100 --user admin --port 2376
 
-# Run D5r
-./d5r
+# With additional options
+./whaletui connect --host 192.168.1.100 --user admin --refresh 10 --log-level DEBUG
+
+# Using TCP protocol
+./whaletui connect --host tcp://192.168.1.100 --user admin
+
+# With port in host string
+./whaletui connect --host 192.168.1.100:2375 --user admin
 ```
 
-#### Option 2: Download Pre-built Binary
+### Command Line Options
 
-Visit the [Releases](https://github.com/wikczerski/D5r/releases) page to download the latest pre-built binary for your platform.
-
-#### Option 3: Cross-platform Build
-
-The project includes a build system that generates binaries and packages for multiple platforms:
-
-```bash
-# Build for all platforms (Linux, macOS, FreeBSD, Windows)
-./scripts/build.sh          # Linux/macOS
-.\scripts\build.ps1         # Windows PowerShell
-.\scripts\build.bat         # Windows Batch
-
-
-```
-
-**Supported Platforms:**
-- **Linux**: amd64, arm64, armv7, ppc64le, s390x
-- **macOS**: amd64 (Intel), arm64 (Apple Silicon)
-- **FreeBSD**: amd64, arm64
-- **Windows**: amd64, arm64
-
-**Package Formats:**
-- **Linux**: .tar.gz, .deb, .rpm, .apk
-- **macOS**: .tar.gz
-- **FreeBSD**: .tar.gz
-- **Windows**: .zip
-
-### First Run
-
-1. **Ensure Docker is running** - Start Docker Desktop or Docker Engine
-2. **Launch D5r** - Run `./d5r` (or `d5r.exe` on Windows)
-3. **Navigate** - Use `:` to enter command mode
-4. **Explore** - Press `Enter` to inspect items, `l` for logs
-
-### Remote Docker Hosts
-
-D5r supports connecting to remote Docker hosts using the `connect` subcommand:
-
-```bash
-# Connect to a remote Docker host with SSH
-./d5r connect --host 192.168.1.100 --user admin
-
-# Connect with custom port
-./d5r connect --host 192.168.1.100 --user admin --port 2376
-
-# Connect with custom refresh interval and log level
-./d5r connect --host 192.168.1.100 --user admin --refresh 10 --log-level DEBUG
-
-# TCP:// prefix is automatically added if not provided
-./d5r connect --host tcp://192.168.1.100 --user admin
-
-# Port in host is supported (backward compatible)
-./d5r connect --host 192.168.1.100:2375 --user admin
-```
-
-**Connect command flags:**
-- `--host`: Remote Docker host (required) - e.g., `192.168.1.100` or `tcp://192.168.1.100`
-- `--user`: SSH username for remote host connection (required)
-- `--port`: Port for SSH fallback Docker proxy (default: 2375)
-
-**Global flags:**
-- `--refresh`: Refresh interval in seconds (default: 5)
-- `--log-level`: Log level (DEBUG, INFO, WARN, ERROR, default: INFO)
-- `--theme`: UI theme path - supports both YAML and JSON formats
-
-**Available commands:**
-- `d5r` - Start with local Docker instance (default)
-- `d5r connect` - Connect to a remote Docker host via SSH
-- `d5r theme` - Manage theme configuration
-- `d5r --help` - Show help and available options
-
-**SSH Requirements:**
-- SSH key-based authentication (password authentication not supported)
-- Remote host must have Docker daemon running
-- Remote host must have `socat` installed for Docker socket forwarding
-- SSH user must have appropriate permissions to access Docker socket
+- `whaletui` - Start with local Docker instance (default)
+- `whaletui connect` - Connect to a remote Docker host via SSH
+- `whaletui theme` - Manage theme configuration
+- `whaletui --help` - Show help and available options
 
 ### 🎨 Theme Configuration
 
-D5r supports multiple theme formats for customizing the UI appearance:
+whaletui supports multiple theme formats for customizing the UI appearance:
 
-#### Supported Formats
-- **YAML** (`.yaml`, `.yml`) - Human-readable format with comments support
-- **JSON** (`.json`) - Standard format for programmatic configuration
-
-#### Theme Files Location
-Themes are located in the `config/` directory:
-- `theme.yaml` - Default theme
-- `dark-theme.yaml` - Dark theme variant
-- `theme.json` - JSON format theme
-- `custom-theme.yaml` - Custom theme template
-
-#### Theme Structure
-Both YAML and JSON formats support the same color configuration:
-
-```yaml
-colors:
-  header: "cyan"        # Header color
-  border: "magenta"     # Border color
-  text: "white"         # Text color
-  background: "default" # Background color
-  success: "green"      # Success message color
-  warning: "yellow"     # Warning message color
-  error: "red"          # Error message color
-  info: "blue"          # Info message color
-```
-
+**JSON Theme Example:**
 ```json
 {
   "colors": {
-    "header": "cyan",
-    "border": "magenta",
-    "text": "white",
-    "background": "default",
-    "success": "green",
-    "warning": "yellow",
-    "error": "red",
-    "info": "blue"
+    "primary": "#00ff00",
+    "secondary": "#ff00ff",
+    "background": "#000000",
+    "text": "#ffffff"
   }
 }
 ```
 
-#### Using Custom Themes
-To use a custom theme, specify the theme file path:
-```bash
-d5r --theme config/custom-theme.yaml
-d5r --theme config/theme.json
+**YAML Theme Example:**
+```yaml
+colors:
+  primary: "#00ff00"
+  secondary: "#ff00ff"
+  background: "#000000"
+  text: "#ffffff"
 ```
 
-## 📖 Usage Guide
-
-### 🎯 Command Mode (k9s-style)
-
-Press `:` to enter command mode, then type:
-- `containers` or `c` - Switch to containers view
-- `images` or `i` - Switch to images view
-- `volumes` or `v` - Switch to volumes view
-- `networks` or `n` - Switch to networks view
-- `help` or `?` - Show help
-- `quit`, `q`, or `exit` - Exit application
-
-**Tip:** Command mode supports autocomplete - start typing and press Tab for suggestions.
-
-### 📋 View Navigation
-
-- **Command Mode**: `:` + view name
-- **Context Awareness**: Navigation hints update based on current view
-
-### 🔧 Actions by View
-
-#### Containers View
-- **s**: Start container
-- **S**: Stop container
-- **r**: Restart container
-- **d**: Delete container
-- **l**: View container logs
-- **i**: Inspect container
-
-#### Images View
-- **d**: Delete image
-- **i**: Inspect image
-
-#### Volumes View
-- **d**: Delete volume
-- **i**: Inspect volume
-
-#### Networks View
-- **d**: Delete network
-- **i**: Inspect network
-
-### 📖 Log View Navigation
-
-When viewing container logs:
-- **↑/↓**: Scroll line by line
-- **PgUp/PgDn**: Page scrolling
-- **Home/End**: Jump to top/bottom
-- **Spacebar**: Half-page scrolling
-- **ESC/Enter**: Return to container table
-
-### 🔍 Inspect View Navigation
-
-When viewing resource details:
-- **↑/↓**: Scroll line by line
-- **PgUp/PgDn**: Page scrolling
-- **Home/End**: Jump to top/bottom
-- **Spacebar**: Half-page scrolling
-- **ESC/Enter**: Return to resource table
-
-### 🎨 Table Navigation
-
-- **↑/↓**: Navigate between rows
-- **Enter**: View details and available actions
-- **ESC**: Close details view
-- **Tab**: Navigate between interactive elements
-
-### 🌐 Global Shortcuts
-
-- **Q**: Quit application
-- **Ctrl+C**: Exit application
-- **ESC**: Close modal or return to previous view
-- **F5**: Refresh current view
-- **?**: Show help dialog
-
-### 💡 Tips & Tricks
-
-- **Help Dialog**: Press `?` anytime to see all available shortcuts
-- **Command Mode**: Use `:` for quick view switching and commands
-- **Confirmation Dialogs**: Delete operations show confirmation prompts
-- **Real-time Updates**: Views automatically refresh every 5 seconds (configurable)
-- **Error Handling**: Errors are displayed in modal dialogs with clear messages
-
-## ⚙️ Configuration
-
-The application can be configured through environment variables:
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DOCKER_HOST` | Docker daemon address | Platform-specific default |
-| `LOG_LEVEL` | Logging level | `INFO` |
-| `REFRESH_INTERVAL` | UI refresh interval (seconds) | `5` |
-
-### Example Configuration
-
+**Apply a theme:**
 ```bash
-# Connect to local Docker instance
-./d5r
-
-# Connect to remote Docker host
-./d5r connect --host 192.168.1.100 --user admin
-
-# Set custom Docker host via environment
-export DOCKER_HOST=tcp://localhost:2375
-./d5r
-
-# Enable debug logging
-./d5r --log-level DEBUG
-
-# Set refresh interval to 10 seconds
-./d5r --refresh 10
-
-# Combine flags for remote connection with custom settings
-./d5r connect --host 192.168.1.100 --user admin --port 2376 --refresh 10 --log-level DEBUG
+whaletui --theme config/custom-theme.yaml
+whaletui --theme config/theme.json
 ```
 
 ## 🏗️ Architecture
 
-D5r follows the architecture below:
+whaletui follows a modular architecture with clear separation of concerns:
 
 ```
-d5r/
-├── cmd/                   # Command-line interface
-├── internal/              # Internal packages
-│   ├── app/              # Main application logic
-│   ├── config/           # Configuration management
-│   ├── docker/           # Docker client wrapper
-│   ├── errors/           # Error handling
-│   ├── logger/           # Structured logging system
-│   ├── models/           # Data models and types
-│   ├── services/         # Business logic layer
-│   └── ui/               # Terminal UI components
-│       ├── builders/     # UI component builders
-│       ├── constants/    # UI constants and colors
-│       ├── core/         # Core UI framework
-│       ├── handlers/     # Event handlers
-│       ├── interfaces/   # UI interfaces
-│       ├── managers/     # UI managers
-│       └── views/        # Individual view implementations
-├── scripts/               # Build and utility scripts
-├── go.mod                 # Go module file
-└── README.md              # This file
+whaletui/
+├── cmd/           # Command line interface
+├── internal/      # Internal application logic
+│   ├── app/       # Application core
+│   ├── config/    # Configuration management
+│   ├── docker/    # Docker client operations
+│   ├── services/  # Business logic services
+│   └── ui/        # Terminal UI components
+├── config/        # Configuration files
+└── docs/          # Documentation
 ```
-
-### 🔧 Key Components
-
-- **Service Layer**: Business logic separated from UI
-- **Docker Client**: High-level Docker API wrapper
-- **UI Framework**: tview-based terminal interface
-- **Builder Pattern**: Consistent UI component creation
-- **View Manager**: Centralized view switching logic
 
 ## 🛠️ Development
 
-### Building
+### Building from Source
 
 ```bash
-# Build for current platform
-go build -o d5r
+# Basic build
+go build -o whaletui
 
-# Build for specific platform
-GOOS=windows GOARCH=amd64 go build -o d5r.exe
-
-# Build with debug info
-go build -ldflags="-s -w" -o d5r
+# Cross-platform builds
+GOOS=windows GOARCH=amd64 go build -o whaletui.exe
+GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o whaletui
 ```
 
-### Testing
+### Running Tests
 
 ```bash
-# Run all tests
 go test ./...
-
-# Run tests with coverage
-go test -cover ./...
-
-# Run tests with verbose output
-go test -v ./...
 ```
 
-### Code Quality
+### Local Development
 
 ```bash
-# Format code
-go fmt ./...
+# Run locally
+./whaletui
 
-# Run linter
-golangci-lint run
+# Connect to remote host for testing
+./whaletui connect --host 192.168.1.100 --user admin
 
-# Run vet
-go vet ./...
+# Run with debug logging
+./whaletui --log-level DEBUG
+
+# Run with custom refresh rate
+./whaletui --refresh 10
+
+# Full remote connection with options
+./whaletui connect --host 192.168.1.100 --user admin --port 2376 --refresh 10 --log-level DEBUG
 ```
 
-### Pre-commit Hooks
+## Contributing
 
-This project uses pre-commit hooks to ensure code quality and consistency. The hooks run automatically before each commit and include:
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-- **Code Formatting**: `go fmt` and `goimports` for consistent Go code style
-- **Static Analysis**: `go vet` for Go-specific issues
-- **Linting**: `golangci-lint` for comprehensive code quality checks
-- **File Hygiene**: Trailing whitespace removal, end-of-file fixes, YAML validation
-
-#### Installation
-
-1. **Install pre-commit** (if not already installed):
-   ```bash
-   # Using pip (Python)
-   pip install pre-commit
-
-   # Using Homebrew (macOS)
-   brew install pre-commit
-
-   # Using Chocolatey (Windows)
-   choco install pre-commit
-   ```
-
-2. **Install the project hooks**:
-   ```bash
-   pre-commit install
-   ```
-
-#### Usage
-
-- **Automatic**: Hooks run automatically before each `git commit`
-- **Manual (all files)**: `pre-commit run --all-files`
-- **Manual (staged only)**: `pre-commit run`
-- **Skip hooks** (not recommended): `git commit --no-verify`
-
-#### What Happens During Commit
-
-1. **Pre-commit checks run** automatically
-2. **If all pass**: Commit proceeds normally
-3. **If any fail**: Commit is blocked with error details
-4. **If files are modified**: Modified files are auto-staged for re-commit
-
-#### Troubleshooting
-
-- **Hook failures**: Fix the issues shown in the error output, then commit again
-- **Path issues**: Ensure `golangci-lint` is in your PATH
-- **Configuration**: Check `.golangci.yml` and `.pre-commit-config.yaml` for settings
-
-### Dependencies
-
-```bash
-# Add new dependency
-go get github.com/example/package
-
-# Update dependencies
-go mod tidy
-
-# Verify dependencies
-go mod verify
-```
-
-## 🚧 Features Roadmap
-
-### Planned Enhancements
-- **Container Stats**: Real-time resource usage monitoring
-- **Multi-Container Operations**: Bulk start/stop/restart
-- **Custom Filters**: Advanced filtering and search
-- **Export Functionality**: Save logs, configs, and data
-
-### Future Ideas
-- **Docker Compose Support**: Manage multi-container applications
-- **Plugin System**: Extensible architecture for custom views
-- **Metrics Dashboard**: Performance and health monitoring
-- **Container Shell Integration**: Direct terminal access
-- **Docker Swarm**: Manage Services and stacks in Docker Swarms
-
-## 🤝 Contributing
-
-Contributions are Welcome! Please feel free to submit a Pull Request.
-
-### Development Guidelines
-
-1. **Follow Go conventions**: Use `gofmt`, `golint`, and `go vet`
-2. **Add tests**: Include tests for new functionality
-3. **Update documentation**: Keep README and code comments current
-4. **Use clean architecture**: Maintain separation of concerns
-5. **Follow existing patterns**: Match the established code style
-
-### Getting Started
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. **Set up pre-commit hooks** (recommended):
-   ```bash
-   pre-commit install
-   ```
-4. Make your changes and add tests
-5. Commit your changes: `git commit -m 'Add amazing feature'`
-6. Push to the branch: `git push origin feature/amazing-feature`
-7. Open a Pull Request
-
-> **💡 Pro Tip**: Install pre-commit hooks before making changes to catch issues early and ensure your code meets project standards automatically!
-
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
-- **k9s**: Inspiration for the UI design and interaction patterns
-- **tview**: Terminal UI library for Go
-- **Docker**: Containerization platform
-- **Go Community**: Amazing ecosystem and tooling
-
-## 📊 Project Status
-
-- **Version**: 0.1.0a
-- **Status**: Alpha Development
-- **Platform**: Cross-platform (Windows, Linux, macOS)
-- **Go Version**: 1.25.0+
-
----
-
-**Made with ❤️ using Go and tview**
+- Inspired by [k9s](https://k9scli.io/) for Kubernetes management
+- Built with [tview](https://github.com/rivo/tview) for the terminal UI
+- Uses [tcell](https://github.com/gdamore/tcell) for terminal handling

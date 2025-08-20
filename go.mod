@@ -1,4 +1,4 @@
-module github.com/wikczerski/D5r
+module github.com/wikczerski/whaletui
 
 go 1.25.0
 

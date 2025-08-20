@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/wikczerski/D5r/internal/docker"
+	"github.com/wikczerski/whaletui/internal/docker"
 )
 
 // BaseService provides common functionality for all Docker resource services

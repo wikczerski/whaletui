@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/wikczerski/D5r/internal/models"
+	"github.com/wikczerski/whaletui/internal/models"
 )
 
 // ContainerService defines the interface for container business operations

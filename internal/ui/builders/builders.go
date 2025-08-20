@@ -5,7 +5,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	"github.com/wikczerski/D5r/internal/config"
+	"github.com/wikczerski/whaletui/internal/config"
 )
 
 // ComponentBuilder provides methods to create consistent UI components

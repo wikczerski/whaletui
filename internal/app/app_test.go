@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/wikczerski/D5r/internal/config"
+	"github.com/wikczerski/whaletui/internal/config"
 )
 
 func TestNew(t *testing.T) {

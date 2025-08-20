@@ -1,6 +1,6 @@
 package models
 
-import "github.com/wikczerski/D5r/internal/docker"
+import "github.com/wikczerski/whaletui/internal/docker"
 
 // Network represents a Docker network
 type Network = docker.Network

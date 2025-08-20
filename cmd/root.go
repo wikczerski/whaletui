@@ -7,10 +7,10 @@ import (
 	"syscall"
 
 	"github.com/spf13/cobra"
-	"github.com/wikczerski/D5r/internal/app"
-	"github.com/wikczerski/D5r/internal/config"
-	"github.com/wikczerski/D5r/internal/docker"
-	"github.com/wikczerski/D5r/internal/logger"
+	"github.com/wikczerski/whaletui/internal/app"
+	"github.com/wikczerski/whaletui/internal/config"
+	"github.com/wikczerski/whaletui/internal/docker"
+	"github.com/wikczerski/whaletui/internal/logger"
 )
 
 var (
@@ -27,7 +27,7 @@ var connectCmd = &cobra.Command{
 This command establishes an SSH connection to the remote host and sets up a Docker proxy.
 
 Example:
-  d5r connect --host 192.168.1.100 --user admin --port 2375`,
+  whaletui connect --host 192.168.1.100 --user admin --port 2375`,
 	RunE: runConnectCommand,
 	// Disable automatic help display on errors
 	SilenceUsage:  true,
@@ -38,7 +38,7 @@ Example:
 var themeCmd = &cobra.Command{
 	Use:   "theme",
 	Short: "Manage theme configuration",
-	Long:  `Manage theme configuration for the D5r UI.`,
+	Long:  `Manage theme configuration for the whaletui UI.`,
 	RunE:  runThemeCommand,
 	// Disable automatic help display on errors
 	SilenceUsage:  true,
@@ -47,9 +47,9 @@ var themeCmd = &cobra.Command{
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "d5r",
-	Short: "D5r - Docker CLI Dashboard",
-	Long: `D5r is a terminal-based Docker management tool inspired by k9s,
+	Use:   "whaletui",
+	Short: "whaletui - Docker CLI Dashboard",
+	Long: `whaletui is a terminal-based Docker management tool inspired by k9s,
 providing an intuitive and powerful interface for managing Docker containers,
 images, volumes, and networks with a modern, responsive TUI.
 
@@ -68,9 +68,9 @@ Commands:
   theme    - Manage theme configuration
 
 Examples:
-  d5r                    - Start with local Docker instance
-  d5r connect --host 192.168.1.100 --user admin  - Connect to remote host
-  d5r theme             - Manage theme configuration`,
+  whaletui                    - Start with local Docker instance
+  whaletui connect --host 192.168.1.100 --user admin  - Connect to remote host
+  whaletui theme             - Manage theme configuration`,
 	RunE: runApp,
 	// Disable automatic help display on errors
 	SilenceUsage:  true,
@@ -197,7 +197,7 @@ func runSSHDiagnostics(host, user string, _ int) error {
 // runApp runs the main application with the provided configuration
 func runApp(_ *cobra.Command, _ []string) error {
 	log := logger.GetLogger()
-	log.SetPrefix("D5r")
+	log.SetPrefix("whaletui")
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -335,7 +335,7 @@ func runThemeCommand(_ *cobra.Command, _ []string) error {
 	}
 
 	log.Info("Theme configuration saved to: %s", defaultPath)
-	log.Info("You can now customize the colors in this file and restart D5r with --theme %s", defaultPath)
+	log.Info("You can now customize the colors in this file and restart whaletui with --theme %s", defaultPath)
 
 	return nil
 }

@@ -37,7 +37,7 @@ builds:
         goarch: "386"
     ldflags:
       - -s -w -X main.Version={{.Version}} -X main.Commit={{.Commit}} -X main.Date={{.Date}}
-    binary: d5r
+    binary: whaletui
 
 archives:
   - format: tar.gz
@@ -58,9 +58,9 @@ archives:
       - configs/*
 
 nfpms:
-  - maintainer: "D5r <22891046+wikczerski@users.noreply.github.com>"
-    description: "D5r - Docker Container Management Tool"
-    homepage: "https://github.com/wikczerski/D5r"
+  - maintainer: "whaletui <22891046+wikczerski@users.noreply.github.com>"
+    description: "whaletui - Docker Container Management Tool"
+    homepage: "https://github.com/wikczerski/whaletui"
     license: "MIT"
     formats:
       - deb
@@ -68,9 +68,9 @@ nfpms:
     bindir: /usr/local/bin
     contents:
       - src: "README.md"
-        dst: /usr/share/doc/d5r/README.md
+        dst: /usr/share/doc/whaletui/README.md
       - src: "LICENSE"
-        dst: /usr/share/doc/d5r/LICENSE
+        dst: /usr/share/doc/whaletui/LICENSE
 
 
 
@@ -93,7 +93,7 @@ changelog:
 release:
   github:
     owner: wikczerski
-    name: D5r
+    name: whaletui
   draft: false
   prerelease: false
   name_template: 'v{{ .Version }}'
