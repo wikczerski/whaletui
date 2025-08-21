@@ -12,8 +12,8 @@ import (
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 )
 
-// LogsView represents a view for displaying logs from any Docker resource
-type LogsView struct {
+// View represents a view for displaying logs from any Docker resource
+type View struct {
 	ResourceType string
 	ResourceID   string
 	ResourceName string
@@ -23,9 +23,9 @@ type LogsView struct {
 	themeManager *config.ThemeManager
 }
 
-// NewLogsView creates a new logs view for any resource type
-func NewLogsView(ui interfaces.UIInterface, resourceType, resourceID, resourceName string) *LogsView {
-	lv := &LogsView{
+// NewView creates a new logs view for any resource type
+func NewView(ui interfaces.UIInterface, resourceType, resourceID, resourceName string) *View {
+	lv := &View{
 		ResourceType: resourceType,
 		ResourceID:   resourceID,
 		ResourceName: resourceName,
@@ -37,12 +37,12 @@ func NewLogsView(ui interfaces.UIInterface, resourceType, resourceID, resourceNa
 }
 
 // GetView returns the logs view primitive
-func (lv *LogsView) GetView() tview.Primitive {
+func (lv *View) GetView() tview.Primitive {
 	return lv.view
 }
 
 // LoadLogs loads logs from the specified Docker resource
-func (lv *LogsView) LoadLogs() {
+func (lv *View) LoadLogs() {
 	ctx := context.Background()
 	logs, err := lv.getResourceLogs(ctx)
 	if err != nil {
@@ -54,7 +54,7 @@ func (lv *LogsView) LoadLogs() {
 }
 
 // GetActions returns the available actions for the logs view
-func (lv *LogsView) GetActions() map[rune]string {
+func (lv *View) GetActions() map[rune]string {
 	services := lv.ui.GetServices()
 	if !services.IsServiceAvailable("logs") {
 		return map[rune]string{}
@@ -69,7 +69,7 @@ func (lv *LogsView) GetActions() map[rune]string {
 }
 
 // createView creates the logs view UI components
-func (lv *LogsView) createView() {
+func (lv *View) createView() {
 	componentBuilder := builders.NewComponentBuilderWithTheme(lv.themeManager)
 	viewBuilder := builders.NewViewBuilder()
 
@@ -84,7 +84,7 @@ func (lv *LogsView) createView() {
 }
 
 // createTitleView creates the title view for the logs
-func (lv *LogsView) createTitleView(componentBuilder *builders.ComponentBuilder, logsFlex *tview.Flex) {
+func (lv *View) createTitleView(componentBuilder *builders.ComponentBuilder, logsFlex *tview.Flex) {
 	displayName := lv.ResourceName
 	if displayName == "" {
 		displayName = lv.ResourceID
@@ -106,7 +106,7 @@ func (lv *LogsView) createTitleView(componentBuilder *builders.ComponentBuilder,
 }
 
 // createLogsTextView creates the logs text view
-func (lv *LogsView) createLogsTextView(componentBuilder *builders.ComponentBuilder, logsFlex *tview.Flex) {
+func (lv *View) createLogsTextView(componentBuilder *builders.ComponentBuilder, logsFlex *tview.Flex) {
 	lv.logsText = componentBuilder.CreateTextView("Loading logs...", tview.AlignLeft, lv.themeManager.GetTextColor())
 	lv.logsText.SetDynamicColors(true)
 	lv.logsText.SetScrollable(true)
@@ -117,7 +117,7 @@ func (lv *LogsView) createLogsTextView(componentBuilder *builders.ComponentBuild
 }
 
 // createBackButton creates the back button
-func (lv *LogsView) createBackButton(componentBuilder *builders.ComponentBuilder, logsFlex *tview.Flex) {
+func (lv *View) createBackButton(componentBuilder *builders.ComponentBuilder, logsFlex *tview.Flex) {
 	backButton := componentBuilder.CreateButton("Back to Table", func() {
 		lv.ui.ShowCurrentView()
 	})
@@ -126,7 +126,7 @@ func (lv *LogsView) createBackButton(componentBuilder *builders.ComponentBuilder
 }
 
 // handleNavigationKeys handles navigation key events
-func (lv *LogsView) handleNavigationKeys(event *tcell.EventKey) bool {
+func (lv *View) handleNavigationKeys(event *tcell.EventKey) bool {
 	switch event.Key() {
 	case tcell.KeyEscape, tcell.KeyEnter:
 		lv.ui.ShowCurrentView()
@@ -136,14 +136,14 @@ func (lv *LogsView) handleNavigationKeys(event *tcell.EventKey) bool {
 }
 
 // handleScrollingKeys handles scrolling key events
-func (lv *LogsView) handleScrollingKeys(event *tcell.EventKey) bool {
+func (lv *View) handleScrollingKeys(event *tcell.EventKey) bool {
 	return event.Key() == tcell.KeyUp || event.Key() == tcell.KeyDown ||
 		event.Key() == tcell.KeyPgUp || event.Key() == tcell.KeyPgDn ||
 		event.Key() == tcell.KeyHome || event.Key() == tcell.KeyEnd
 }
 
 // setupKeyBindings sets up the key bindings for the logs view
-func (lv *LogsView) setupKeyBindings(logsFlex *tview.Flex) {
+func (lv *View) setupKeyBindings(logsFlex *tview.Flex) {
 	logsFlex.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if lv.handleNavigationKeys(event) {
 			return nil
@@ -157,7 +157,7 @@ func (lv *LogsView) setupKeyBindings(logsFlex *tview.Flex) {
 	})
 }
 
-func (lv *LogsView) getResourceLogs(ctx context.Context) (string, error) {
+func (lv *View) getResourceLogs(ctx context.Context) (string, error) {
 	services := lv.ui.GetServices()
 	logsService := services.GetLogsService()
 	if logsService == nil {

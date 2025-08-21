@@ -8,8 +8,8 @@ import (
 // Container represents a Docker container
 type Container = docker.Container
 
-// ContainerDetails represents detailed container information
-type ContainerDetails struct {
+// Details represents detailed container information
+type Details struct {
 	Container
 	Command         string            `json:"command"`
 	Args            []string          `json:"args"`

@@ -11,13 +11,13 @@ import (
 	mocks "github.com/wikczerski/whaletui/internal/mocks/ui"
 )
 
-func TestNewLogsView(t *testing.T) {
+func TestNewView(t *testing.T) {
 	mockUI := mocks.NewMockUIInterface(t)
 	mockThemeManager := config.NewThemeManager("")
 
 	mockUI.On("GetThemeManager").Return(mockThemeManager)
 
-	logsView := NewLogsView(mockUI, "container", "test-id", "test-name")
+	logsView := NewView(mockUI, "container", "test-id", "test-name")
 
 	assert.NotNil(t, logsView)
 	assert.Equal(t, "container", logsView.ResourceType)
@@ -33,7 +33,7 @@ func TestLogsView_GetView(t *testing.T) {
 
 	mockUI.On("GetThemeManager").Return(mockThemeManager)
 
-	logsView := NewLogsView(mockUI, "container", "test-id", "test-name")
+	logsView := NewView(mockUI, "container", "test-id", "test-name")
 	view := logsView.GetView()
 
 	assert.NotNil(t, view)
@@ -51,7 +51,7 @@ func TestLogsView_LoadLogs_Success(t *testing.T) {
 	mockServices.EXPECT().GetLogsService().Return(mockLogsService)
 	mockLogsService.EXPECT().GetLogs(context.Background(), "container", "test-id").Return("test logs", nil)
 
-	logsView := NewLogsView(mockUI, "container", "test-id", "test-name")
+	logsView := NewView(mockUI, "container", "test-id", "test-name")
 
 	// Test that LoadLogs doesn't panic
 	assert.NotPanics(t, func() {
@@ -68,7 +68,7 @@ func TestLogsView_LoadLogs_ServiceNotAvailable(t *testing.T) {
 	mockUI.On("GetServices").Return(mockServices)
 	mockServices.EXPECT().GetLogsService().Return(nil)
 
-	logsView := NewLogsView(mockUI, "container", "test-id", "test-name")
+	logsView := NewView(mockUI, "container", "test-id", "test-name")
 
 	// Test that LoadLogs handles service unavailability gracefully
 	assert.NotPanics(t, func() {
@@ -87,7 +87,7 @@ func TestLogsView_GetActions(t *testing.T) {
 	mockUI.On("GetThemeManager").Return(mockThemeManager)
 	mockUI.On("GetServices").Return(realServices)
 
-	logsView := NewLogsView(mockUI, "container", "test-id", "test-name")
+	logsView := NewView(mockUI, "container", "test-id", "test-name")
 	actions := logsView.GetActions()
 
 	// Since the service is not available, we expect an empty map
@@ -101,7 +101,7 @@ func TestLogsView_KeyBindings_Escape(t *testing.T) {
 	mockUI.On("GetThemeManager").Return(mockThemeManager)
 	mockUI.On("ShowCurrentView").Return()
 
-	logsView := NewLogsView(mockUI, "container", "test-id", "test-name")
+	logsView := NewView(mockUI, "container", "test-id", "test-name")
 	view := logsView.GetView()
 
 	// Test escape key
@@ -118,7 +118,7 @@ func TestLogsView_KeyBindings_Enter(t *testing.T) {
 	mockUI.On("GetThemeManager").Return(mockThemeManager)
 	mockUI.On("ShowCurrentView").Return()
 
-	logsView := NewLogsView(mockUI, "container", "test-id", "test-name")
+	logsView := NewView(mockUI, "container", "test-id", "test-name")
 	view := logsView.GetView()
 
 	// Test enter key
@@ -134,7 +134,7 @@ func TestLogsView_KeyBindings_ScrollingKeys(t *testing.T) {
 
 	mockUI.On("GetThemeManager").Return(mockThemeManager)
 
-	logsView := NewLogsView(mockUI, "container", "test-id", "test-name")
+	logsView := NewView(mockUI, "container", "test-id", "test-name")
 	view := logsView.GetView()
 
 	// Test scrolling keys
@@ -167,7 +167,7 @@ func TestLogsView_ResourceTypeDisplay(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.resourceType, func(t *testing.T) {
-			logsView := NewLogsView(mockUI, tc.resourceType, tc.resourceID, tc.resourceName)
+			logsView := NewView(mockUI, tc.resourceType, tc.resourceID, tc.resourceName)
 
 			assert.Equal(t, tc.resourceType, logsView.ResourceType)
 			assert.Equal(t, tc.resourceID, logsView.ResourceID)
@@ -184,7 +184,7 @@ func TestLogsView_ResourceIDTruncation(t *testing.T) {
 
 	// Test with long ID
 	longID := "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
-	logsView := NewLogsView(mockUI, "container", longID, "test-name")
+	logsView := NewView(mockUI, "container", longID, "test-name")
 
 	assert.Equal(t, longID, logsView.ResourceID)
 }
@@ -196,7 +196,7 @@ func TestLogsView_EmptyResourceName(t *testing.T) {
 	mockUI.On("GetThemeManager").Return(mockThemeManager)
 
 	// Test with empty resource name
-	logsView := NewLogsView(mockUI, "container", "test-id", "")
+	logsView := NewView(mockUI, "container", "test-id", "")
 
 	assert.Equal(t, "", logsView.ResourceName)
 }

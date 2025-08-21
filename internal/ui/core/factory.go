@@ -85,8 +85,8 @@ func (a *containerServiceAdapter) ListContainers(ctx context.Context) ([]interfa
 		return nil, err
 	}
 	result := make([]interfaces.Container, len(containers))
-	for i, container := range containers {
-		result[i] = container
+	for i := range containers {
+		result[i] = containers[i]
 	}
 	return result, nil
 }
@@ -142,8 +142,8 @@ func (a *imageServiceAdapter) ListImages(ctx context.Context) ([]interfaces.Imag
 		return nil, err
 	}
 	result := make([]interfaces.Image, len(images))
-	for i, image := range images {
-		result[i] = image
+	for i := range images {
+		result[i] = images[i]
 	}
 	return result, nil
 }
@@ -175,8 +175,8 @@ func (a *volumeServiceAdapter) ListVolumes(ctx context.Context) ([]interfaces.Vo
 		return nil, err
 	}
 	result := make([]interfaces.Volume, len(volumes))
-	for i, volume := range volumes {
-		result[i] = volume
+	for i := range volumes {
+		result[i] = volumes[i]
 	}
 	return result, nil
 }

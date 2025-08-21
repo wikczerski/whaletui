@@ -9,20 +9,20 @@ import (
 // Image represents a Docker image
 type Image = docker.Image
 
-// ImageDetails represents detailed image information
-type ImageDetails struct {
+// Details represents detailed image information
+type Details struct {
 	Image
 	Architecture string            `json:"architecture"`
 	OS           string            `json:"os"`
 	Author       string            `json:"author"`
 	Comment      string            `json:"comment"`
-	Config       ImageConfig       `json:"config"`
-	History      []ImageHistory    `json:"history"`
+	Config       Config            `json:"config"`
+	History      []History         `json:"history"`
 	Labels       map[string]string `json:"labels"`
 }
 
-// ImageConfig represents image configuration
-type ImageConfig struct {
+// Config represents image configuration
+type Config struct {
 	User         string              `json:"user"`
 	WorkingDir   string              `json:"working_dir"`
 	Entrypoint   []string            `json:"entrypoint"`
@@ -33,8 +33,8 @@ type ImageConfig struct {
 	Labels       map[string]string   `json:"labels"`
 }
 
-// ImageHistory represents image layer history
-type ImageHistory struct {
+// History represents image layer history
+type History struct {
 	Created    time.Time `json:"created"`
 	CreatedBy  string    `json:"created_by"`
 	Comment    string    `json:"comment"`

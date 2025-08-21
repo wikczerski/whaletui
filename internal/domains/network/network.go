@@ -5,14 +5,14 @@ import "github.com/wikczerski/whaletui/internal/docker"
 // Network represents a Docker network
 type Network = docker.Network
 
-// NetworkDetails represents detailed network information
-type NetworkDetails struct {
+// Details represents detailed network information
+type Details struct {
 	Network
-	IPAM       IPAMConfig                  `json:"ipam"`
-	ConfigFrom NetworkConfigFrom           `json:"config_from"`
-	ConfigOnly bool                        `json:"config_only"`
-	Containers map[string]NetworkContainer `json:"containers"`
-	Options    map[string]string           `json:"options"`
+	IPAM       IPAMConfig           `json:"ipam"`
+	ConfigFrom ConfigFrom           `json:"config_from"`
+	ConfigOnly bool                 `json:"config_only"`
+	Containers map[string]Container `json:"containers"`
+	Options    map[string]string    `json:"options"`
 }
 
 // IPAMConfig represents IP address management configuration
@@ -29,13 +29,13 @@ type IPAMConfigEntry struct {
 	IPRange string `json:"ip_range"`
 }
 
-// NetworkConfigFrom represents network configuration source
-type NetworkConfigFrom struct {
+// ConfigFrom represents network configuration source
+type ConfigFrom struct {
 	Network string `json:"network"`
 }
 
-// NetworkContainer represents a container connected to a network
-type NetworkContainer struct {
+// Container represents a container connected to a network
+type Container struct {
 	Name        string `json:"name"`
 	EndpointID  string `json:"endpoint_id"`
 	MacAddress  string `json:"mac_address"`

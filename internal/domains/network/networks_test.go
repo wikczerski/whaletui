@@ -9,19 +9,18 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	servicemocks "github.com/wikczerski/whaletui/internal/mocks/ui"
-	uimocks "github.com/wikczerski/whaletui/internal/mocks/ui"
+	mocks "github.com/wikczerski/whaletui/internal/mocks/ui"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 )
 
-func newNetworksUIMockWithServices(t *testing.T, sf interfaces.ServiceFactoryInterface) *uimocks.MockUIInterface {
-	ui := uimocks.NewMockUIInterface(t)
+func newNetworksUIMockWithServices(t *testing.T, sf interfaces.ServiceFactoryInterface) *mocks.MockUIInterface {
+	ui := mocks.NewMockUIInterface(t)
 	ui.On("GetApp").Return(tview.NewApplication()).Maybe()
 	ui.On("GetPages").Return(tview.NewPages()).Maybe()
 
 	if sf == nil {
 		// Create a mock service factory that returns nil for all services
-		mockSF := servicemocks.NewMockServiceFactoryInterface(t)
+		mockSF := mocks.NewMockServiceFactoryInterface(t)
 		mockSF.On("GetImageService").Return(nil).Maybe()
 		mockSF.On("GetContainerService").Return(nil).Maybe()
 		mockSF.On("GetVolumeService").Return(nil).Maybe()
@@ -110,7 +109,7 @@ func TestNetworksView_Refresh_WithServices(t *testing.T) {
 			Containers: 2,
 		},
 	}
-	ns := servicemocks.NewMockNetworkService(t)
+	ns := mocks.NewMockNetworkService(t)
 	// Convert []Network to []any for mock compatibility
 	mockNetworksAny := make([]any, len(mockNetworks))
 	for i, network := range mockNetworks {
@@ -118,7 +117,7 @@ func TestNetworksView_Refresh_WithServices(t *testing.T) {
 	}
 	ns.EXPECT().ListNetworks(context.Background()).Return(mockNetworksAny, nil)
 
-	sf := servicemocks.NewMockServiceFactoryInterface(t)
+	sf := mocks.NewMockServiceFactoryInterface(t)
 	sf.EXPECT().GetNetworkService().Return(ns)
 	ui := newNetworksUIMockWithServices(t, sf)
 
@@ -129,10 +128,10 @@ func TestNetworksView_Refresh_WithServices(t *testing.T) {
 }
 
 func TestNetworksView_Refresh_ServiceError(t *testing.T) {
-	ns := servicemocks.NewMockNetworkService(t)
+	ns := mocks.NewMockNetworkService(t)
 	ns.EXPECT().ListNetworks(context.Background()).Return([]any{}, assert.AnError)
 
-	sf := servicemocks.NewMockServiceFactoryInterface(t)
+	sf := mocks.NewMockServiceFactoryInterface(t)
 	sf.EXPECT().GetNetworkService().Return(ns)
 	ui := newNetworksUIMockWithServices(t, sf)
 	ui.On("ShowError", assert.AnError).Return().Maybe()
@@ -144,7 +143,7 @@ func TestNetworksView_Refresh_ServiceError(t *testing.T) {
 }
 
 func TestNetworksView_ShowNetworkDetails_Success(t *testing.T) {
-	ns := servicemocks.NewMockNetworkService(t)
+	ns := mocks.NewMockNetworkService(t)
 	ns.EXPECT().InspectNetwork(context.Background(), "network1").Return(map[string]any{"ok": true}, nil).Maybe()
 
 	mockNetwork := Network{
@@ -157,7 +156,7 @@ func TestNetworksView_ShowNetworkDetails_Success(t *testing.T) {
 		Containers: 5,
 	}
 
-	sf := servicemocks.NewMockServiceFactoryInterface(t)
+	sf := mocks.NewMockServiceFactoryInterface(t)
 	sf.EXPECT().GetNetworkService().Return(ns)
 	ui := newNetworksUIMockWithServices(t, sf)
 	ui.EXPECT().ShowDetails(mock.AnythingOfType("*tview.Flex")).Return().Maybe()
@@ -170,7 +169,7 @@ func TestNetworksView_ShowNetworkDetails_Success(t *testing.T) {
 }
 
 func TestNetworksView_ShowNetworkDetails_InspectError(t *testing.T) {
-	ns := servicemocks.NewMockNetworkService(t)
+	ns := mocks.NewMockNetworkService(t)
 	ns.EXPECT().InspectNetwork(context.Background(), "network1").Return(map[string]any(nil), assert.AnError).Maybe()
 
 	mockNetwork := Network{
@@ -183,7 +182,7 @@ func TestNetworksView_ShowNetworkDetails_InspectError(t *testing.T) {
 		Containers: 5,
 	}
 
-	sf := servicemocks.NewMockServiceFactoryInterface(t)
+	sf := mocks.NewMockServiceFactoryInterface(t)
 	sf.EXPECT().GetNetworkService().Return(ns)
 	ui := newNetworksUIMockWithServices(t, sf)
 	ui.EXPECT().ShowDetails(mock.AnythingOfType("*tview.Flex")).Return().Maybe()

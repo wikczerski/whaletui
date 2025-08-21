@@ -6,17 +6,16 @@ import (
 	"github.com/rivo/tview"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	servicemocks "github.com/wikczerski/whaletui/internal/mocks/ui"
-	uimocks "github.com/wikczerski/whaletui/internal/mocks/ui"
+	mocks "github.com/wikczerski/whaletui/internal/mocks/ui"
 )
 
-func newContainersUIMock(t *testing.T) *uimocks.MockUIInterface {
-	ui := uimocks.NewMockUIInterface(t)
+func newContainersUIMock(t *testing.T) *mocks.MockUIInterface {
+	ui := mocks.NewMockUIInterface(t)
 	ui.On("GetApp").Return(tview.NewApplication()).Maybe()
 	ui.On("GetPages").Return(tview.NewPages()).Maybe()
 
 	// Create a mock service factory that returns nil for all services
-	mockSF := servicemocks.NewMockServiceFactoryInterface(t)
+	mockSF := mocks.NewMockServiceFactoryInterface(t)
 	mockSF.On("GetContainerService").Return(nil).Maybe()
 	mockSF.On("GetImageService").Return(nil).Maybe()
 	mockSF.On("GetVolumeService").Return(nil).Maybe()

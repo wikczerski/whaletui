@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	servicemocks "github.com/wikczerski/whaletui/internal/mocks/ui"
 	uimocks "github.com/wikczerski/whaletui/internal/mocks/ui"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 )
@@ -21,7 +20,7 @@ func newUIMockWithServices(t *testing.T, sf interfaces.ServiceFactoryInterface) 
 
 	if sf == nil {
 		// Create a mock service factory that returns nil for all services
-		mockSF := servicemocks.NewMockServiceFactoryInterface(t)
+		mockSF := uimocks.NewMockServiceFactoryInterface(t)
 		mockSF.On("GetImageService").Return(nil).Maybe()
 		mockSF.On("GetContainerService").Return(nil).Maybe()
 		mockSF.On("GetVolumeService").Return(nil).Maybe()
@@ -106,7 +105,7 @@ func TestVolumesView_Refresh_WithServices(t *testing.T) {
 			Size:       "200MB",
 		},
 	}
-	vs := servicemocks.NewMockVolumeService(t)
+	vs := uimocks.NewMockVolumeService(t)
 	// Convert []Volume to []any for the mock interface
 	mockVolumesAny := make([]any, len(mockVolumes))
 	for i, vol := range mockVolumes {
@@ -114,7 +113,7 @@ func TestVolumesView_Refresh_WithServices(t *testing.T) {
 	}
 	vs.EXPECT().ListVolumes(context.Background()).Return(mockVolumesAny, nil)
 
-	sf := servicemocks.NewMockServiceFactoryInterface(t)
+	sf := uimocks.NewMockServiceFactoryInterface(t)
 	sf.EXPECT().GetVolumeService().Return(vs)
 	ui := newUIMockWithServices(t, sf)
 
@@ -125,10 +124,10 @@ func TestVolumesView_Refresh_WithServices(t *testing.T) {
 }
 
 func TestVolumesView_Refresh_ServiceError(t *testing.T) {
-	vs := servicemocks.NewMockVolumeService(t)
+	vs := uimocks.NewMockVolumeService(t)
 	vs.EXPECT().ListVolumes(context.Background()).Return([]any{}, assert.AnError)
 
-	sf := servicemocks.NewMockServiceFactoryInterface(t)
+	sf := uimocks.NewMockServiceFactoryInterface(t)
 	sf.EXPECT().GetVolumeService().Return(vs)
 	ui := newUIMockWithServices(t, sf)
 	ui.On("ShowError", assert.AnError).Return().Maybe()
@@ -140,7 +139,7 @@ func TestVolumesView_Refresh_ServiceError(t *testing.T) {
 }
 
 func TestVolumesView_ShowVolumeDetails_Success(t *testing.T) {
-	vs := servicemocks.NewMockVolumeService(t)
+	vs := uimocks.NewMockVolumeService(t)
 	vs.On("InspectVolume", context.Background(), "volume1").Return(map[string]any{"ok": true}, nil).Maybe()
 
 	mockVolume := Volume{
@@ -151,7 +150,7 @@ func TestVolumesView_ShowVolumeDetails_Success(t *testing.T) {
 		Size:       "100MB",
 	}
 
-	sf := servicemocks.NewMockServiceFactoryInterface(t)
+	sf := uimocks.NewMockServiceFactoryInterface(t)
 	sf.EXPECT().GetVolumeService().Return(vs)
 	ui := newUIMockWithServices(t, sf)
 	ui.On("ShowDetails", mock.AnythingOfType("*tview.Flex")).Return().Maybe()
@@ -164,7 +163,7 @@ func TestVolumesView_ShowVolumeDetails_Success(t *testing.T) {
 }
 
 func TestVolumesView_ShowVolumeDetails_InspectError(t *testing.T) {
-	vs := servicemocks.NewMockVolumeService(t)
+	vs := uimocks.NewMockVolumeService(t)
 	vs.On("InspectVolume", context.Background(), "volume1").Return(map[string]any(nil), assert.AnError).Maybe()
 
 	mockVolume := Volume{
@@ -175,7 +174,7 @@ func TestVolumesView_ShowVolumeDetails_InspectError(t *testing.T) {
 		Size:       "100MB",
 	}
 
-	sf := servicemocks.NewMockServiceFactoryInterface(t)
+	sf := uimocks.NewMockServiceFactoryInterface(t)
 	sf.EXPECT().GetVolumeService().Return(vs)
 	ui := newUIMockWithServices(t, sf)
 	ui.On("ShowDetails", mock.AnythingOfType("*tview.Flex")).Return().Maybe()
