@@ -145,6 +145,9 @@ func init() {
 
 // runConnectCommand handles the connect subcommand for remote Docker hosts
 func runConnectCommand(cmd *cobra.Command, _ []string) error {
+	// Set TUI mode IMMEDIATELY to prevent any stderr interference
+	logger.SetTUIMode(true)
+
 	log := logger.GetLogger()
 
 	// Get flags from the connect command
@@ -193,7 +196,7 @@ func runConnectCommand(cmd *cobra.Command, _ []string) error {
 	cfg.RemoteUser = user
 	cfg.RemotePort = port
 
-	// Apply flag overrides before setting log level
+	// Apply flag overrides and set log level
 	applyFlagOverrides(cfg)
 	setLogLevel(cfg.LogLevel)
 
@@ -236,6 +239,7 @@ func runConnectCommand(cmd *cobra.Command, _ []string) error {
 
 	defer cleanupTerminal()
 	defer logger.CloseLogFile()
+	defer logger.SetTUIMode(false) // Restore normal logging
 
 	application.Shutdown()
 	return nil
@@ -282,6 +286,9 @@ func runApp(_ *cobra.Command, _ []string) error {
 	}
 
 	applyFlagOverrides(cfg)
+
+	// Set TUI mode BEFORE setting log level to prevent stderr interference
+	logger.SetTUIMode(true)
 	setLogLevel(cfg.LogLevel)
 
 	// Validate that --user is provided when --host is specified
@@ -362,7 +369,7 @@ func cleanupTerminalMoveCursorToTop() {
 // cleanupTerminalSyncStdout synchronizes stdout
 func cleanupTerminalSyncStdout() {
 	if err := os.Stdout.Sync(); err != nil {
-		logger.Warn("Failed to sync stdout", "error", err)
+		logger.Debug("Failed to sync stdout", "error", err)
 	}
 }
 

@@ -12,26 +12,60 @@ import (
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 )
 
-// LogsView represents a view for displaying container logs
+// LogsView represents a view for displaying logs from any Docker resource
 type LogsView struct {
-	ContainerID   string
-	ContainerName string
-	ui            interfaces.UIInterface
-	view          *tview.Flex
-	logsText      *tview.TextView
-	themeManager  *config.ThemeManager
+	ResourceType string
+	ResourceID   string
+	ResourceName string
+	ui           interfaces.UIInterface
+	view         *tview.Flex
+	logsText     *tview.TextView
+	themeManager *config.ThemeManager
 }
 
-// NewLogsView creates a new logs view
-func NewLogsView(ui interfaces.UIInterface, containerID, containerName string) *LogsView {
+// NewLogsView creates a new logs view for any resource type
+func NewLogsView(ui interfaces.UIInterface, resourceType, resourceID, resourceName string) *LogsView {
 	lv := &LogsView{
-		ContainerID:   containerID,
-		ContainerName: containerName,
-		ui:            ui,
-		themeManager:  ui.GetThemeManager(),
+		ResourceType: resourceType,
+		ResourceID:   resourceID,
+		ResourceName: resourceName,
+		ui:           ui,
+		themeManager: ui.GetThemeManager(),
 	}
 	lv.createView()
 	return lv
+}
+
+// GetView returns the logs view primitive
+func (lv *LogsView) GetView() tview.Primitive {
+	return lv.view
+}
+
+// LoadLogs loads logs from the specified Docker resource
+func (lv *LogsView) LoadLogs() {
+	ctx := context.Background()
+	logs, err := lv.getResourceLogs(ctx)
+	if err != nil {
+		lv.logsText.SetText(fmt.Sprintf("Error loading logs: %v", err))
+		return
+	}
+
+	lv.logsText.SetText(logs)
+}
+
+// GetActions returns the available actions for the logs view
+func (lv *LogsView) GetActions() map[rune]string {
+	services := lv.ui.GetServices()
+	if !services.IsServiceAvailable("logs") {
+		return map[rune]string{}
+	}
+
+	logsService := services.GetLogsService()
+	if logsService == nil {
+		return map[rune]string{}
+	}
+
+	return logsService.GetActions()
 }
 
 // createView creates the logs view UI components
@@ -51,8 +85,18 @@ func (lv *LogsView) createView() {
 
 // createTitleView creates the title view for the logs
 func (lv *LogsView) createTitleView(componentBuilder *builders.ComponentBuilder, logsFlex *tview.Flex) {
+	displayName := lv.ResourceName
+	if displayName == "" {
+		displayName = lv.ResourceID
+	}
+
+	shortID := lv.ResourceID
+	if len(shortID) > 12 {
+		shortID = shortID[:12]
+	}
+
 	bottomTitleView := componentBuilder.CreateBorderedTextView(
-		fmt.Sprintf(" %s<%s> ", lv.ContainerName, lv.ContainerID[:12]),
+		fmt.Sprintf(" %s<%s> (%s) ", displayName, shortID, lv.ResourceType),
 		"",
 		lv.themeManager.GetHeaderColor(),
 	)
@@ -81,21 +125,6 @@ func (lv *LogsView) createBackButton(componentBuilder *builders.ComponentBuilder
 	logsFlex.AddItem(backButton, constants.BackButtonHeight, 0, false)
 }
 
-// setupKeyBindings sets up the key bindings for the logs view
-func (lv *LogsView) setupKeyBindings(logsFlex *tview.Flex) {
-	logsFlex.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if lv.handleNavigationKeys(event) {
-			return nil
-		}
-
-		if lv.handleScrollingKeys(event) {
-			return event
-		}
-
-		return event
-	})
-}
-
 // handleNavigationKeys handles navigation key events
 func (lv *LogsView) handleNavigationKeys(event *tcell.EventKey) bool {
 	switch event.Key() {
@@ -113,38 +142,27 @@ func (lv *LogsView) handleScrollingKeys(event *tcell.EventKey) bool {
 		event.Key() == tcell.KeyHome || event.Key() == tcell.KeyEnd
 }
 
-// GetView returns the logs view primitive
-func (lv *LogsView) GetView() tview.Primitive {
-	return lv.view
+// setupKeyBindings sets up the key bindings for the logs view
+func (lv *LogsView) setupKeyBindings(logsFlex *tview.Flex) {
+	logsFlex.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if lv.handleNavigationKeys(event) {
+			return nil
+		}
+
+		if lv.handleScrollingKeys(event) {
+			return event
+		}
+
+		return event
+	})
 }
 
-// LoadLogs loads container logs from Docker
-func (lv *LogsView) LoadLogs() {
-	ctx := context.Background()
-	logs, err := lv.getContainerLogs(ctx)
-	if err != nil {
-		lv.logsText.SetText(fmt.Sprintf("Error loading logs: %v", err))
-		return
-	}
-
-	lv.logsText.SetText(logs)
-}
-
-func (lv *LogsView) getContainerLogs(ctx context.Context) (string, error) {
+func (lv *LogsView) getResourceLogs(ctx context.Context) (string, error) {
 	services := lv.ui.GetServices()
-	if services == nil || services.GetContainerService() == nil {
-		return "", fmt.Errorf("container service not available")
+	logsService := services.GetLogsService()
+	if logsService == nil {
+		return "", fmt.Errorf("logs service not available")
 	}
-	return services.GetContainerService().GetContainerLogs(ctx, lv.ContainerID)
-}
 
-// GetActions returns the available actions for the logs view
-func (lv *LogsView) GetActions() map[rune]string {
-	return map[rune]string{
-		'f': "Follow logs",
-		't': "Tail logs",
-		's': "Save logs",
-		'c': "Clear logs",
-		'w': "Wrap text",
-	}
+	return logsService.GetLogs(ctx, lv.ResourceType, lv.ResourceID)
 }

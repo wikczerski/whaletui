@@ -56,6 +56,7 @@ type DockerInfoService interface {
 
 // LogsService defines the interface for logs operations
 type LogsService interface {
+	GetLogs(ctx context.Context, resourceType, resourceID string) (string, error)
 	GetActions() map[rune]string
 	GetActionsString() string
 }

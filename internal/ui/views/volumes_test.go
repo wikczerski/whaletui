@@ -7,6 +7,7 @@ import (
 
 	"github.com/rivo/tview"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/wikczerski/whaletui/internal/models"
 	"github.com/wikczerski/whaletui/internal/services"
 	servicemocks "github.com/wikczerski/whaletui/internal/services/mocks"
@@ -145,11 +146,13 @@ func TestVolumesView_ShowVolumeDetails_Success(t *testing.T) {
 
 	sf := &services.ServiceFactory{VolumeService: vs}
 	ui := newUIMockWithServices(t, sf)
+	ui.On("ShowDetails", mock.AnythingOfType("*tview.Flex")).Return().Maybe()
 
 	volumesView := NewVolumesView(ui)
 	volumesView.items = []models.Volume{mockVolume}
+	volumesView.showVolumeDetails(&mockVolume)
 
-	assert.NotNil(t, volumesView.showVolumeDetails)
+	assert.NotNil(t, volumesView)
 }
 
 func TestVolumesView_ShowVolumeDetails_InspectError(t *testing.T) {
@@ -166,11 +169,13 @@ func TestVolumesView_ShowVolumeDetails_InspectError(t *testing.T) {
 
 	sf := &services.ServiceFactory{VolumeService: vs}
 	ui := newUIMockWithServices(t, sf)
+	ui.On("ShowDetails", mock.AnythingOfType("*tview.Flex")).Return().Maybe()
 
 	volumesView := NewVolumesView(ui)
 	volumesView.items = []models.Volume{mockVolume}
+	volumesView.showVolumeDetails(&mockVolume)
 
-	assert.NotNil(t, volumesView.showVolumeDetails)
+	assert.NotNil(t, volumesView)
 }
 
 func TestVolumesView_HandleAction_Delete(t *testing.T) {

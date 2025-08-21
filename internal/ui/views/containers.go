@@ -44,9 +44,10 @@ func NewContainersView(ui interfaces.UIInterface) *ContainersView {
 
 func (cv *ContainersView) listContainers(ctx context.Context) ([]models.Container, error) {
 	services := cv.ui.GetServices()
-	if services == nil || services.GetContainerService() == nil {
+	if !services.IsContainerServiceAvailable() {
 		return []models.Container{}, nil
 	}
+
 	return services.GetContainerService().ListContainers(ctx)
 }
 

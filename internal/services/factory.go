@@ -10,6 +10,8 @@ type ServiceFactoryInterface interface {
 	GetNetworkService() NetworkService
 	GetDockerInfoService() DockerInfoService
 	GetLogsService() LogsService
+	IsServiceAvailable(serviceName string) bool
+	IsContainerServiceAvailable() bool
 }
 
 // ServiceFactory creates and manages all services
@@ -35,13 +37,15 @@ func NewServiceFactory(client *docker.Client) *ServiceFactory {
 		}
 	}
 
+	containerService := NewContainerService(client)
+
 	return &ServiceFactory{
-		ContainerService:  NewContainerService(client),
+		ContainerService:  containerService,
 		ImageService:      NewImageService(client),
 		VolumeService:     NewVolumeService(client),
 		NetworkService:    NewNetworkService(client),
 		DockerInfoService: NewDockerInfoService(client),
-		LogsService:       NewLogsService(),
+		LogsService:       NewLogsService(containerService),
 	}
 }
 
@@ -73,4 +77,33 @@ func (sf *ServiceFactory) GetDockerInfoService() DockerInfoService {
 // GetLogsService returns the logs service
 func (sf *ServiceFactory) GetLogsService() LogsService {
 	return sf.LogsService
+}
+
+// IsServiceAvailable checks if a specific service is available
+func (sf *ServiceFactory) IsServiceAvailable(serviceName string) bool {
+	if sf == nil {
+		return false
+	}
+
+	switch serviceName {
+	case "container":
+		return sf.ContainerService != nil
+	case "image":
+		return sf.ImageService != nil
+	case "volume":
+		return sf.VolumeService != nil
+	case "network":
+		return sf.NetworkService != nil
+	case "dockerInfo":
+		return sf.DockerInfoService != nil
+	case "logs":
+		return sf.LogsService != nil
+	default:
+		return false
+	}
+}
+
+// IsContainerServiceAvailable checks if the container service is available
+func (sf *ServiceFactory) IsContainerServiceAvailable() bool {
+	return sf != nil && sf.ContainerService != nil
 }

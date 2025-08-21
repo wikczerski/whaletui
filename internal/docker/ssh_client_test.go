@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/wikczerski/whaletui/internal/logger"
 )
 
 func TestSSHClient_validateHostname(t *testing.T) {
@@ -213,7 +214,9 @@ func TestSSHConnection_GetLocalProxyHost(t *testing.T) {
 
 func TestSSHConnection_Close(t *testing.T) {
 	// Test closing a connection with nil components
-	conn := &SSHConnection{}
+	conn := &SSHConnection{
+		log: logger.GetLogger(),
+	}
 	err := conn.Close()
 	assert.NoError(t, err)
 
@@ -222,6 +225,7 @@ func TestSSHConnection_Close(t *testing.T) {
 	conn = &SSHConnection{
 		client:  nil,
 		session: nil,
+		log:     logger.GetLogger(),
 	}
 	err = conn.Close()
 	assert.NoError(t, err)
@@ -239,7 +243,7 @@ func TestSSHClient_Integration(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test connection (this would fail without a real SSH server)
-	conn, err := client.Connect(2375)
+	conn, err := client.Connect()
 	if err != nil {
 		t.Logf("SSH connection failed as expected: %v", err)
 		return
@@ -248,10 +252,9 @@ func TestSSHClient_Integration(t *testing.T) {
 	// Clean up
 	defer conn.Close()
 
-	// Test proxy host
-	proxyHost := conn.GetLocalProxyHost()
-	assert.Contains(t, proxyHost, "127.0.0.1:")
-	assert.Contains(t, proxyHost, "tcp://")
+	// Test that we have a valid SSH context
+	assert.NotNil(t, conn)
+	assert.Equal(t, "localhost", conn.remoteHost)
 }
 
 func TestSSHClient_GetConnectionInfo(t *testing.T) {

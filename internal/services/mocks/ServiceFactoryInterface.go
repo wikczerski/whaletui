@@ -311,3 +311,98 @@ func (_c *MockServiceFactoryInterface_GetVolumeService_Call) RunAndReturn(run fu
 	_c.Call.Return(run)
 	return _c
 }
+
+// IsContainerServiceAvailable provides a mock function for the type MockServiceFactoryInterface
+func (_mock *MockServiceFactoryInterface) IsContainerServiceAvailable() bool {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for IsContainerServiceAvailable")
+	}
+
+	var r0 bool
+	if returnFunc, ok := ret.Get(0).(func() bool); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	return r0
+}
+
+// MockServiceFactoryInterface_IsContainerServiceAvailable_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IsContainerServiceAvailable'
+type MockServiceFactoryInterface_IsContainerServiceAvailable_Call struct {
+	*mock.Call
+}
+
+// IsContainerServiceAvailable is a helper method to define mock.On call
+func (_e *MockServiceFactoryInterface_Expecter) IsContainerServiceAvailable() *MockServiceFactoryInterface_IsContainerServiceAvailable_Call {
+	return &MockServiceFactoryInterface_IsContainerServiceAvailable_Call{Call: _e.mock.On("IsContainerServiceAvailable")}
+}
+
+func (_c *MockServiceFactoryInterface_IsContainerServiceAvailable_Call) Run(run func()) *MockServiceFactoryInterface_IsContainerServiceAvailable_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockServiceFactoryInterface_IsContainerServiceAvailable_Call) Return(b bool) *MockServiceFactoryInterface_IsContainerServiceAvailable_Call {
+	_c.Call.Return(b)
+	return _c
+}
+
+func (_c *MockServiceFactoryInterface_IsContainerServiceAvailable_Call) RunAndReturn(run func() bool) *MockServiceFactoryInterface_IsContainerServiceAvailable_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// IsServiceAvailable provides a mock function for the type MockServiceFactoryInterface
+func (_mock *MockServiceFactoryInterface) IsServiceAvailable(serviceName string) bool {
+	ret := _mock.Called(serviceName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for IsServiceAvailable")
+	}
+
+	var r0 bool
+	if returnFunc, ok := ret.Get(0).(func(string) bool); ok {
+		r0 = returnFunc(serviceName)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	return r0
+}
+
+// MockServiceFactoryInterface_IsServiceAvailable_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IsServiceAvailable'
+type MockServiceFactoryInterface_IsServiceAvailable_Call struct {
+	*mock.Call
+}
+
+// IsServiceAvailable is a helper method to define mock.On call
+//   - serviceName string
+func (_e *MockServiceFactoryInterface_Expecter) IsServiceAvailable(serviceName interface{}) *MockServiceFactoryInterface_IsServiceAvailable_Call {
+	return &MockServiceFactoryInterface_IsServiceAvailable_Call{Call: _e.mock.On("IsServiceAvailable", serviceName)}
+}
+
+func (_c *MockServiceFactoryInterface_IsServiceAvailable_Call) Run(run func(serviceName string)) *MockServiceFactoryInterface_IsServiceAvailable_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockServiceFactoryInterface_IsServiceAvailable_Call) Return(b bool) *MockServiceFactoryInterface_IsServiceAvailable_Call {
+	_c.Call.Return(b)
+	return _c
+}
+
+func (_c *MockServiceFactoryInterface_IsServiceAvailable_Call) RunAndReturn(run func(serviceName string) bool) *MockServiceFactoryInterface_IsServiceAvailable_Call {
+	_c.Call.Return(run)
+	return _c
+}
