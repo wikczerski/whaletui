@@ -6,7 +6,7 @@ import (
 	"github.com/rivo/tview"
 	"github.com/stretchr/testify/assert"
 	"github.com/wikczerski/whaletui/internal/config"
-	"github.com/wikczerski/whaletui/internal/ui/interfaces/mocks"
+	mocks "github.com/wikczerski/whaletui/internal/mocks/ui"
 )
 
 func newHeaderManagerWithTheme(t *testing.T) *HeaderManager {

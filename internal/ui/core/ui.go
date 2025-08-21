@@ -10,13 +10,16 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/wikczerski/whaletui/internal/config"
+	"github.com/wikczerski/whaletui/internal/domains/container"
+	"github.com/wikczerski/whaletui/internal/domains/image"
+	"github.com/wikczerski/whaletui/internal/domains/logs"
+	"github.com/wikczerski/whaletui/internal/domains/network"
+	"github.com/wikczerski/whaletui/internal/domains/volume"
 	"github.com/wikczerski/whaletui/internal/logger"
-	"github.com/wikczerski/whaletui/internal/services"
 	"github.com/wikczerski/whaletui/internal/ui/builders"
 	"github.com/wikczerski/whaletui/internal/ui/constants"
 	"github.com/wikczerski/whaletui/internal/ui/handlers"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
-	"github.com/wikczerski/whaletui/internal/ui/views"
 	"github.com/wikczerski/whaletui/internal/ui/views/shell"
 )
 
@@ -27,7 +30,7 @@ type UI struct {
 	mainFlex       *tview.Flex
 	statusBar      *tview.TextView
 	viewContainer  *tview.Flex
-	services       services.ServiceFactoryInterface
+	services       interfaces.ServiceFactoryInterface
 	log            *slog.Logger
 	shutdownChan   chan struct{}
 	inDetailsMode  bool            // Track if we're in details view mode
@@ -44,11 +47,11 @@ type UI struct {
 	modalManager   interfaces.ModalManagerInterface
 
 	// Individual views
-	containersView *views.ContainersView
-	imagesView     *views.ImagesView
-	volumesView    *views.VolumesView
-	networksView   *views.NetworksView
-	logsView       *views.LogsView
+	containersView *container.ContainersView
+	imagesView     *image.ImagesView
+	volumesView    *volume.VolumesView
+	networksView   *network.NetworksView
+	logsView       *logs.LogsView
 	shellView      *shell.View
 
 	// Component builders
@@ -61,7 +64,7 @@ type UI struct {
 }
 
 // New creates a new UI
-func New(serviceFactory services.ServiceFactoryInterface, themePath string, headerManager interfaces.HeaderManagerInterface, modalManager interfaces.ModalManagerInterface) (*UI, error) {
+func New(serviceFactory interfaces.ServiceFactoryInterface, themePath string, headerManager interfaces.HeaderManagerInterface, modalManager interfaces.ModalManagerInterface) (*UI, error) {
 	// Enable TUI mode in logger immediately when creating UI to prevent stderr interference
 	logger.SetTUIMode(true)
 
@@ -107,7 +110,7 @@ func (ui *UI) GetShutdownChan() chan struct{} {
 }
 
 // GetServices returns the service factory
-func (ui *UI) GetServices() services.ServiceFactoryInterface {
+func (ui *UI) GetServices() interfaces.ServiceFactoryInterface {
 	return ui.services
 }
 
@@ -219,9 +222,9 @@ func (ui *UI) ShowShell(containerID, containerName string) {
 }
 
 // GetLogsView returns the logs view for any resource type
-func (ui *UI) GetLogsView(resourceType, resourceID, resourceName string) *views.LogsView {
+func (ui *UI) GetLogsView(resourceType, resourceID, resourceName string) *logs.LogsView {
 	if ui.logsView == nil || ui.logsView.ResourceID != resourceID || ui.logsView.ResourceType != resourceType {
-		ui.logsView = views.NewLogsView(ui, resourceType, resourceID, resourceName)
+		ui.logsView = logs.NewLogsView(ui, resourceType, resourceID, resourceName)
 	}
 	return ui.logsView
 }
@@ -374,10 +377,10 @@ func (ui *UI) createAndRegisterViews() {
 
 // createResourceViews creates all the resource views
 func (ui *UI) createResourceViews() {
-	ui.containersView = views.NewContainersView(ui)
-	ui.imagesView = views.NewImagesView(ui)
-	ui.volumesView = views.NewVolumesView(ui)
-	ui.networksView = views.NewNetworksView(ui)
+	ui.containersView = container.NewContainersView(ui)
+	ui.imagesView = image.NewImagesView(ui)
+	ui.volumesView = volume.NewVolumesView(ui)
+	ui.networksView = network.NewNetworksView(ui)
 }
 
 // registerViewsWithActions registers views with their metadata and actions
@@ -395,7 +398,9 @@ func (ui *UI) registerViewsWithActions() {
 func (ui *UI) registerContainerView() {
 	containerActions := ""
 	if ui.services != nil && ui.services.GetContainerService() != nil {
-		containerActions = ui.services.GetContainerService().GetActionsString()
+		if actionService, ok := ui.services.GetContainerService().(interfaces.ServiceWithActions); ok {
+			containerActions = actionService.GetActionsString()
+		}
 	}
 	ui.viewRegistry.Register("containers", "Containers", 'c', ui.containersView.GetView(), ui.containersView.Refresh, containerActions)
 }
@@ -407,14 +412,20 @@ func (ui *UI) registerResourceViews() {
 	networkActions := ""
 
 	if ui.services != nil {
-		if ui.services.GetImageService() != nil {
-			imageActions = ui.services.GetImageService().GetActionsString()
+		if imageService := ui.services.GetImageService(); imageService != nil {
+			if actionService, ok := imageService.(interfaces.ServiceWithActions); ok {
+				imageActions = actionService.GetActionsString()
+			}
 		}
-		if ui.services.GetVolumeService() != nil {
-			volumeActions = ui.services.GetVolumeService().GetActionsString()
+		if volumeService := ui.services.GetVolumeService(); volumeService != nil {
+			if actionService, ok := volumeService.(interfaces.ServiceWithActions); ok {
+				volumeActions = actionService.GetActionsString()
+			}
 		}
-		if ui.services.GetNetworkService() != nil {
-			networkActions = ui.services.GetNetworkService().GetActionsString()
+		if networkService := ui.services.GetNetworkService(); networkService != nil {
+			if actionService, ok := networkService.(interfaces.ServiceWithActions); ok {
+				networkActions = actionService.GetActionsString()
+			}
 		}
 	}
 
@@ -885,7 +896,9 @@ func (ui *UI) setLogsFocus() {
 // createShellView creates a new shell view for the container
 func (ui *UI) createShellView(containerID, containerName string) {
 	containerService := ui.services.GetContainerService()
-	ui.shellView = shell.NewView(ui, containerID, containerName, ui.handleShellExit, containerService.ExecContainer)
+	if cs, ok := containerService.(interfaces.ContainerService); ok {
+		ui.shellView = shell.NewView(ui, containerID, containerName, ui.handleShellExit, cs.ExecContainer)
+	}
 }
 
 // displayShellView displays the shell view in the container

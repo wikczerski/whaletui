@@ -6,7 +6,6 @@ import (
 
 	"github.com/rivo/tview"
 	"github.com/stretchr/testify/assert"
-	"github.com/wikczerski/whaletui/internal/services"
 	"github.com/wikczerski/whaletui/internal/ui/handlers"
 	"github.com/wikczerski/whaletui/internal/ui/managers"
 )
@@ -14,7 +13,7 @@ import (
 func TestNew(t *testing.T) {
 	tests := []struct {
 		name           string
-		serviceFactory *services.ServiceFactory
+		serviceFactory *ServiceFactory
 		expectError    bool
 		expectNilUI    bool
 	}{
@@ -26,7 +25,7 @@ func TestNew(t *testing.T) {
 		},
 		{
 			name:           "ValidServiceFactory",
-			serviceFactory: &services.ServiceFactory{},
+			serviceFactory: &ServiceFactory{},
 			expectError:    false,
 			expectNilUI:    false,
 		},

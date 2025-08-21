@@ -9,7 +9,6 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/wikczerski/whaletui/internal/config"
-	"github.com/wikczerski/whaletui/internal/services"
 	"github.com/wikczerski/whaletui/internal/ui/builders"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 )
@@ -103,7 +102,7 @@ func (ah *ActionHandlers) updateInspectView(
 func (ah *ActionHandlers) HandleContainerAction(
 	action rune,
 	containerID, containerName string,
-	containerService services.ContainerService,
+	containerService interface{},
 	onRefresh func(),
 ) {
 	if ah.handleContainerLifecycleAction(action, containerID, containerService, onRefresh) {
@@ -121,18 +120,24 @@ func (ah *ActionHandlers) HandleContainerAction(
 func (ah *ActionHandlers) handleContainerLifecycleAction(
 	action rune,
 	containerID string,
-	containerService services.ContainerService,
+	containerService interface{},
 	onRefresh func(),
 ) bool {
 	switch action {
 	case 's':
-		ah.executor.StartOperation("container", containerID, containerService.StartContainer, onRefresh)
+		if cs, ok := containerService.(interfaces.ContainerService); ok {
+			ah.executor.StartOperation("container", containerID, cs.StartContainer, onRefresh)
+		}
 		return true
 	case 'S':
-		ah.executor.StopOperation("container", containerID, containerService.StopContainer, onRefresh)
+		if cs, ok := containerService.(interfaces.ContainerService); ok {
+			ah.executor.StopOperation("container", containerID, cs.StopContainer, onRefresh)
+		}
 		return true
 	case 'r':
-		ah.executor.RestartOperation("container", containerID, containerService.RestartContainer, onRefresh)
+		if cs, ok := containerService.(interfaces.ContainerService); ok {
+			ah.executor.RestartOperation("container", containerID, cs.RestartContainer, onRefresh)
+		}
 		return true
 	}
 	return false
@@ -142,15 +147,19 @@ func (ah *ActionHandlers) handleContainerLifecycleAction(
 func (ah *ActionHandlers) handleContainerManagementAction(
 	action rune,
 	containerID, containerName string,
-	containerService services.ContainerService,
+	containerService interface{},
 	onRefresh func(),
 ) bool {
 	switch action {
 	case 'd':
-		ah.HandleDeleteAction("container", containerID, containerName, containerService.RemoveContainer, onRefresh)
+		if cs, ok := containerService.(interfaces.ContainerService); ok {
+			ah.HandleDeleteAction("container", containerID, containerName, cs.RemoveContainer, onRefresh)
+		}
 		return true
 	case 'i':
-		ah.HandleInspectAction("container", containerID, containerService.InspectContainer)
+		if cs, ok := containerService.(interfaces.ContainerService); ok {
+			ah.HandleInspectAction("container", containerID, cs.InspectContainer)
+		}
 		return true
 	}
 	return false
@@ -160,7 +169,7 @@ func (ah *ActionHandlers) handleContainerManagementAction(
 func (ah *ActionHandlers) handleContainerAccessAction(
 	action rune,
 	containerID, containerName string,
-	containerService services.ContainerService,
+	containerService interface{},
 ) bool {
 	switch action {
 	case 'a':
@@ -170,7 +179,9 @@ func (ah *ActionHandlers) handleContainerAccessAction(
 		ah.ui.ShowLogs(containerID, containerName)
 		return true
 	case 'e':
-		ah.HandleExecAction(containerID, containerName, containerService.ExecContainer)
+		if cs, ok := containerService.(interfaces.ContainerService); ok {
+			ah.HandleExecAction(containerID, containerName, cs.ExecContainer)
+		}
 		return true
 	}
 	return false
@@ -180,16 +191,22 @@ func (ah *ActionHandlers) handleContainerAccessAction(
 func (ah *ActionHandlers) HandleContainerLifecycleAction(
 	action rune,
 	containerID string,
-	containerService services.ContainerService,
+	containerService interface{},
 	onRefresh func(),
 ) {
 	switch action {
 	case 's':
-		ah.executor.StartOperation("container", containerID, containerService.StartContainer, onRefresh)
+		if cs, ok := containerService.(interfaces.ContainerService); ok {
+			ah.executor.StartOperation("container", containerID, cs.StartContainer, onRefresh)
+		}
 	case 'S':
-		ah.executor.StopOperation("container", containerID, containerService.StopContainer, onRefresh)
+		if cs, ok := containerService.(interfaces.ContainerService); ok {
+			ah.executor.StopOperation("container", containerID, cs.StopContainer, onRefresh)
+		}
 	case 'r':
-		ah.executor.RestartOperation("container", containerID, containerService.RestartContainer, onRefresh)
+		if cs, ok := containerService.(interfaces.ContainerService); ok {
+			ah.executor.RestartOperation("container", containerID, cs.RestartContainer, onRefresh)
+		}
 	}
 }
 
@@ -197,14 +214,18 @@ func (ah *ActionHandlers) HandleContainerLifecycleAction(
 func (ah *ActionHandlers) HandleContainerManagementAction(
 	action rune,
 	containerID, containerName string,
-	containerService services.ContainerService,
+	containerService interface{},
 	onRefresh func(),
 ) {
 	switch action {
 	case 'd':
-		ah.HandleDeleteAction("container", containerID, containerName, containerService.RemoveContainer, onRefresh)
+		if cs, ok := containerService.(interfaces.ContainerService); ok {
+			ah.HandleDeleteAction("container", containerID, containerName, cs.RemoveContainer, onRefresh)
+		}
 	case 'i':
-		ah.HandleInspectAction("container", containerID, containerService.InspectContainer)
+		if cs, ok := containerService.(interfaces.ContainerService); ok {
+			ah.HandleInspectAction("container", containerID, cs.InspectContainer)
+		}
 	}
 }
 
@@ -212,7 +233,7 @@ func (ah *ActionHandlers) HandleContainerManagementAction(
 func (ah *ActionHandlers) HandleContainerAccessAction(
 	action rune,
 	containerID, containerName string,
-	containerService services.ContainerService,
+	containerService interface{},
 ) {
 	switch action {
 	case 'a':
@@ -220,7 +241,9 @@ func (ah *ActionHandlers) HandleContainerAccessAction(
 	case 'l':
 		ah.ui.ShowLogs(containerID, containerName)
 	case 'e':
-		ah.HandleExecAction(containerID, containerName, containerService.ExecContainer)
+		if cs, ok := containerService.(interfaces.ContainerService); ok {
+			ah.HandleExecAction(containerID, containerName, cs.ExecContainer)
+		}
 	}
 }
 
