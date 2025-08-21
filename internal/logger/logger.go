@@ -14,6 +14,7 @@ var (
 	logFile  *os.File
 	logPath  string
 	mu       sync.RWMutex
+	tuiMode  bool // Flag to indicate if TUI mode is active
 )
 
 // GetLogger returns the singleton logger instance
@@ -72,7 +73,8 @@ func SetLevelWithPath(level, logFilePath string) {
 	var handler slog.Handler
 
 	if level == "DEBUG" {
-		// For DEBUG level, use multistream to log to both file and console
+		// For DEBUG level, always use multistream but with appropriate console output
+		// In TUI mode, console output goes to a separate file to prevent interference
 		handler = createMultistreamHandler(slogLevel, logFilePath)
 	} else {
 		// For other levels, use console only
@@ -114,11 +116,132 @@ func createMultistreamHandler(level slog.Level, logFilePath string) slog.Handler
 	logFile = file
 	logPath = logFilePath
 
+	// Create multistream writer - use hybrid approach when in TUI mode
+	var consoleOutput io.Writer
+	if tuiMode {
+		// In TUI mode, create a hybrid handler that shows INFO+ messages in terminal
+		// but only writes DEBUG messages to file to prevent interference
+		return createHybridHandler(level, file, logFilePath)
+	}
+
+	// Not in TUI mode, use stderr as usual
+	consoleOutput = os.Stderr
+
 	// Create multistream writer
-	multiWriter := io.MultiWriter(os.Stderr, file)
+	multiWriter := io.MultiWriter(consoleOutput, file)
 
 	// Create handler with multistream
 	return slog.NewTextHandler(multiWriter, &slog.HandlerOptions{
+		Level: level,
+	})
+}
+
+// createHybridHandler creates a handler that shows INFO+ messages in terminal
+// but only writes DEBUG messages to file to prevent TUI interference
+func createHybridHandler(level slog.Level, file *os.File, _ string) slog.Handler {
+	// Create a custom handler that filters messages based on level
+	return &hybridHandler{
+		level: level,
+		file:  file,
+		// Use stderr for INFO+ messages (visible in terminal)
+		// Use file for all messages (including DEBUG)
+		terminalOutput: os.Stderr,
+		fileOutput:     file,
+	}
+}
+
+// hybridHandler is a custom slog.Handler that handles different log levels differently
+type hybridHandler struct {
+	level          slog.Level
+	file           *os.File
+	terminalOutput io.Writer
+	fileOutput     io.Writer
+}
+
+// Enabled returns whether the handler should process the given record
+func (h *hybridHandler) Enabled(_ context.Context, level slog.Level) bool {
+	return level >= h.level
+}
+
+// Handle processes the log record
+//
+//nolint:gocritic // slog.Handler interface requires slog.Record by value, not pointer
+func (h *hybridHandler) Handle(_ context.Context, r slog.Record) error {
+	// Always write to file
+	if err := h.writeToFile(&r); err != nil {
+		return err
+	}
+
+	// Only write INFO+ messages to terminal to prevent TUI interference
+	if r.Level >= slog.LevelInfo {
+		return h.writeToTerminal(&r)
+	}
+
+	return nil
+}
+
+// WithAttrs returns a new handler with the given attributes
+func (h *hybridHandler) WithAttrs(_ []slog.Attr) slog.Handler {
+	// For simplicity, return the same handler
+	// In a more sophisticated implementation, you might want to handle attributes
+	return h
+}
+
+// WithGroup returns a new handler with the given group name
+func (h *hybridHandler) WithGroup(_ string) slog.Handler {
+	// For simplicity, return the same handler
+	// In a more sophisticated implementation, you might want to handle groups
+	return h
+}
+
+// writeToFile writes the log record to the file
+func (h *hybridHandler) writeToFile(r *slog.Record) error {
+	// Use the standard text handler format for file output
+	handler := slog.NewTextHandler(h.fileOutput, &slog.HandlerOptions{
+		Level: h.level,
+	})
+	return handler.Handle(context.Background(), *r)
+}
+
+// writeToTerminal writes the log record to the terminal
+func (h *hybridHandler) writeToTerminal(r *slog.Record) error {
+	// Use the standard text handler format for terminal output
+	handler := slog.NewTextHandler(h.terminalOutput, &slog.HandlerOptions{
+		Level: h.level,
+	})
+	return handler.Handle(context.Background(), *r)
+}
+
+// createFileOnlyHandler creates a handler that writes only to a file (for TUI mode)
+func createFileOnlyHandler(level slog.Level, logFilePath string) slog.Handler {
+	// Use provided path or default
+	if logFilePath == "" {
+		logFilePath = "./logs/whaletui.log"
+	}
+
+	// Create logs directory if it doesn't exist
+	logsDir := filepath.Dir(logFilePath)
+	if err := os.MkdirAll(logsDir, 0o755); err != nil {
+		// Fallback to discard if directory creation fails
+		return slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
+			Level: level,
+		})
+	}
+
+	// Open log file
+	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		// Fallback to discard if file creation fails
+		return slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
+			Level: level,
+		})
+	}
+
+	logFile = file
+	logPath = logFilePath
+
+	// Create handler with file only
+	return slog.NewTextHandler(file, &slog.HandlerOptions{
 		Level: level,
 	})
 }
@@ -175,4 +298,34 @@ func With(args ...any) *slog.Logger {
 // WithGroup returns a new logger with the given group name
 func WithGroup(name string) *slog.Logger {
 	return GetLogger().WithGroup(name)
+}
+
+// SetTUIMode sets whether the logger should avoid stderr output (for TUI mode)
+func SetTUIMode(enabled bool) {
+	mu.Lock()
+	defer mu.Unlock()
+	tuiMode = enabled
+
+	// If we're currently in DEBUG mode and have a logger instance,
+	// recreate the handler to respect the new TUI mode setting
+	// Check directly without calling IsDebugMode() to avoid deadlock
+	if instance != nil && instance.Handler().Enabled(context.Background(), slog.LevelDebug) {
+		var handler slog.Handler
+		if tuiMode {
+			// In TUI mode, only log to file
+			handler = createFileOnlyHandler(slog.LevelDebug, logPath)
+		} else {
+			// Not in TUI mode, use multistream
+			handler = createMultistreamHandler(slog.LevelDebug, logPath)
+		}
+		instance = slog.New(handler)
+		slog.SetDefault(instance)
+	}
+}
+
+// IsTUIMode returns whether TUI mode is currently active
+func IsTUIMode() bool {
+	mu.RLock()
+	defer mu.RUnlock()
+	return tuiMode
 }

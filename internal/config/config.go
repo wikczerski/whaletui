@@ -30,7 +30,7 @@ func DefaultConfig() *Config {
 	}
 
 	return &Config{
-		RefreshInterval: 5,
+		RefreshInterval: 10, // Increased from 5 to reduce refresh frequency
 		LogLevel:        "INFO",
 		LogFilePath:     "./logs/whaletui.log",
 		DockerHost:      host,

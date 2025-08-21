@@ -27,6 +27,7 @@ type Client struct {
 	cfg     *config.Config
 	log     *slog.Logger
 	sshConn *SSHConnection
+	sshCtx  *SSHContext
 }
 
 // detectWindowsDockerHost attempts to find the correct Docker host on Windows
@@ -97,6 +98,11 @@ func New(cfg *config.Config) (*Client, error) {
 
 // createDockerClient creates a Docker client with the given configuration
 func createDockerClient(cfg *config.Config, log *slog.Logger) (*Client, error) {
+	// For SSH connections, try direct connection first
+	if cfg.RemoteHost != "" && strings.HasPrefix(cfg.RemoteHost, "ssh://") {
+		return createSSHDockerClient(cfg, log)
+	}
+
 	opts, err := buildClientOptions(cfg)
 	if err != nil {
 		return nil, err
@@ -108,6 +114,42 @@ func createDockerClient(cfg *config.Config, log *slog.Logger) (*Client, error) {
 	}
 
 	return testAndCreateClient(cfg, log, cli)
+}
+
+// createSSHDockerClient creates a Docker client via SSH connection
+func createSSHDockerClient(cfg *config.Config, log *slog.Logger) (*Client, error) {
+	log.Info("Attempting SSH connection for Docker client", "host", cfg.RemoteHost)
+
+	// Extract host from SSH URL
+	host, err := extractHostFromURL(cfg.RemoteHost)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract host from SSH URL: %w", err)
+	}
+
+	// First try to connect via SSH without socat
+	sshCtx, err := establishSSHConnection(host, cfg.RemoteUser, log)
+	if err != nil {
+		log.Warn("SSH connection without socat failed, trying with socat as fallback", "error", err)
+		return trySSHFallbackWithSocat(cfg, log, host)
+	}
+
+	// Try to create Docker client directly via SSH
+	cli, err := createDockerClientViaSSH(sshCtx, log)
+	if err != nil {
+		log.Warn("Direct SSH connection failed, trying socat fallback", "error", err)
+		sshCtx.Close()
+		return trySSHFallbackWithSocat(cfg, log, host)
+	}
+
+	client := &Client{
+		cli:    cli,
+		cfg:    cfg,
+		log:    log,
+		sshCtx: sshCtx,
+	}
+
+	log.Info("Successfully connected to remote Docker via SSH (direct)", "host", cfg.RemoteHost)
+	return client, nil
 }
 
 // buildClientOptions builds the client options based on configuration
@@ -206,7 +248,8 @@ func testAndCreateClient(cfg *config.Config, log *slog.Logger, cli *client.Clien
 		}
 
 		// If this is a remote host and direct connection failed, try SSH fallback
-		if cfg.RemoteHost != "" {
+		// Only try SSH fallback if it's not already an SSH connection
+		if cfg.RemoteHost != "" && !strings.HasPrefix(cfg.RemoteHost, "ssh://") {
 			return trySSHFallback(cfg, log)
 		}
 
@@ -236,15 +279,34 @@ func logConnectionSuccess(cfg *config.Config, log *slog.Logger) {
 func (c *Client) Close() error {
 	var errors []string
 
+	c.log.Info("Docker client closing, starting cleanup")
+
 	if c.cli != nil {
 		if err := c.cli.Close(); err != nil {
+			c.log.Error("Failed to close Docker client", "error", err)
 			errors = append(errors, fmt.Sprintf("Docker client close: %v", err))
+		} else {
+			c.log.Info("Docker client closed successfully")
 		}
 	}
 
 	if c.sshConn != nil {
+		c.log.Info("Closing SSH connection with socat")
 		if err := c.sshConn.Close(); err != nil {
+			c.log.Error("Failed to close SSH connection", "error", err)
 			errors = append(errors, fmt.Sprintf("SSH connection close: %v", err))
+		} else {
+			c.log.Info("SSH connection closed successfully")
+		}
+	}
+
+	if c.sshCtx != nil {
+		c.log.Info("Closing SSH context")
+		if err := c.sshCtx.Close(); err != nil {
+			c.log.Error("Failed to close SSH context", "error", err)
+			errors = append(errors, fmt.Sprintf("SSH context close: %v", err))
+		} else {
+			c.log.Info("SSH context closed successfully")
 		}
 	}
 
@@ -261,21 +323,48 @@ func trySSHFallback(cfg *config.Config, log *slog.Logger) (*Client, error) {
 
 	host, err := extractHostFromURL(cfg.RemoteHost)
 	if err != nil {
-		// SSH fallback failed - return clean error without help message
 		return nil, fmt.Errorf("SSH connection failed: %w", err)
 	}
 
-	sshConn, err := establishSSHConnection(host, cfg.RemoteUser, log)
+	// First try to connect via SSH without socat
+	sshCtx, err := establishSSHConnection(host, cfg.RemoteUser, log)
 	if err != nil {
-		// SSH connection failed - return clean error without help message
-		return nil, fmt.Errorf("SSH connection failed: %w", err)
+		log.Warn("SSH connection without socat failed, trying with socat as fallback", "error", err)
+		return trySSHFallbackWithSocat(cfg, log, host)
 	}
 
-	cli, err := createDockerClientViaSSH(sshConn, log)
+	// Try to create Docker client directly via SSH
+	cli, err := createDockerClientViaSSH(sshCtx, log)
+	if err != nil {
+		log.Warn("Direct SSH connection failed, trying socat fallback", "error", err)
+		sshCtx.Close()
+		return trySSHFallbackWithSocat(cfg, log, host)
+	}
+
+	client := &Client{
+		cli:    cli,
+		cfg:    cfg,
+		log:    log,
+		sshCtx: sshCtx,
+	}
+
+	log.Info("Successfully connected to remote Docker via SSH (direct)", "host", cfg.RemoteHost)
+	return client, nil
+}
+
+// trySSHFallbackWithSocat attempts to connect via SSH with socat as a last resort
+func trySSHFallbackWithSocat(cfg *config.Config, log *slog.Logger, host string) (*Client, error) {
+	log.Info("Attempting SSH connection with socat fallback...")
+
+	sshConn, err := establishSSHConnectionWithSocat(host, cfg.RemoteUser, log)
+	if err != nil {
+		return nil, fmt.Errorf("SSH connection with socat failed: %w", err)
+	}
+
+	cli, err := createDockerClientViaSSHProxy(sshConn, log)
 	if err != nil {
 		sshConn.Close()
-		// Docker client creation via SSH failed - return clean error without help message
-		return nil, fmt.Errorf("SSH connection failed: %w", err)
+		return nil, fmt.Errorf("SSH connection with socat failed: %w", err)
 	}
 
 	client := &Client{
@@ -285,13 +374,41 @@ func trySSHFallback(cfg *config.Config, log *slog.Logger) (*Client, error) {
 		sshConn: sshConn,
 	}
 
-	log.Info("Successfully connected to remote Docker via SSH", "host", cfg.RemoteHost)
+	log.Info("Successfully connected to remote Docker via SSH (socat fallback)", "host", cfg.RemoteHost)
 	return client, nil
 }
 
-// establishSSHConnection establishes an SSH connection to the remote host
-func establishSSHConnection(host, username string, log *slog.Logger) (*SSHConnection, error) {
-	log.Info("Attempting SSH connection", "host", host, "user", username)
+// establishSSHConnection establishes an SSH connection to the remote host without socat
+func establishSSHConnection(host, username string, log *slog.Logger) (*SSHContext, error) {
+	log.Info("Attempting SSH connection without socat", "host", host, "user", username)
+	log.Info("Note: SSH key-based authentication required (no password will be provided)")
+
+	// Format the host with username for SSH connection
+	var sshHost string
+	if username != "" {
+		sshHost = fmt.Sprintf("%s@%s", username, host)
+	} else {
+		sshHost = host
+	}
+
+	sshClient, err := NewSSHClient(sshHost, 22) // Default SSH port
+	if err != nil {
+		return nil, fmt.Errorf("failed to create SSH client: %w", err)
+	}
+
+	// Connect without socat
+	sshCtx, err := sshClient.Connect()
+	if err != nil {
+		return nil, fmt.Errorf("failed to establish SSH connection: %w", err)
+	}
+
+	log.Info("SSH connection established without socat", "host", host)
+	return sshCtx, nil
+}
+
+// establishSSHConnectionWithSocat establishes an SSH connection to the remote host with socat
+func establishSSHConnectionWithSocat(host, username string, log *slog.Logger) (*SSHConnection, error) {
+	log.Info("Attempting SSH connection with socat", "host", host, "user", username)
 	log.Info("Note: SSH key-based authentication required (no password will be provided)")
 
 	// Format the host with username for SSH connection
@@ -308,19 +425,48 @@ func establishSSHConnection(host, username string, log *slog.Logger) (*SSHConnec
 	}
 
 	// Pass port 0 to trigger dynamic port finding in the SSH client
-	sshConn, err := sshClient.Connect(0)
+	sshConn, err := sshClient.ConnectWithSocat(0)
 	if err != nil {
 		return nil, fmt.Errorf("failed to establish SSH connection: %w", err)
 	}
 
 	localProxyHost := sshConn.GetLocalProxyHost()
-	log.Info("SSH connection established, socat proxy running on", "host", localProxyHost)
+	log.Info("SSH connection established with socat proxy", "host", localProxyHost)
 
 	return sshConn, nil
 }
 
-// createDockerClientViaSSH creates a Docker client using the SSH proxy
-func createDockerClientViaSSH(sshConn *SSHConnection, _ *slog.Logger) (*client.Client, error) {
+// createDockerClientViaSSH creates a Docker client using direct SSH connection
+func createDockerClientViaSSH(sshCtx *SSHContext, _ *slog.Logger) (*client.Client, error) {
+	// For direct SSH connection, we need to use the ssh:// URL format
+	// This requires the Docker client to have SSH support built-in
+	sshURL := fmt.Sprintf("ssh://%s", sshCtx.remoteHost)
+
+	opts := []client.Opt{
+		client.WithHost(sshURL),
+		client.WithAPIVersionNegotiation(),
+		client.WithTimeout(30 * time.Second),
+	}
+
+	cli, err := client.NewClientWithOpts(opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Docker client via SSH: %w", err)
+	}
+
+	// Test the connection
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if _, err := cli.Ping(ctx); err != nil {
+		cli.Close()
+		return nil, fmt.Errorf("failed to connect to Docker via SSH: %w", err)
+	}
+
+	return cli, nil
+}
+
+// createDockerClientViaSSHProxy creates a Docker client using the SSH proxy
+func createDockerClientViaSSHProxy(sshConn *SSHConnection, _ *slog.Logger) (*client.Client, error) {
 	localProxyHost := sshConn.GetLocalProxyHost()
 
 	opts := []client.Opt{

@@ -51,6 +51,43 @@ func NewBaseView[T any](ui interfaces.UIInterface, viewName string, headers []st
 	return bv
 }
 
+func (bv *BaseView[T]) GetView() tview.Primitive {
+	return bv.view
+}
+
+func (bv *BaseView[T]) Refresh() {
+	if bv.ListItems == nil {
+		return
+	}
+
+	items, err := bv.ListItems(context.Background())
+	if err != nil {
+		bv.ui.ShowError(err)
+		return
+	}
+
+	bv.updateItemsAndTable(items)
+}
+
+func (bv *BaseView[T]) ShowItemDetails(item T, inspectData map[string]any, err error) {
+	actions := bv.getActionsForItem()
+
+	if bv.shouldShowErrorDetails(err) {
+		bv.showErrorDetails(item, err, actions)
+		return
+	}
+
+	bv.showSuccessDetails(item, inspectData, actions)
+}
+
+func (bv *BaseView[T]) ShowConfirmDialog(message string, onConfirm func()) {
+	bv.ui.ShowConfirm(message, func(confirmed bool) {
+		if confirmed {
+			onConfirm()
+		}
+	})
+}
+
 func (bv *BaseView[T]) setupKeyBindings() {
 	bv.table.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		row, _ := bv.table.GetSelection()
@@ -75,35 +112,33 @@ func (bv *BaseView[T]) setupKeyBindings() {
 	})
 }
 
-func (bv *BaseView[T]) GetView() tview.Primitive {
-	return bv.view
-}
-
-func (bv *BaseView[T]) Refresh() {
-	if bv.ListItems == nil {
-		return
-	}
-
-	items, err := bv.ListItems(context.Background())
-	if err != nil {
-		bv.ui.ShowError(err)
-		return
-	}
-
-	bv.updateItemsAndTable(items)
-}
-
 // updateItemsAndTable updates the items and refreshes the table display
 func (bv *BaseView[T]) updateItemsAndTable(items []T) {
+	// Store items first to ensure they're available for selection
 	bv.items = items
+
+	// Completely clear the table to prevent leftover content
 	bv.table.Clear()
+
+	// Reset table selection to prevent display issues
+	bv.table.Select(0, 0)
+
+	// Ensure the table is properly initialized
+	bv.table.SetFixed(1, 0)
+
+	// Ensure headers are always visible
 	builders.NewTableBuilder().SetupHeaders(bv.table, bv.headers)
 
-	if bv.FormatRow != nil {
+	// Only populate rows if we have items and a formatter
+	if bv.FormatRow != nil && len(items) > 0 {
 		bv.populateTableRows(items)
 	}
 
+	// Ensure proper selection state
 	bv.selectFirstRowIfAvailable(items)
+
+	// Note: Don't call table.Draw(nil) manually - tview handles drawing automatically
+	// This prevents the panic and ensures proper UI updates
 }
 
 // populateTableRows populates the table with formatted row data
@@ -126,19 +161,12 @@ func (bv *BaseView[T]) getRowColor(item T) tcell.Color {
 // selectFirstRowIfAvailable selects the first row if items are available
 func (bv *BaseView[T]) selectFirstRowIfAvailable(items []T) {
 	if len(items) > 0 {
+		// Ensure we're selecting a valid row and column
 		bv.table.Select(1, 0)
+	} else {
+		// If no items, clear selection to prevent display issues
+		bv.table.Select(0, 0)
 	}
-}
-
-func (bv *BaseView[T]) ShowItemDetails(item T, inspectData map[string]any, err error) {
-	actions := bv.getActionsForItem()
-
-	if bv.shouldShowErrorDetails(err) {
-		bv.showErrorDetails(item, err, actions)
-		return
-	}
-
-	bv.showSuccessDetails(item, inspectData, actions)
 }
 
 // shouldShowErrorDetails determines if error details should be shown
@@ -185,12 +213,4 @@ func (bv *BaseView[T]) handleAction(key rune) {
 
 func (bv *BaseView[T]) showTable() {
 	bv.ui.ShowCurrentView()
-}
-
-func (bv *BaseView[T]) ShowConfirmDialog(message string, onConfirm func()) {
-	bv.ui.ShowConfirm(message, func(confirmed bool) {
-		if confirmed {
-			onConfirm()
-		}
-	})
 }

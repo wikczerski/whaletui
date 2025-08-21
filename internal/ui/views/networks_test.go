@@ -92,21 +92,24 @@ func TestNetworksView_Refresh_NoServices(t *testing.T) {
 func TestNetworksView_Refresh_WithServices(t *testing.T) {
 	mockNetworks := []models.Network{
 		{
-			ID:      "network1",
-			Name:    "bridge",
-			Driver:  "bridge",
-			Scope:   "local",
-			Created: time.Now(),
+			ID:         "network1",
+			Name:       "bridge",
+			Driver:     "bridge",
+			Scope:      "local",
+			Internal:   false,
+			Created:    time.Now(),
+			Containers: 5,
 		},
 		{
-			ID:      "network2",
-			Name:    "host",
-			Driver:  "host",
-			Scope:   "local",
-			Created: time.Now().Add(-24 * time.Hour),
+			ID:         "network2",
+			Name:       "host",
+			Driver:     "host",
+			Scope:      "local",
+			Internal:   false,
+			Created:    time.Now().Add(-24 * time.Hour),
+			Containers: 2,
 		},
 	}
-
 	ns := servicemocks.NewMockNetworkService(t)
 	ns.On("ListNetworks", context.Background()).Return(mockNetworks, nil)
 
@@ -138,11 +141,13 @@ func TestNetworksView_ShowNetworkDetails_Success(t *testing.T) {
 	ns.On("InspectNetwork", context.Background(), "network1").Return(map[string]any{"ok": true}, nil).Maybe()
 
 	mockNetwork := models.Network{
-		ID:      "network1",
-		Name:    "bridge",
-		Driver:  "bridge",
-		Scope:   "local",
-		Created: time.Now(),
+		ID:         "network1",
+		Name:       "bridge",
+		Driver:     "bridge",
+		Scope:      "local",
+		Internal:   false,
+		Created:    time.Now(),
+		Containers: 5,
 	}
 
 	sf := &services.ServiceFactory{NetworkService: ns}
@@ -151,8 +156,9 @@ func TestNetworksView_ShowNetworkDetails_Success(t *testing.T) {
 
 	networksView := NewNetworksView(ui)
 	networksView.items = []models.Network{mockNetwork}
+	networksView.showNetworkDetails(&mockNetwork)
 
-	assert.NotNil(t, networksView.showNetworkDetails)
+	assert.NotNil(t, networksView)
 }
 
 func TestNetworksView_ShowNetworkDetails_InspectError(t *testing.T) {
@@ -160,11 +166,13 @@ func TestNetworksView_ShowNetworkDetails_InspectError(t *testing.T) {
 	ns.On("InspectNetwork", context.Background(), "network1").Return(map[string]any(nil), assert.AnError).Maybe()
 
 	mockNetwork := models.Network{
-		ID:      "network1",
-		Name:    "bridge",
-		Driver:  "bridge",
-		Scope:   "local",
-		Created: time.Now(),
+		ID:         "network1",
+		Name:       "bridge",
+		Driver:     "bridge",
+		Scope:      "local",
+		Internal:   false,
+		Created:    time.Now(),
+		Containers: 5,
 	}
 
 	sf := &services.ServiceFactory{NetworkService: ns}
@@ -173,8 +181,9 @@ func TestNetworksView_ShowNetworkDetails_InspectError(t *testing.T) {
 
 	networksView := NewNetworksView(ui)
 	networksView.items = []models.Network{mockNetwork}
+	networksView.showNetworkDetails(&mockNetwork)
 
-	assert.NotNil(t, networksView.showNetworkDetails)
+	assert.NotNil(t, networksView)
 }
 
 func TestNetworksView_HandleAction_Delete(t *testing.T) {

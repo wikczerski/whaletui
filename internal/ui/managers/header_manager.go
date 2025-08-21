@@ -74,6 +74,11 @@ func (hm *HeaderManager) createLogoColumn() *tview.TextView {
 
 // UpdateAll updates all header columns
 func (hm *HeaderManager) UpdateAll() {
+	// Skip header updates during refresh cycles to prevent empty spaces and newlines
+	if hm.ui.IsRefreshing() {
+		return
+	}
+
 	// Ensure columns are initialized before updating
 	if hm.dockerInfoCol == nil || hm.navCol == nil || hm.actionsCol == nil {
 		return
@@ -190,7 +195,7 @@ func (hm *HeaderManager) UpdateActions() {
 // updateLogsActions updates the actions column with logs-specific actions
 func (hm *HeaderManager) updateLogsActions() {
 	services := hm.ui.GetServices()
-	if services == nil || services.GetLogsService() == nil {
+	if !services.IsServiceAvailable("logs") {
 		hm.actionsCol.SetText("ESC/Enter: Back to table")
 		return
 	}
@@ -217,6 +222,8 @@ func (hm *HeaderManager) updateDetailsActions() {
 		hm.actionsCol.SetText(actionsText)
 		return
 	}
+	// Fallback to default actions
+	hm.actionsCol.SetText("ESC/Enter: Back\n<up/down> Scroll JSON\n<:> Command mode")
 }
 
 // updateViewActions updates the actions column with view-specific actions
@@ -235,7 +242,7 @@ func (hm *HeaderManager) updateViewActions() {
 // setDefaultContainerActions sets the default container actions
 func (hm *HeaderManager) setDefaultContainerActions() {
 	services := hm.ui.GetServices()
-	if services == nil || services.GetContainerService() == nil {
+	if !services.IsContainerServiceAvailable() {
 		hm.actionsCol.SetText("")
 		return
 	}

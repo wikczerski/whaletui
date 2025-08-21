@@ -25,13 +25,22 @@ type SSHClient struct {
 	log    *slog.Logger
 }
 
-// SSHConnection represents an active SSH connection with a socat proxy
+// SSHConnection represents an active SSH connection
 type SSHConnection struct {
 	client     *ssh.Client
 	session    *ssh.Session
 	localPort  int
 	remoteHost string
-	remotePort int // Port used for the socat proxy on remote machine
+	remotePort int
+	socatPID   string // Store the PID of the socat process we started
+	log        *slog.Logger
+}
+
+// SSHContext represents the SSH connection context without socat
+type SSHContext struct {
+	client     *ssh.Client
+	remoteHost string
+	log        *slog.Logger
 }
 
 // NewSSHClient creates a new SSH client for the specified host
@@ -128,10 +137,6 @@ func (s *SSHClient) DiagnoseConnection() error {
 	defer client.Close()
 
 	// Test basic SSH functionality
-	if err := s.checkSocatAvailability(client); err != nil {
-		errors = append(errors, fmt.Sprintf("Socat availability: %v", err))
-	}
-
 	if err := s.checkDockerSocketAccess(client); err != nil {
 		errors = append(errors, fmt.Sprintf("Docker socket access: %v", err))
 	}
@@ -318,8 +323,34 @@ func (s *SSHClient) validateHostname() error {
 	return nil
 }
 
-// Connect establishes an SSH connection and sets up a socat proxy
-func (s *SSHClient) Connect(remotePort int) (*SSHConnection, error) {
+// Connect establishes an SSH connection without socat
+func (s *SSHClient) Connect() (*SSHContext, error) {
+	// Validate that the hostname can be resolved
+	if err := s.validateHostname(); err != nil {
+		return nil, fmt.Errorf("hostname validation failed: %w", err)
+	}
+
+	// Connect to SSH server
+	client, err := ssh.Dial("tcp", net.JoinHostPort(s.host, s.port), s.config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to SSH server %s:%s: %w", s.host, s.port, err)
+	}
+
+	// Check if Docker socket exists and is accessible
+	if err := s.checkDockerSocketAccess(client); err != nil {
+		client.Close()
+		return nil, fmt.Errorf("docker socket not accessible: %w", err)
+	}
+
+	return &SSHContext{
+		client:     client,
+		remoteHost: s.host,
+		log:        s.log,
+	}, nil
+}
+
+// ConnectWithSocat establishes an SSH connection and sets up a socat proxy (fallback method)
+func (s *SSHClient) ConnectWithSocat(remotePort int) (*SSHConnection, error) {
 	// Validate that the hostname can be resolved
 	if err := s.validateHostname(); err != nil {
 		return nil, fmt.Errorf("hostname validation failed: %w", err)
@@ -339,15 +370,10 @@ func (s *SSHClient) Connect(remotePort int) (*SSHConnection, error) {
 	}
 
 	// Set up socat proxy on remote machine
-	session, err := s.setupSocatProxy(client, localPort, remotePort)
+	session, pid, actualRemotePort, err := s.setupSocatProxy(client, localPort, remotePort)
 	if err != nil {
 		client.Close()
 		return nil, fmt.Errorf("failed to set up socat proxy: %w", err)
-	}
-
-	// Store the actual remote port used (in case it was defaulted)
-	if remotePort == 0 {
-		remotePort = 2375
 	}
 
 	return &SSHConnection{
@@ -355,18 +381,20 @@ func (s *SSHClient) Connect(remotePort int) (*SSHConnection, error) {
 		session:    session,
 		localPort:  localPort,
 		remoteHost: s.host,
-		remotePort: remotePort,
+		remotePort: actualRemotePort, // Use the actual port returned by setupSocatProxy
+		socatPID:   pid,
+		log:        s.log,
 	}, nil
 }
 
 // setupSocatProxy sets up a socat proxy on the remote machine
-func (s *SSHClient) setupSocatProxy(client *ssh.Client, _, remotePort int) (*ssh.Session, error) {
+func (s *SSHClient) setupSocatProxy(client *ssh.Client, _, remotePort int) (session *ssh.Session, pid string, port int, err error) {
 	// Build the socat command with better error handling and use a specific port
 	if remotePort == 0 {
 		// Find an available port on the remote machine
 		availablePort, err := s.findAvailableRemotePort(client)
 		if err != nil {
-			return nil, fmt.Errorf("failed to find available remote port: %w", err)
+			return nil, "", 0, fmt.Errorf("failed to find available remote port: %w", err)
 		}
 		remotePort = availablePort
 	}
@@ -376,18 +404,18 @@ func (s *SSHClient) setupSocatProxy(client *ssh.Client, _, remotePort int) (*ssh
 
 	// First, check if socat is available on the remote machine
 	if err := s.checkSocatAvailability(client); err != nil {
-		return nil, fmt.Errorf("socat not available on remote machine: %w", err)
+		return nil, "", 0, fmt.Errorf("socat not available on remote machine: %w", err)
 	}
 
 	// Check if Docker socket exists and is accessible
 	if err := s.checkDockerSocketAccess(client); err != nil {
-		return nil, fmt.Errorf("docker socket not accessible: %w", err)
+		return nil, "", 0, fmt.Errorf("docker socket not accessible: %w", err)
 	}
 
 	// Create a new session for the socat command
-	session, err := client.NewSession()
+	session, err = client.NewSession()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create SSH session for socat: %w", err)
+		return nil, "", 0, fmt.Errorf("failed to create SSH session for socat: %w", err)
 	}
 
 	// Build the socat command with better error handling
@@ -398,14 +426,14 @@ func (s *SSHClient) setupSocatProxy(client *ssh.Client, _, remotePort int) (*ssh
 	output, err := session.Output(socatCmd)
 	if err != nil {
 		session.Close()
-		return nil, fmt.Errorf("failed to start socat proxy: %w", err)
+		return nil, "", 0, fmt.Errorf("failed to start socat proxy: %w", err)
 	}
 
 	// Parse the PID from output
-	pid := strings.TrimSpace(string(output))
+	pid = strings.TrimSpace(string(output))
 	if pid == "" {
 		session.Close()
-		return nil, fmt.Errorf("failed to get socat process ID")
+		return nil, "", 0, fmt.Errorf("failed to get socat process ID")
 	}
 
 	// Log the PID
@@ -419,19 +447,19 @@ func (s *SSHClient) setupSocatProxy(client *ssh.Client, _, remotePort int) (*ssh
 
 	// Verify the socat process is running with a new session
 	if err := s.verifySocatProcess(client, pid, remotePort); err != nil {
-		return nil, fmt.Errorf("socat process verification failed: %w", err)
+		return nil, "", 0, fmt.Errorf("socat process verification failed: %w", err)
 	}
 
 	// Log success
 	s.log.Info("Socat verification successful on port", "port", remotePort)
 
 	// Create a new session for monitoring
-	monitorSession, err := client.NewSession()
+	session, err = client.NewSession()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create monitoring session: %w", err)
+		return nil, "", 0, fmt.Errorf("failed to create monitoring session: %w", err)
 	}
 
-	return monitorSession, nil
+	return session, pid, remotePort, nil
 }
 
 // GetLocalProxyHost returns the local host:port for the Docker proxy
@@ -458,9 +486,15 @@ func (s *SSHConnection) Close() error {
 
 	// Kill the socat process on the remote machine only if client exists
 	if s.client != nil {
+		s.log.Info("SSH connection closing, attempting socat cleanup")
 		if err := s.killSocatProcess(); err != nil {
+			s.log.Error("Socat cleanup failed", "error", err)
 			errors = append(errors, fmt.Sprintf("socat cleanup: %v", err))
+		} else {
+			s.log.Info("Socat cleanup completed successfully")
 		}
+	} else {
+		s.log.Warn("SSH client is nil, skipping socat cleanup")
 	}
 
 	if s.session != nil {
@@ -482,48 +516,113 @@ func (s *SSHConnection) Close() error {
 	return nil
 }
 
-// killSocatProcess kills the socat process running on the remote machine
+// Close closes the SSH context
+func (s *SSHContext) Close() error {
+	if s == nil || s.client == nil {
+		return nil
+	}
+
+	return s.client.Close()
+}
+
+// killSocatProcess kills the specific socat process we started (by PID)
 func (s *SSHConnection) killSocatProcess() error {
 	if s == nil || s.client == nil {
 		return nil
 	}
 
-	// Create a new session to kill the socat process
-	session, err := s.client.NewSession()
-	if err != nil {
-		return fmt.Errorf("failed to create session for socat cleanup: %w", err)
-	}
-	defer session.Close()
+	s.log.Info("Starting socat cleanup", "port", s.remotePort, "pid", s.socatPID)
 
-	// Kill any socat processes listening on the specified port
-	killCmd := fmt.Sprintf("pkill -f 'socat.*TCP-LISTEN:%d'", s.remotePort)
-	if err := session.Run(killCmd); err != nil {
-		// It's okay if no processes were found to kill
-		// This could happen if the process was already terminated
+	if s.socatPID == "" {
+		s.log.Warn("No socat PID stored, cannot perform targeted cleanup")
 		return nil
 	}
 
-	// Wait a moment for the process to be killed
+	// Kill the specific socat process by PID
+	if err := s.killSocatByPID(); err != nil {
+		s.log.Error("Failed to kill socat process by PID", "pid", s.socatPID, "error", err)
+	}
+
+	// Check port status after kill attempt
+	if err := s.checkPortStatus(); err != nil {
+		s.log.Warn("Port status check failed", "error", err)
+	}
+
+	s.log.Info("Socat cleanup completed")
+	return nil
+}
+
+// killSocatByPID kills the specific socat process by its PID and all its children
+func (s *SSHConnection) killSocatByPID() error {
+	session, err := s.client.NewSession()
+	if err != nil {
+		return fmt.Errorf("failed to create session: %w", err)
+	}
+	defer session.Close()
+
+	// First, try to kill the entire process tree (parent + children)
+	killTreeCmd := fmt.Sprintf("pkill -P %s", s.socatPID)
+	s.log.Debug("Killing child processes", "command", killTreeCmd, "parent_pid", s.socatPID)
+
+	// Kill children first (ignore errors as there might not be any)
+	_ = session.Run(killTreeCmd)
 	time.Sleep(200 * time.Millisecond)
 
-	// Verify the process is no longer running
-	verifySession, err := s.client.NewSession()
-	if err != nil {
-		return nil // Don't fail cleanup if we can't verify
-	}
-	defer verifySession.Close()
+	// Then kill the parent process gracefully
+	killCmd := fmt.Sprintf("kill %s", s.socatPID)
+	s.log.Debug("Executing graceful kill of socat parent process", "command", killCmd, "pid", s.socatPID)
 
-	verifyCmd := fmt.Sprintf("netstat -tln | grep ':%d '", s.remotePort)
-	if err := verifySession.Run(verifyCmd); err == nil {
-		// Process is still running, try force kill
-		forceKillSession, err := s.client.NewSession()
+	if err := session.Run(killCmd); err != nil {
+		s.log.Debug("Graceful kill failed, trying force kill", "error", err)
+
+		// Try force kill
+		forceSession, err := s.client.NewSession()
 		if err != nil {
-			return nil
+			return fmt.Errorf("failed to create force kill session: %w", err)
 		}
-		defer forceKillSession.Close()
+		defer forceSession.Close()
 
-		forceKillCmd := fmt.Sprintf("pkill -9 -f 'socat.*TCP-LISTEN:%d'", s.remotePort)
-		_ = forceKillSession.Run(forceKillCmd) // Ignore errors for force kill
+		forceKillCmd := fmt.Sprintf("kill -9 %s", s.socatPID)
+		s.log.Debug("Executing force kill of socat process", "command", forceKillCmd, "pid", s.socatPID)
+
+		if err := forceSession.Run(forceKillCmd); err != nil {
+			s.log.Warn("Force kill failed", "error", err, "pid", s.socatPID)
+			return err
+		}
+
+		s.log.Info("Force kill executed successfully", "pid", s.socatPID)
+	} else {
+		s.log.Info("Graceful kill executed successfully", "pid", s.socatPID)
+	}
+
+	// Wait a moment for the process to be killed
+	time.Sleep(500 * time.Millisecond)
+	return nil
+}
+
+// checkPortStatus checks what process is using the port after cleanup
+func (s *SSHConnection) checkPortStatus() error {
+	session, err := s.client.NewSession()
+	if err != nil {
+		return fmt.Errorf("failed to create session: %w", err)
+	}
+	defer session.Close()
+
+	// Check if the port is still open and what PID is using it
+	checkCmd := fmt.Sprintf("lsof -i:%d || netstat -tlnp | grep ':%d ' || ss -tlnp | grep ':%d '", s.remotePort, s.remotePort, s.remotePort)
+	s.log.Debug("Checking port status", "command", checkCmd, "port", s.remotePort)
+
+	output, err := session.Output(checkCmd)
+	if err != nil {
+		s.log.Info("Port appears to be free after cleanup", "port", s.remotePort)
+		return nil
+	}
+
+	outputStr := strings.TrimSpace(string(output))
+	if outputStr == "" {
+		s.log.Info("Port appears to be free after cleanup", "port", s.remotePort)
+	} else {
+		s.log.Warn("Port still appears to be in use after cleanup", "port", s.remotePort, "output", outputStr)
 	}
 
 	return nil

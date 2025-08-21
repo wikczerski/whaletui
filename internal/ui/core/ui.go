@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -14,7 +15,7 @@ import (
 	"github.com/wikczerski/whaletui/internal/ui/builders"
 	"github.com/wikczerski/whaletui/internal/ui/constants"
 	"github.com/wikczerski/whaletui/internal/ui/handlers"
-	"github.com/wikczerski/whaletui/internal/ui/managers"
+	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 	"github.com/wikczerski/whaletui/internal/ui/views"
 	"github.com/wikczerski/whaletui/internal/ui/views/shell"
 )
@@ -38,9 +39,9 @@ type UI struct {
 
 	// Abstracted managers
 	viewRegistry   *ViewRegistry
-	headerManager  *managers.HeaderManager
+	headerManager  interfaces.HeaderManagerInterface
 	commandHandler *handlers.CommandHandler
-	modalManager   *managers.ModalManager
+	modalManager   interfaces.ModalManagerInterface
 
 	// Individual views
 	containersView *views.ContainersView
@@ -54,33 +55,250 @@ type UI struct {
 	componentBuilder *builders.ComponentBuilder
 	viewBuilder      *builders.ViewBuilder
 	tableBuilder     *builders.TableBuilder
+
+	// Flags for refresh cycles
+	isRefreshing bool
 }
 
 // New creates a new UI
-func New(serviceFactory *services.ServiceFactory, themePath string) (*UI, error) {
-	var services services.ServiceFactoryInterface
-	if serviceFactory != nil {
-		services = serviceFactory
-	}
-	// If serviceFactory is nil, services remains nil interface
+func New(serviceFactory services.ServiceFactoryInterface, themePath string, headerManager interfaces.HeaderManagerInterface, modalManager interfaces.ModalManagerInterface) (*UI, error) {
+	// Enable TUI mode in logger immediately when creating UI to prevent stderr interference
+	logger.SetTUIMode(true)
 
 	ui := &UI{
-		services:       services,
+		services:       serviceFactory,
 		app:            tview.NewApplication(),
 		pages:          tview.NewPages(),
 		log:            logger.GetLogger(),
 		shutdownChan:   make(chan struct{}, 1), // Buffer channel to prevent deadlock
 		currentActions: make(map[rune]string),
+		headerManager:  headerManager,
+		modalManager:   modalManager,
 	}
 
 	if e := ui.initializeManagers(themePath); e != nil {
 		return nil, e
 	}
 
-	ui.initComponents()
-	ui.setupKeyBindings()
+	// Only initialize components if managers are provided
+	if headerManager != nil && modalManager != nil {
+		ui.initComponents()
+		ui.setupKeyBindings()
+	}
 
 	return ui, nil
+}
+
+// Start starts the UI
+func (ui *UI) Start() error {
+	ui.log.Info("Starting TUI...")
+	return ui.app.Run()
+}
+
+// Stop stops the UI
+func (ui *UI) Stop() {
+	ui.cleanup()
+	ui.app.Stop()
+}
+
+// GetShutdownChan returns the shutdown channel
+func (ui *UI) GetShutdownChan() chan struct{} {
+	return ui.shutdownChan
+}
+
+// GetServices returns the service factory
+func (ui *UI) GetServices() services.ServiceFactoryInterface {
+	return ui.services
+}
+
+// GetApp returns the tview application
+func (ui *UI) GetApp() any {
+	return ui.app
+}
+
+// ShowError displays an error message
+func (ui *UI) ShowError(err error) {
+	ui.showError(err)
+}
+
+// ShowDetails displays a details view
+func (ui *UI) ShowDetails(details any) {
+	if detailsView, ok := details.(tview.Primitive); ok {
+		ui.showDetails(detailsView)
+	} else {
+		ui.log.Warn("ShowDetails called with non-Primitive type", "type", fmt.Sprintf("%T", details))
+	}
+}
+
+// ShowCurrentView returns to the current view
+func (ui *UI) ShowCurrentView() {
+	ui.showCurrentView()
+}
+
+// ShowConfirm shows a confirmation dialog
+func (ui *UI) ShowConfirm(message string, onConfirm func(bool)) {
+	ui.showConfirm(message, onConfirm)
+}
+
+// IsInLogsMode returns whether the UI is currently in logs mode
+func (ui *UI) IsInLogsMode() bool {
+	return ui.inLogsMode
+}
+
+// IsInDetailsMode returns whether the UI is currently in details mode
+func (ui *UI) IsInDetailsMode() bool {
+	return ui.inDetailsMode
+}
+
+// IsRefreshing returns whether the UI is currently in a refresh cycle
+func (ui *UI) IsRefreshing() bool {
+	return ui.isRefreshing
+}
+
+// IsModalActive returns whether a modal is currently active
+func (ui *UI) IsModalActive() bool {
+	if !ui.hasValidPages() {
+		return false
+	}
+
+	return ui.hasModalPages()
+}
+
+// GetCurrentActions returns the current available actions
+func (ui *UI) GetCurrentActions() map[rune]string {
+	return ui.currentActions
+}
+
+// GetCurrentViewActions returns the actions string from the current view
+func (ui *UI) GetCurrentViewActions() string {
+	if ui.viewRegistry != nil {
+		return ui.viewRegistry.GetCurrentActionsString()
+	}
+	return ""
+}
+
+// GetViewRegistry returns the view registry
+func (ui *UI) GetViewRegistry() any {
+	return ui.viewRegistry
+}
+
+// GetMainFlex returns the main flex container
+func (ui *UI) GetMainFlex() any {
+	return ui.mainFlex
+}
+
+// SwitchView switches to the specified view
+func (ui *UI) SwitchView(view string) {
+	ui.switchView(view)
+}
+
+// ShowHelp shows the help dialog
+func (ui *UI) ShowHelp() {
+	ui.showHelp()
+}
+
+// GetPages returns the pages container
+func (ui *UI) GetPages() any {
+	return ui.pages
+}
+
+// ShowLogs shows logs for a container
+func (ui *UI) ShowLogs(containerID, containerName string) {
+	ui.showLogs("container", containerID, containerName)
+}
+
+// ShowLogsForResource shows logs for any resource type
+func (ui *UI) ShowLogsForResource(resourceType, resourceID, resourceName string) {
+	ui.showLogs(resourceType, resourceID, resourceName)
+}
+
+// ShowShell shows shell view for a container
+func (ui *UI) ShowShell(containerID, containerName string) {
+	ui.createShellView(containerID, containerName)
+	ui.displayShellView(containerID, containerName)
+}
+
+// GetLogsView returns the logs view for any resource type
+func (ui *UI) GetLogsView(resourceType, resourceID, resourceName string) *views.LogsView {
+	if ui.logsView == nil || ui.logsView.ResourceID != resourceID || ui.logsView.ResourceType != resourceType {
+		ui.logsView = views.NewLogsView(ui, resourceType, resourceID, resourceName)
+	}
+	return ui.logsView
+}
+
+// GetViewContainer returns the view container
+func (ui *UI) GetViewContainer() any {
+	return ui.viewContainer
+}
+
+// GetContainerService returns the container service
+func (ui *UI) GetContainerService() any {
+	return ui.services.GetContainerService()
+}
+
+// GetImageService returns the image service
+func (ui *UI) GetImageService() any {
+	return ui.services.GetImageService()
+}
+
+// GetVolumeService returns the volume service
+func (ui *UI) GetVolumeService() any {
+	return ui.services.GetVolumeService()
+}
+
+// GetNetworkService returns the network service
+func (ui *UI) GetNetworkService() any {
+	return ui.services.GetNetworkService()
+}
+
+// GetThemeManager returns the theme manager
+func (ui *UI) GetThemeManager() *config.ThemeManager {
+	return ui.themeManager
+}
+
+// SetHeaderManager sets the header manager
+func (ui *UI) SetHeaderManager(headerManager interfaces.HeaderManagerInterface) {
+	ui.headerManager = headerManager
+}
+
+// SetModalManager sets the modal manager
+func (ui *UI) SetModalManager(modalManager interfaces.ModalManagerInterface) {
+	ui.modalManager = modalManager
+}
+
+// UpdateLegend updates the legend with current view information
+func (ui *UI) UpdateLegend() {
+	ui.updateLegend()
+}
+
+// Refresh refreshes the UI
+func (ui *UI) Refresh() {
+	ui.log.Debug("Refreshing UI")
+
+	// Set a flag to prevent header updates during refresh cycles
+	ui.isRefreshing = true
+	defer func() {
+		ui.isRefreshing = false
+		ui.log.Debug("Refresh completed, isRefreshing set to false")
+	}()
+
+	ui.log.Debug("Starting refresh cycle", "isRefreshing", ui.isRefreshing)
+
+	// Ensure layout stability before refreshing
+	ui.ensureStableLayout()
+
+	// Only update components that actually need refreshing
+	// This prevents unnecessary terminal redraws that might cause empty lines
+	ui.updateStatusBar()
+
+	// Skip header updates during refresh cycles to prevent newlines from causing empty spaces
+	// Headers are only updated when switching views or showing details
+	// if ui.services != nil {
+	// 	ui.headerManager.UpdateAll()
+	// }
+
+	// Only refresh current view if it exists and has a refresh function
+	ui.refreshCurrentView()
 }
 
 // initializeManagers initializes all the UI managers and builders
@@ -92,9 +310,8 @@ func (ui *UI) initializeManagers(themePath string) error {
 	ui.tableBuilder = builders.NewTableBuilder()
 
 	ui.viewRegistry = NewViewRegistry()
-	ui.headerManager = managers.NewHeaderManager(ui)
+	// Managers are now passed as parameters to avoid circular imports
 	ui.commandHandler = handlers.NewCommandHandler(ui)
-	ui.modalManager = managers.NewModalManager(ui)
 
 	return nil
 }
@@ -110,9 +327,13 @@ func (ui *UI) initComponents() {
 	ui.createViewContainer()
 	ui.createStatusBar()
 
+	// Ensure proper layout with fixed heights to prevent shifting
 	ui.mainFlex.AddItem(headerSection, constants.HeaderSectionHeight, 1, false)
 	ui.mainFlex.AddItem(ui.viewContainer, 0, 1, true)
 	ui.mainFlex.AddItem(ui.statusBar, constants.StatusBarHeight, 1, false)
+
+	// Ensure layout stability
+	ui.mainFlex.SetDirection(tview.FlexRow)
 
 	ui.setupMainPages(commandInput)
 	ui.initializeUIState()
@@ -130,9 +351,17 @@ func (ui *UI) setupMainPages(commandInput *tview.InputField) {
 
 // initializeUIState initializes the initial UI state
 func (ui *UI) initializeUIState() {
+	ui.log.Debug("Starting UI state initialization")
+
 	if ui.services != nil {
+		ui.log.Debug("Services available, updating headers")
 		ui.headerManager.UpdateAll()
+	} else {
+		ui.log.Debug("No services available")
 	}
+
+	// Perform initial view refresh to populate data
+	ui.log.Debug("Performing initial view refresh")
 	ui.refreshCurrentView()
 }
 
@@ -225,6 +454,12 @@ func (ui *UI) createViewContainer() {
 func (ui *UI) createStatusBar() {
 	ui.statusBar = ui.componentBuilder.CreateTextView("", tview.AlignLeft, ui.themeManager.GetTextColor())
 	ui.statusBar.SetBackgroundColor(ui.themeManager.GetBackgroundColor())
+
+	// Ensure status bar has consistent height and doesn't expand
+	ui.statusBar.SetDynamicColors(false)
+	ui.statusBar.SetScrollable(false)
+	ui.statusBar.SetWrap(false)
+
 	ui.updateStatusBar()
 }
 
@@ -371,18 +606,6 @@ func (ui *UI) isShellInputFieldFocused() bool {
 	return false
 }
 
-// Start starts the UI
-func (ui *UI) Start() error {
-	ui.log.Info("Starting TUI...")
-	return ui.app.Run()
-}
-
-// Stop stops the UI
-func (ui *UI) Stop() {
-	ui.cleanup()
-	ui.app.Stop()
-}
-
 // cleanup performs terminal cleanup operations
 func (ui *UI) cleanup() {
 	ui.clearScreen()
@@ -423,219 +646,32 @@ func (ui *UI) moveCursorToTop() {
 // syncStdout synchronizes stdout
 func (ui *UI) syncStdout() {
 	if e := os.Stdout.Sync(); e != nil {
-		ui.log.Warn("Failed to sync stdout", "error", e)
+		ui.log.Debug("Failed to sync stdout", "error", e)
 	}
 }
 
-// GetShutdownChan returns the shutdown channel
-func (ui *UI) GetShutdownChan() chan struct{} {
-	return ui.shutdownChan
-}
-
-// GetServices returns the service factory
-func (ui *UI) GetServices() services.ServiceFactoryInterface {
-	return ui.services
-}
-
-// GetApp returns the tview application
-func (ui *UI) GetApp() any {
-	return ui.app
-}
-
-// ShowError displays an error message
-func (ui *UI) ShowError(err error) {
-	ui.showError(err)
-}
-
-// ShowSuccess displays a success message in the status bar
-func (ui *UI) ShowSuccess(message string) {
-	ui.UpdateStatusBar("✓ " + message)
-}
-
-// ShowDetails displays a details view
-func (ui *UI) ShowDetails(details any) {
-	if detailsView, ok := details.(tview.Primitive); ok {
-		ui.showDetails(detailsView)
-	} else {
-		ui.log.Warn("ShowDetails called with non-Primitive type", "type", fmt.Sprintf("%T", details))
-	}
-}
-
-// ShowCurrentView returns to the current view
-func (ui *UI) ShowCurrentView() {
-	ui.showCurrentView()
-}
-
-// ShowConfirm shows a confirmation dialog
-func (ui *UI) ShowConfirm(message string, onConfirm func(bool)) {
-	ui.showConfirm(message, onConfirm)
-}
-
-// UpdateStatusBar updates the status bar with the given message
-func (ui *UI) UpdateStatusBar(_ string) {
-	ui.updateStatusBar()
-}
-
-// IsInLogsMode returns whether the UI is currently in logs mode
-func (ui *UI) IsInLogsMode() bool {
-	return ui.inLogsMode
-}
-
-// IsInDetailsMode returns whether the UI is currently in details mode
-func (ui *UI) IsInDetailsMode() bool {
-	return ui.inDetailsMode
-}
-
-// IsModalActive returns whether a modal is currently active
-func (ui *UI) IsModalActive() bool {
-	if !ui.hasValidPages() {
-		return false
+// ensureStableLayout ensures the UI layout remains stable during refreshes
+func (ui *UI) ensureStableLayout() {
+	if ui.mainFlex != nil {
+		// Ensure the main layout doesn't shift during refreshes
+		ui.mainFlex.SetDirection(tview.FlexRow)
 	}
 
-	return ui.hasModalPages()
-}
-
-// hasValidPages checks if the pages container is valid
-func (ui *UI) hasValidPages() bool {
-	return ui.pages != nil
-}
-
-// hasModalPages checks if any modal pages are currently shown
-func (ui *UI) hasModalPages() bool {
-	return ui.pages.HasPage("help_modal") ||
-		ui.pages.HasPage("error_modal") ||
-		ui.pages.HasPage("confirm_modal") ||
-		ui.pages.HasPage("exec_output_modal")
-}
-
-// GetCurrentActions returns the current available actions
-func (ui *UI) GetCurrentActions() map[rune]string {
-	return ui.currentActions
-}
-
-// GetCurrentViewActions returns the actions string from the current view
-func (ui *UI) GetCurrentViewActions() string {
-	if ui.viewRegistry != nil {
-		return ui.viewRegistry.GetCurrentActionsString()
+	if ui.statusBar != nil {
+		// Ensure status bar maintains its height
+		ui.statusBar.SetDynamicColors(false)
+		ui.statusBar.SetScrollable(false)
+		ui.statusBar.SetWrap(false)
 	}
-	return ""
-}
-
-// GetViewRegistry returns the view registry
-func (ui *UI) GetViewRegistry() any {
-	return ui.viewRegistry
-}
-
-// GetMainFlex returns the main flex container
-func (ui *UI) GetMainFlex() any {
-	return ui.mainFlex
-}
-
-// GetLog returns the logger
-func (ui *UI) GetLog() any {
-	return ui.log
-}
-
-// SwitchView switches to the specified view
-func (ui *UI) SwitchView(view string) {
-	ui.switchView(view)
-}
-
-// ShowHelp shows the help dialog
-func (ui *UI) ShowHelp() {
-	ui.showHelp()
-}
-
-// GetPages returns the pages container
-func (ui *UI) GetPages() any {
-	return ui.pages
-}
-
-// ShowLogs shows logs for a container
-func (ui *UI) ShowLogs(containerID, containerName string) {
-	ui.showLogs(containerID, containerName)
-}
-
-// ShowShell shows shell view for a container
-func (ui *UI) ShowShell(containerID, containerName string) {
-	ui.createShellView(containerID, containerName)
-	ui.displayShellView(containerID, containerName)
-}
-
-// createShellView creates a new shell view for the container
-func (ui *UI) createShellView(containerID, containerName string) {
-	containerService := ui.services.GetContainerService()
-	ui.shellView = shell.NewView(ui, containerID, containerName, ui.handleShellExit, containerService.ExecContainer)
-}
-
-// displayShellView displays the shell view in the container
-func (ui *UI) displayShellView(containerID, containerName string) {
-	ui.viewContainer.Clear()
-	ui.viewContainer.SetTitle(fmt.Sprintf(" Shell - %s (%s) ", containerName, containerID[:12]))
-	ui.viewContainer.AddItem(ui.shellView.GetView(), 0, 1, true)
-	ui.app.SetFocus(ui.shellView.GetView())
-}
-
-// handleShellExit handles the shell exit callback
-func (ui *UI) handleShellExit() {
-	ui.switchView("containers")
-}
-
-// GetLogsView returns the logs view for a container
-func (ui *UI) GetLogsView(containerID, containerName string) *views.LogsView {
-	if ui.logsView == nil || ui.logsView.ContainerID != containerID {
-		ui.logsView = views.NewLogsView(ui, containerID, containerName)
-	}
-	return ui.logsView
-}
-
-// GetViewContainer returns the view container
-func (ui *UI) GetViewContainer() any {
-	return ui.viewContainer
-}
-
-// GetContainerService returns the container service
-func (ui *UI) GetContainerService() any {
-	return ui.services.GetContainerService()
-}
-
-// GetImageService returns the image service
-func (ui *UI) GetImageService() any {
-	return ui.services.GetImageService()
-}
-
-// GetVolumeService returns the volume service
-func (ui *UI) GetVolumeService() any {
-	return ui.services.GetVolumeService()
-}
-
-// GetNetworkService returns the network service
-func (ui *UI) GetNetworkService() any {
-	return ui.services.GetNetworkService()
-}
-
-// GetThemeManager returns the theme manager
-func (ui *UI) GetThemeManager() *config.ThemeManager {
-	return ui.themeManager
-}
-
-// UpdateLegend updates the legend with current view information
-func (ui *UI) UpdateLegend() {
-	ui.updateLegend()
-}
-
-// Refresh refreshes the UI
-func (ui *UI) Refresh() {
-	ui.log.Debug("Refreshing UI")
-	ui.updateStatusBar()
-	ui.headerManager.UpdateAll()
-	ui.refreshCurrentView()
 }
 
 // refreshCurrentView refreshes the currently active view
 func (ui *UI) refreshCurrentView() {
 	if currentView := ui.viewRegistry.GetCurrent(); currentView != nil && currentView.Refresh != nil {
+		ui.log.Debug("Refreshing current view", "view", currentView.Title)
 		currentView.Refresh()
+	} else {
+		ui.log.Debug("No current view or refresh function available")
 	}
 }
 
@@ -681,7 +717,11 @@ func (ui *UI) refreshViewAndFocus(_ string) {
 	viewInfo := ui.viewRegistry.GetCurrent()
 
 	ui.updateStatusBar()
-	ui.headerManager.UpdateAll()
+
+	// Only update headers if not in a refresh cycle
+	if !ui.isRefreshing {
+		ui.headerManager.UpdateAll()
+	}
 
 	if viewInfo.Refresh != nil {
 		viewInfo.Refresh()
@@ -696,7 +736,13 @@ func (ui *UI) updateStatusBar() {
 	}
 
 	statusText := ui.buildStatusBarText()
-	ui.statusBar.SetText(statusText)
+
+	// Only update if the text has actually changed to prevent unnecessary redraws
+	currentText := ui.statusBar.GetText(true)
+	if currentText != statusText {
+		ui.statusBar.SetText(statusText)
+		ui.log.Debug("Status bar updated", "old", currentText, "new", statusText)
+	}
 }
 
 // buildStatusBarText builds the status bar text with current information
@@ -704,11 +750,14 @@ func (ui *UI) buildStatusBarText() string {
 	now := time.Now()
 	timeStr := now.Format("15:04:05")
 
-	return fmt.Sprintf(constants.StatusBarTemplate, timeStr)
+	// Ensure no newlines in status bar text to prevent terminal display issues
+	statusText := fmt.Sprintf(constants.StatusBarTemplate, timeStr)
+	return strings.TrimSpace(statusText)
 }
 
 // updateLegend updates the legend with view-specific shortcuts
 func (ui *UI) updateLegend() {
+	ui.log.Debug("updateLegend called", "isRefreshing", ui.isRefreshing)
 	ui.headerManager.UpdateAll()
 }
 
@@ -774,7 +823,11 @@ func (ui *UI) restoreCurrentView(currentViewInfo *ViewInfo) {
 
 // updateUIAfterViewRestore updates the UI after restoring the view
 func (ui *UI) updateUIAfterViewRestore(currentViewInfo *ViewInfo) {
-	ui.headerManager.UpdateAll()
+	// Only update headers if not in a refresh cycle
+	if !ui.isRefreshing {
+		ui.headerManager.UpdateAll()
+	}
+
 	ui.app.SetFocus(currentViewInfo.View)
 
 	if currentViewInfo.Refresh != nil {
@@ -782,14 +835,14 @@ func (ui *UI) updateUIAfterViewRestore(currentViewInfo *ViewInfo) {
 	}
 }
 
-// showLogs displays container logs in a dedicated view
-func (ui *UI) showLogs(containerID, containerName string) {
-	ui.log.Debug("Showing logs for container", "id", containerID, "name", containerName)
+// showLogs displays logs for any resource type in a dedicated view
+func (ui *UI) showLogs(resourceType, resourceID, resourceName string) {
+	ui.log.Debug("Showing logs for resource", "type", resourceType, "id", resourceID, "name", resourceName)
 
 	ui.setLogsMode()
 	ui.setupLogsActions()
-	ui.updateLogsViewTitle()
-	ui.displayLogsView(containerID, containerName)
+	ui.updateLogsViewTitle(resourceType)
+	ui.displayLogsView(resourceType, resourceID, resourceName)
 	ui.updateLegend()
 	ui.setLogsFocus()
 }
@@ -806,13 +859,13 @@ func (ui *UI) setupLogsActions() {
 }
 
 // updateLogsViewTitle updates the view container title for logs
-func (ui *UI) updateLogsViewTitle() {
-	ui.viewContainer.SetTitle(" Containers<Logs> ")
+func (ui *UI) updateLogsViewTitle(resourceType string) {
+	ui.viewContainer.SetTitle(fmt.Sprintf(" %s<Logs> ", resourceType))
 }
 
 // displayLogsView displays the logs view in the container
-func (ui *UI) displayLogsView(containerID, containerName string) {
-	logsView := ui.GetLogsView(containerID, containerName)
+func (ui *UI) displayLogsView(resourceType, resourceID, resourceName string) {
+	logsView := ui.GetLogsView(resourceType, resourceID, resourceName)
 	logsView.LoadLogs()
 
 	ui.viewContainer.Clear()
@@ -827,4 +880,48 @@ func (ui *UI) setLogsFocus() {
 	if ui.logsView != nil {
 		ui.app.SetFocus(ui.logsView.GetView())
 	}
+}
+
+// createShellView creates a new shell view for the container
+func (ui *UI) createShellView(containerID, containerName string) {
+	containerService := ui.services.GetContainerService()
+	ui.shellView = shell.NewView(ui, containerID, containerName, ui.handleShellExit, containerService.ExecContainer)
+}
+
+// displayShellView displays the shell view in the container
+func (ui *UI) displayShellView(containerID, containerName string) {
+	ui.viewContainer.Clear()
+	ui.viewContainer.SetTitle(fmt.Sprintf(" Shell - %s (%s) ", containerName, containerID[:12]))
+	ui.viewContainer.AddItem(ui.shellView.GetView(), 0, 1, true)
+	ui.app.SetFocus(ui.shellView.GetView())
+}
+
+// handleShellExit handles the shell exit callback
+func (ui *UI) handleShellExit() {
+	ui.switchView("containers")
+}
+
+// hasValidPages checks if the pages container is valid
+func (ui *UI) hasValidPages() bool {
+	return ui.pages != nil
+}
+
+// hasModalPages checks if any modal pages are currently shown
+func (ui *UI) hasModalPages() bool {
+	return ui.pages.HasPage("help_modal") ||
+		ui.pages.HasPage("error_modal") ||
+		ui.pages.HasPage("confirm_modal") ||
+		ui.pages.HasPage("exec_output_modal")
+}
+
+// CompleteInitialization completes the UI initialization after managers are set
+func (ui *UI) CompleteInitialization() error {
+	if ui.headerManager == nil || ui.modalManager == nil {
+		return fmt.Errorf("managers must be set before completing initialization")
+	}
+
+	ui.initComponents()
+	ui.setupKeyBindings()
+
+	return nil
 }

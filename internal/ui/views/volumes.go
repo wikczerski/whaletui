@@ -38,6 +38,19 @@ func NewVolumesView(ui interfaces.UIInterface) *VolumesView {
 	return vv
 }
 
+// createDeleteVolumeFunction creates a function to delete a volume
+func (vv *VolumesView) createDeleteVolumeFunction(name string) func() error {
+	return func() error {
+		services := vv.ui.GetServices()
+		if services == nil || services.GetVolumeService() == nil {
+			return fmt.Errorf("volume service not available")
+		}
+		ctx := context.Background()
+		// Force removal to handle cases where volume might be in use
+		return services.GetVolumeService().RemoveVolume(ctx, name, true)
+	}
+}
+
 func (vv *VolumesView) listVolumes(ctx context.Context) ([]models.Volume, error) {
 	services := vv.ui.GetServices()
 	if services == nil {
@@ -109,19 +122,6 @@ func (vv *VolumesView) deleteVolume(name string) {
 		vv.createDeleteVolumeFunction(name),
 		func() { vv.Refresh() },
 	)
-}
-
-// createDeleteVolumeFunction creates a function to delete a volume
-func (vv *VolumesView) createDeleteVolumeFunction(name string) func() error {
-	return func() error {
-		services := vv.ui.GetServices()
-		if services == nil || services.GetVolumeService() == nil {
-			return fmt.Errorf("volume service not available")
-		}
-		ctx := context.Background()
-		// Force removal to handle cases where volume might be in use
-		return services.GetVolumeService().RemoveVolume(ctx, name, true)
-	}
 }
 
 func (vv *VolumesView) inspectVolume(name string) {
