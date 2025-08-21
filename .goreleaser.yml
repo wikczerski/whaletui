@@ -1,14 +1,17 @@
+# Goreleaser configuration for whaletui
+# Automatically handles versioning, building, and releasing
+
 before:
   hooks:
     - go mod tidy
-    - go mod download
+    - go mod verify
 
 builds:
   - env:
       - CGO_ENABLED=0
     goos:
-      - windows
       - linux
+      - windows
       - darwin
       - freebsd
     goarch:
@@ -36,7 +39,10 @@ builds:
       - goos: darwin
         goarch: "386"
     ldflags:
-      - -s -w -X main.Version={{.Version}} -X main.Commit={{.Commit}} -X main.Date={{.Date}}
+      - -s -w
+      - -X github.com/wikczerski/whaletui/cmd.Version={{.Version}}
+      - -X github.com/wikczerski/whaletui/cmd.CommitSHA={{.Commit}}
+      - -X github.com/wikczerski/whaletui/cmd.BuildDate={{.Date}}
     binary: whaletui
 
 archives:
@@ -72,13 +78,11 @@ nfpms:
       - src: "LICENSE"
         dst: /usr/share/doc/whaletui/LICENSE
 
-
-
 checksum:
   name_template: 'checksums.txt'
 
 snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+  name_template: "{{ .Version }}-snapshot"
 
 changelog:
   sort: asc
@@ -97,3 +101,163 @@ release:
   draft: false
   prerelease: false
   name_template: 'v{{ .Version }}'
+  footer: |
+    ## 🚀 Installation Guide
+
+    ### 📦 Binary Installation (Recommended)
+
+    Download the appropriate binary for your platform from the assets above, then follow the platform-specific instructions below.
+
+    #### 🐧 Linux
+    ```bash
+    # Extract the archive
+    tar -xzf whaletui_*_linux_amd64.tar.gz
+
+    # Make executable
+    chmod +x whaletui
+
+    # Run the application
+    ./whaletui
+
+    # Optional: Move to PATH for global access
+    sudo mv whaletui /usr/local/bin/
+    ```
+
+    #### 🍎 macOS
+    ```bash
+    # Extract the archive
+    tar -xzf whaletui_*_darwin_amd64.tar.gz
+
+    # Make executable
+    chmod +x whaletui
+
+    # Run the application
+    ./whaletui
+
+    # Optional: Move to PATH for global access
+    sudo mv whaletui /usr/local/bin/
+    ```
+
+    #### 🪟 Windows
+    ```cmd
+    # Extract the ZIP file
+    # Right-click whaletui.exe and "Run as Administrator" if needed
+
+    # From Command Prompt or PowerShell
+    whaletui.exe
+
+    # Optional: Add to PATH for global access
+    # Copy whaletui.exe to C:\Windows\System32\ or add its folder to PATH
+    ```
+
+    ### 📋 Package Manager Installation
+
+    #### Debian/Ubuntu (Debian Package)
+    ```bash
+    # Install the .deb package
+    sudo dpkg -i whaletui_*_linux_amd64.deb
+
+    # If dependencies are missing, fix with:
+    sudo apt-get install -f
+
+    # Run the application
+    whaletui
+    ```
+
+    #### RHEL/CentOS/Fedora (RPM Package)
+    ```bash
+    # Install the .rpm package
+    sudo rpm -i whaletui_*_linux_amd64.rpm
+
+    # Or use dnf/yum for dependency resolution
+    sudo dnf install whaletui_*_linux_amd64.rpm
+
+    # Run the application
+    whaletui
+    ```
+
+    ### 🔧 Verification
+
+    Verify your installation:
+    ```bash
+    whaletui version
+    ```
+
+    Expected output:
+    ```
+    whaletui - Docker CLI Dashboard
+    Version: {{ .Version }}
+    Commit: {{ .Commit }}
+    Build Date: {{ .Date }}
+    ```
+
+    ### 🐳 Prerequisites
+
+    - **Docker**: Must be running and accessible
+    - **Permissions**: May need sudo/admin rights for Docker operations
+    - **Network**: Internet access for Docker image pulls
+
+    ### 🚨 Troubleshooting
+
+    #### Permission Denied
+    ```bash
+    # Linux/macOS
+    chmod +x whaletui
+
+    # Windows: Run as Administrator
+    ```
+
+    #### Docker Connection Issues
+    ```bash
+    # Check Docker status
+    docker info
+
+    # Ensure Docker daemon is running
+    sudo systemctl start docker  # Linux
+    # macOS: Start Docker Desktop
+    # Windows: Start Docker Desktop
+    ```
+
+    #### Binary Not Found
+    ```bash
+    # Check if binary is in PATH
+    which whaletui  # Linux/macOS
+    where whaletui  # Windows
+
+    # Add to PATH if needed
+    export PATH=$PATH:/path/to/whaletui  # Linux/macOS
+    ```
+
+    ### 📚 Additional Resources
+
+    - **Documentation**: [GitHub Repository](https://github.com/wikczerski/whaletui)
+    - **Issues**: [Report Bugs](https://github.com/wikczerski/whaletui/issues)
+    - **Discussions**: [Community Support](https://github.com/wikczerski/whaletui/discussions)
+
+    ### 🤝 Support
+
+    If you encounter issues:
+    1. Check the troubleshooting section above
+    2. Search existing issues on GitHub
+    3. Create a new issue with detailed information
+    4. Include your OS, version, and error messages
+
+    ---
+
+    **Enjoy using whaletui! 🐳✨**
+
+brews:
+  - name: whaletui
+    homepage: "https://github.com/wikczerski/whaletui"
+    description: "Docker CLI Dashboard"
+    repository:
+      name: homebrew-tap
+      owner: wikczerski
+    commit_author:
+      name: "Goreleaser Bot"
+      email: "bot@goreleaser.com"
+    goarm: "6"
+    test: |
+      system "#{bin}/whaletui", "--help"
+    install: |
+      bin.install "whaletui" => "whaletui"

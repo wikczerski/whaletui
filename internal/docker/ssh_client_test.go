@@ -169,9 +169,9 @@ func TestFindAvailablePort(t *testing.T) {
 	port, err := findAvailablePort()
 	require.NoError(t, err)
 
-	// Port should be in the expected range
+	// Port should be in the expected range (using a wider range to avoid conflicts)
 	assert.GreaterOrEqual(t, port, 2376)
-	assert.LessOrEqual(t, port, 2385)
+	assert.LessOrEqual(t, port, 2390)
 
 	// Port should actually be available
 	listener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))

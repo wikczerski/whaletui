@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"time"
 
@@ -26,7 +27,7 @@ type UI struct {
 	statusBar      *tview.TextView
 	viewContainer  *tview.Flex
 	services       services.ServiceFactoryInterface
-	log            *logger.Logger
+	log            *slog.Logger
 	shutdownChan   chan struct{}
 	inDetailsMode  bool            // Track if we're in details view mode
 	inLogsMode     bool            // Track if we're viewing container logs
@@ -72,10 +73,8 @@ func New(serviceFactory *services.ServiceFactory, themePath string) (*UI, error)
 		currentActions: make(map[rune]string),
 	}
 
-	ui.log.SetPrefix("UI")
-
-	if err := ui.initializeManagers(themePath); err != nil {
-		return nil, err
+	if e := ui.initializeManagers(themePath); e != nil {
+		return nil, e
 	}
 
 	ui.initComponents()
@@ -395,36 +394,36 @@ func (ui *UI) cleanup() {
 
 // clearScreen clears the terminal screen
 func (ui *UI) clearScreen() {
-	if _, err := fmt.Fprint(os.Stdout, "\033[2J"); err != nil {
-		ui.log.Warn("Failed to clear screen: %v", err)
+	if _, e := fmt.Fprint(os.Stdout, "\033[2J"); e != nil {
+		ui.log.Warn("Failed to clear screen", "error", e)
 	}
 }
 
 // resetColors resets terminal colors
 func (ui *UI) resetColors() {
-	if _, err := fmt.Fprint(os.Stdout, "\033[0m"); err != nil {
-		ui.log.Warn("Failed to reset colors: %v", err)
+	if _, e := fmt.Fprint(os.Stdout, "\033[0m"); e != nil {
+		ui.log.Warn("Failed to reset colors", "error", e)
 	}
 }
 
 // showCursor shows the terminal cursor
 func (ui *UI) showCursor() {
-	if _, err := fmt.Fprint(os.Stdout, "\033[?25h"); err != nil {
-		ui.log.Warn("Failed to show cursor: %v", err)
+	if _, e := fmt.Fprint(os.Stdout, "\033[?25h"); e != nil {
+		ui.log.Warn("Failed to show cursor", "error", e)
 	}
 }
 
 // moveCursorToTop moves the cursor to the top of the terminal
 func (ui *UI) moveCursorToTop() {
 	if _, err := fmt.Fprint(os.Stdout, "\033[H"); err != nil {
-		ui.log.Warn("Failed to move cursor: %v", err)
+		ui.log.Warn("Failed to move cursor", "error", err)
 	}
 }
 
 // syncStdout synchronizes stdout
 func (ui *UI) syncStdout() {
-	if err := os.Stdout.Sync(); err != nil {
-		ui.log.Warn("Failed to sync stdout: %v", err)
+	if e := os.Stdout.Sync(); e != nil {
+		ui.log.Warn("Failed to sync stdout", "error", e)
 	}
 }
 
@@ -458,7 +457,7 @@ func (ui *UI) ShowDetails(details any) {
 	if detailsView, ok := details.(tview.Primitive); ok {
 		ui.showDetails(detailsView)
 	} else {
-		ui.log.Warn("ShowDetails called with non-Primitive type: %T", details)
+		ui.log.Warn("ShowDetails called with non-Primitive type", "type", fmt.Sprintf("%T", details))
 	}
 }
 
@@ -642,7 +641,7 @@ func (ui *UI) refreshCurrentView() {
 
 // switchView switches to the specified view
 func (ui *UI) switchView(view string) {
-	ui.log.Debug("Switching to view: %s", view)
+	ui.log.Debug("Switching to view", "view", view)
 
 	if !ui.validateViewExists(view) {
 		return
@@ -652,13 +651,13 @@ func (ui *UI) switchView(view string) {
 	ui.updateViewDisplay()
 	ui.refreshViewAndFocus(view)
 
-	ui.log.Debug("Switched to view: %s", view)
+	ui.log.Debug("Switched to view", "view", view)
 }
 
 // validateViewExists checks if the specified view exists
 func (ui *UI) validateViewExists(view string) bool {
 	if !ui.viewRegistry.Exists(view) {
-		ui.log.Warn("Unknown view: %s", view)
+		ui.log.Warn("Unknown view", "view", view)
 		return false
 	}
 	return true
@@ -752,7 +751,7 @@ func (ui *UI) showCurrentView() {
 		return
 	}
 
-	ui.log.Debug("Returning to current view: %s", currentViewInfo.Name)
+	ui.log.Debug("Returning to current view", "view", currentViewInfo.Name)
 
 	ui.clearSpecialModes()
 	ui.restoreCurrentView(currentViewInfo)
@@ -785,7 +784,7 @@ func (ui *UI) updateUIAfterViewRestore(currentViewInfo *ViewInfo) {
 
 // showLogs displays container logs in a dedicated view
 func (ui *UI) showLogs(containerID, containerName string) {
-	ui.log.Debug("Showing logs for container: %s (%s)", containerID, containerName)
+	ui.log.Debug("Showing logs for container", "id", containerID, "name", containerName)
 
 	ui.setLogsMode()
 	ui.setupLogsActions()
