@@ -51,7 +51,7 @@ type UI struct {
 	imagesView     *image.ImagesView
 	volumesView    *volume.VolumesView
 	networksView   *network.NetworksView
-	logsView       *logs.LogsView
+	logsView       *logs.View
 	shellView      *shell.View
 
 	// Component builders
@@ -222,9 +222,9 @@ func (ui *UI) ShowShell(containerID, containerName string) {
 }
 
 // GetLogsView returns the logs view for any resource type
-func (ui *UI) GetLogsView(resourceType, resourceID, resourceName string) *logs.LogsView {
+func (ui *UI) GetLogsView(resourceType, resourceID, resourceName string) *logs.View {
 	if ui.logsView == nil || ui.logsView.ResourceID != resourceID || ui.logsView.ResourceType != resourceType {
-		ui.logsView = logs.NewLogsView(ui, resourceType, resourceID, resourceName)
+		ui.logsView = logs.NewView(ui, resourceType, resourceID, resourceName)
 	}
 	return ui.logsView
 }
@@ -896,8 +896,8 @@ func (ui *UI) setLogsFocus() {
 // createShellView creates a new shell view for the container
 func (ui *UI) createShellView(containerID, containerName string) {
 	containerService := ui.services.GetContainerService()
-	if cs, ok := containerService.(interfaces.ContainerService); ok {
-		ui.shellView = shell.NewView(ui, containerID, containerName, ui.handleShellExit, cs.ExecContainer)
+	if containerService != nil {
+		ui.shellView = shell.NewView(ui, containerID, containerName, ui.handleShellExit, containerService.ExecContainer)
 	}
 }
 

@@ -9,19 +9,18 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	servicemocks "github.com/wikczerski/whaletui/internal/mocks/ui"
-	uimocks "github.com/wikczerski/whaletui/internal/mocks/ui"
+	mocks "github.com/wikczerski/whaletui/internal/mocks/ui"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 )
 
-func newImagesUIMockWithServices(t *testing.T, sf interfaces.ServiceFactoryInterface) *uimocks.MockUIInterface {
-	ui := uimocks.NewMockUIInterface(t)
+func newImagesUIMockWithServices(t *testing.T, sf interfaces.ServiceFactoryInterface) *mocks.MockUIInterface {
+	ui := mocks.NewMockUIInterface(t)
 	ui.On("GetApp").Return(tview.NewApplication()).Maybe()
 	ui.On("GetPages").Return(tview.NewPages()).Maybe()
 
 	if sf == nil {
 		// Create a mock service factory that returns nil for all services
-		mockSF := servicemocks.NewMockServiceFactoryInterface(t)
+		mockSF := mocks.NewMockServiceFactoryInterface(t)
 		mockSF.On("GetImageService").Return(nil).Maybe()
 		mockSF.On("GetContainerService").Return(nil).Maybe()
 		mockSF.On("GetVolumeService").Return(nil).Maybe()
@@ -109,7 +108,7 @@ func TestImagesView_Refresh_WithServices(t *testing.T) {
 		},
 	}
 
-	is := servicemocks.NewMockImageService(t)
+	is := mocks.NewMockImageService(t)
 	// Convert []Image to []any for the mock interface
 	mockImagesAny := make([]any, len(mockImages))
 	for i, img := range mockImages {
@@ -117,7 +116,7 @@ func TestImagesView_Refresh_WithServices(t *testing.T) {
 	}
 	is.EXPECT().ListImages(context.Background()).Return(mockImagesAny, nil)
 
-	sf := servicemocks.NewMockServiceFactoryInterface(t)
+	sf := mocks.NewMockServiceFactoryInterface(t)
 	sf.On("GetImageService").Return(is)
 	ui := newImagesUIMockWithServices(t, sf)
 
@@ -128,10 +127,10 @@ func TestImagesView_Refresh_WithServices(t *testing.T) {
 }
 
 func TestImagesView_Refresh_ServiceError(t *testing.T) {
-	is := servicemocks.NewMockImageService(t)
+	is := mocks.NewMockImageService(t)
 	is.EXPECT().ListImages(context.Background()).Return([]any{}, assert.AnError)
 
-	sf := servicemocks.NewMockServiceFactoryInterface(t)
+	sf := mocks.NewMockServiceFactoryInterface(t)
 	sf.EXPECT().GetImageService().Return(is)
 	ui := newImagesUIMockWithServices(t, sf)
 	ui.On("ShowError", assert.AnError).Return().Maybe()
@@ -143,7 +142,7 @@ func TestImagesView_Refresh_ServiceError(t *testing.T) {
 }
 
 func TestImagesView_ShowImageDetails_Success(t *testing.T) {
-	is := servicemocks.NewMockImageService(t)
+	is := mocks.NewMockImageService(t)
 	is.On("InspectImage", context.Background(), "image1").Return(map[string]any{"ok": true}, nil).Maybe()
 
 	mockImage := Image{
@@ -155,7 +154,7 @@ func TestImagesView_ShowImageDetails_Success(t *testing.T) {
 		Containers: 2,
 	}
 
-	sf := servicemocks.NewMockServiceFactoryInterface(t)
+	sf := mocks.NewMockServiceFactoryInterface(t)
 	sf.On("GetImageService").Return(is)
 	ui := newImagesUIMockWithServices(t, sf)
 	ui.On("ShowDetails", mock.AnythingOfType("*tview.Flex")).Return().Maybe()
@@ -168,7 +167,7 @@ func TestImagesView_ShowImageDetails_Success(t *testing.T) {
 }
 
 func TestImagesView_ShowImageDetails_InspectError(t *testing.T) {
-	is := servicemocks.NewMockImageService(t)
+	is := mocks.NewMockImageService(t)
 	is.On("InspectImage", context.Background(), "image1").Return(map[string]any(nil), assert.AnError).Maybe()
 
 	mockImage := Image{
@@ -180,7 +179,7 @@ func TestImagesView_ShowImageDetails_InspectError(t *testing.T) {
 		Containers: 2,
 	}
 
-	sf := servicemocks.NewMockServiceFactoryInterface(t)
+	sf := mocks.NewMockServiceFactoryInterface(t)
 	sf.On("GetImageService").Return(is)
 	ui := newImagesUIMockWithServices(t, sf)
 	ui.On("ShowDetails", mock.AnythingOfType("*tview.Flex")).Return().Maybe()

@@ -85,7 +85,7 @@ func TestBaseView_Refresh_WithListItems(t *testing.T) {
 		{ID: "2", Name: "Item2"},
 	}
 
-	bv.ListItems = func(ctx context.Context) ([]TestItem, error) {
+	bv.ListItems = func(_ context.Context) ([]TestItem, error) {
 		return testItems, nil
 	}
 
@@ -101,7 +101,7 @@ func TestBaseView_Refresh_WithError(t *testing.T) {
 
 	bv := NewBaseView[TestItem](mockUI, "TestView", []string{"ID", "Name"})
 
-	bv.ListItems = func(ctx context.Context) ([]TestItem, error) {
+	bv.ListItems = func(_ context.Context) ([]TestItem, error) {
 		return nil, assert.AnError
 	}
 
@@ -123,7 +123,7 @@ func TestBaseView_ShowItemDetails_WithError(t *testing.T) {
 
 	bv := NewBaseView[TestItem](mockUI, "TestView", []string{"ID", "Name"})
 
-	bv.GetItemName = func(item TestItem) string {
+	bv.GetItemName = func(_ TestItem) string {
 		return "TestItem"
 	}
 
@@ -141,7 +141,7 @@ func TestBaseView_ShowItemDetails_WithSuccess(t *testing.T) {
 
 	bv := NewBaseView[TestItem](mockUI, "TestView", []string{"ID", "Name"})
 
-	bv.GetItemName = func(item TestItem) string {
+	bv.GetItemName = func(_ TestItem) string {
 		return "TestItem"
 	}
 
@@ -160,7 +160,7 @@ func TestBaseView_ShowItemDetails_DefaultActions(t *testing.T) {
 
 	bv := NewBaseView[TestItem](mockUI, "TestView", []string{"ID", "Name"})
 
-	bv.GetItemName = func(item TestItem) string {
+	bv.GetItemName = func(_ TestItem) string {
 		return "TestItem"
 	}
 
@@ -234,7 +234,7 @@ func TestBaseView_GetRowColor_Custom(t *testing.T) {
 	bv := NewBaseView[TestItem](mockUI, "TestView", []string{"ID", "Name"})
 
 	customColor := tcell.ColorRed
-	bv.GetRowColor = func(item TestItem) tcell.Color {
+	bv.GetRowColor = func(_ TestItem) tcell.Color {
 		return customColor
 	}
 
