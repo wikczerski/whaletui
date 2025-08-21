@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/wikczerski/whaletui/internal/config"
-	uimocks "github.com/wikczerski/whaletui/internal/ui/interfaces/mocks"
+	uimocks "github.com/wikczerski/whaletui/internal/mocks/ui"
 )
 
 func TestNewCommandHandler(t *testing.T) {

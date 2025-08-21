@@ -12,7 +12,6 @@ import (
 	"github.com/wikczerski/whaletui/internal/config"
 	"github.com/wikczerski/whaletui/internal/docker"
 	"github.com/wikczerski/whaletui/internal/logger"
-	"github.com/wikczerski/whaletui/internal/services"
 	"github.com/wikczerski/whaletui/internal/ui/core"
 	"github.com/wikczerski/whaletui/internal/ui/managers"
 )
@@ -21,7 +20,7 @@ import (
 type App struct {
 	cfg      *config.Config
 	docker   *docker.Client
-	services *services.ServiceFactory
+	services *core.ServiceFactory
 	ui       *core.UI
 	ctx      context.Context
 	cancel   context.CancelFunc
@@ -41,7 +40,7 @@ func New(cfg *config.Config) (*App, error) {
 		return nil, fmt.Errorf("docker client creation failed: %w", err)
 	}
 
-	services := services.NewServiceFactory(client)
+	services := core.NewServiceFactory(client)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	ui, err := core.New(services, cfg.Theme, nil, nil) // Managers will be created after UI creation

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/wikczerski/whaletui/internal/ui/interfaces/mocks"
+	mocks "github.com/wikczerski/whaletui/internal/mocks/ui"
 )
 
 func TestNewOperationExecutor(t *testing.T) {

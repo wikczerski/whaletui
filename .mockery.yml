@@ -15,12 +15,42 @@ packages:
   github.com/wikczerski/whaletui/internal/ui/interfaces:
     config:
       all: true
-      dir: internal/ui/interfaces/mocks
+      dir: internal/mocks/ui
       filename: '{{.InterfaceName}}.go'
       pkgname: mocks
-  github.com/wikczerski/whaletui/internal/services:
+  github.com/wikczerski/whaletui/internal/shared/interfaces:
     config:
       all: true
-      dir: internal/services/mocks
+      dir: internal/mocks/shared
+      filename: '{{.InterfaceName}}.go'
+      pkgname: mocks
+  github.com/wikczerski/whaletui/internal/domains/container:
+    config:
+      all: true
+      dir: internal/mocks/container
+      filename: '{{.InterfaceName}}.go'
+      pkgname: mocks
+  github.com/wikczerski/whaletui/internal/domains/image:
+    config:
+      all: true
+      dir: internal/mocks/image
+      filename: '{{.InterfaceName}}.go'
+      pkgname: mocks
+  github.com/wikczerski/whaletui/internal/domains/network:
+    config:
+      all: true
+      dir: internal/mocks/network
+      filename: '{{.InterfaceName}}.go'
+      pkgname: mocks
+  github.com/wikczerski/whaletui/internal/domains/volume:
+    config:
+      all: true
+      dir: internal/mocks/volume
+      filename: '{{.InterfaceName}}.go'
+      pkgname: mocks
+  github.com/wikczerski/whaletui/internal/domains/logs:
+    config:
+      all: true
+      dir: internal/mocks/logs
       filename: '{{.InterfaceName}}.go'
       pkgname: mocks

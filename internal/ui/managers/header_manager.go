@@ -7,8 +7,6 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/wikczerski/whaletui/internal/config"
-	"github.com/wikczerski/whaletui/internal/models"
-	"github.com/wikczerski/whaletui/internal/services"
 	"github.com/wikczerski/whaletui/internal/ui/constants"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 )
@@ -110,7 +108,7 @@ func (hm *HeaderManager) setDefaultDockerInfo() {
 }
 
 // updateDockerInfoFromService updates Docker info from the service
-func (hm *HeaderManager) updateDockerInfoFromService(services services.ServiceFactoryInterface) {
+func (hm *HeaderManager) updateDockerInfoFromService(services interfaces.ServiceFactoryInterface) {
 	if services == nil {
 		hm.setDefaultDockerInfo()
 		return
@@ -130,11 +128,11 @@ func (hm *HeaderManager) updateDockerInfoFromService(services services.ServiceFa
 		return
 	}
 
-	hm.setDockerInfoFromData(dockerInfo)
+	hm.setDockerInfoFromData(&dockerInfo)
 }
 
 // setDockerInfoFromData sets Docker info from the retrieved data
-func (hm *HeaderManager) setDockerInfoFromData(dockerInfo *models.DockerInfo) {
+func (hm *HeaderManager) setDockerInfoFromData(dockerInfo *interfaces.DockerInfo) {
 	// Use the DockerInfoTemplate constant with comprehensive information
 	infoText := fmt.Sprintf(constants.DockerInfoTemplate,
 		dockerInfo.Version,
@@ -247,8 +245,13 @@ func (hm *HeaderManager) setDefaultContainerActions() {
 		return
 	}
 
-	defaultActions := services.GetContainerService().GetActionsString()
-	hm.actionsCol.SetText(defaultActions)
+	containerService := services.GetContainerService()
+	if actionService, ok := containerService.(interfaces.ServiceWithActions); ok {
+		defaultActions := actionService.GetActionsString()
+		hm.actionsCol.SetText(defaultActions)
+	} else {
+		hm.actionsCol.SetText("")
+	}
 }
 
 // GetDockerInfoCol returns the docker info column for external access
