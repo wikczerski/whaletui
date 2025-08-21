@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/wikczerski/whaletui/internal/config"
@@ -20,7 +21,7 @@ type App struct {
 	ui       *core.UI
 	ctx      context.Context
 	cancel   context.CancelFunc
-	log      *logger.Logger
+	log      *slog.Logger
 }
 
 // New creates a new application instance
@@ -30,7 +31,6 @@ func New(cfg *config.Config) (*App, error) {
 	}
 
 	log := logger.GetLogger()
-	log.SetPrefix("App")
 
 	client, err := docker.New(cfg)
 	if err != nil {
@@ -95,7 +95,7 @@ func (a *App) Shutdown() {
 	a.ui.Stop()
 	if a.docker != nil {
 		if err := a.docker.Close(); err != nil {
-			a.log.Error("Failed to close Docker client: %v", err)
+			a.log.Error("Failed to close Docker client", "error", err)
 		}
 	}
 }

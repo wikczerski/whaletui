@@ -2,6 +2,7 @@ package docker
 
 import (
 	"fmt"
+	"log/slog"
 	"net"
 	"os"
 	"os/user"
@@ -10,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wikczerski/whaletui/internal/logger"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
 )
@@ -20,6 +22,7 @@ type SSHClient struct {
 	host   string
 	port   string
 	user   string
+	log    *slog.Logger
 }
 
 // SSHConnection represents an active SSH connection with a socat proxy
@@ -60,6 +63,7 @@ func NewSSHClient(host string, port int) (*SSHClient, error) {
 		host:   hostname,
 		port:   sshPort,
 		user:   user,
+		log:    logger.GetLogger(),
 	}, nil
 }
 
@@ -367,8 +371,8 @@ func (s *SSHClient) setupSocatProxy(client *ssh.Client, _, remotePort int) (*ssh
 		remotePort = availablePort
 	}
 
-	// Debug: Print the port being used
-	fmt.Printf("DEBUG: Using remote port %d for socat proxy\n", remotePort)
+	// Log the port being used
+	s.log.Info("Using remote port for socat proxy", "port", remotePort)
 
 	// First, check if socat is available on the remote machine
 	if err := s.checkSocatAvailability(client); err != nil {
@@ -389,10 +393,8 @@ func (s *SSHClient) setupSocatProxy(client *ssh.Client, _, remotePort int) (*ssh
 	// Build the socat command with better error handling
 	socatCmd := fmt.Sprintf("nohup bash -c 'socat TCP-LISTEN:%d,bind=0.0.0.0,reuseaddr,fork UNIX-CONNECT:/var/run/docker.sock 2>&1' > /tmp/socat.log 2>&1 & echo $!", remotePort)
 
-	// Debug: Print the socat command
-	fmt.Printf("DEBUG: Executing socat command: %s\n", socatCmd)
-
-	// Execute the socat command and capture the PID
+	// Log the socat command being executed
+	s.log.Debug("Executing socat command", "command", socatCmd)
 	output, err := session.Output(socatCmd)
 	if err != nil {
 		session.Close()
@@ -406,8 +408,8 @@ func (s *SSHClient) setupSocatProxy(client *ssh.Client, _, remotePort int) (*ssh
 		return nil, fmt.Errorf("failed to get socat process ID")
 	}
 
-	// Debug: Print the PID
-	fmt.Printf("DEBUG: Socat started with PID %s\n", pid)
+	// Log the PID
+	s.log.Info("Socat started with PID", "pid", pid)
 
 	// Close the current session
 	session.Close()
@@ -415,16 +417,13 @@ func (s *SSHClient) setupSocatProxy(client *ssh.Client, _, remotePort int) (*ssh
 	// Wait a moment for the process to start
 	time.Sleep(2 * time.Second) // Increased wait time
 
-	// Debug: Print verification attempt
-	fmt.Printf("DEBUG: Attempting to verify socat process on port %d\n", remotePort)
-
 	// Verify the socat process is running with a new session
 	if err := s.verifySocatProcess(client, pid, remotePort); err != nil {
 		return nil, fmt.Errorf("socat process verification failed: %w", err)
 	}
 
-	// Debug: Print success
-	fmt.Printf("DEBUG: Socat verification successful on port %d\n", remotePort)
+	// Log success
+	s.log.Info("Socat verification successful on port", "port", remotePort)
 
 	// Create a new session for monitoring
 	monitorSession, err := client.NewSession()
@@ -586,7 +585,7 @@ func (s *SSHClient) verifySocatProcess(client *ssh.Client, pid string, port int)
 		return fmt.Errorf("port must be positive, got %d", port)
 	}
 
-	fmt.Printf("DEBUG: Starting verification for PID %s on port %d\n", pid, port)
+	s.log.Debug("Starting verification for PID", "pid", pid, "port", port)
 
 	session, err := client.NewSession()
 	if err != nil {
@@ -596,18 +595,18 @@ func (s *SSHClient) verifySocatProcess(client *ssh.Client, pid string, port int)
 
 	// Check if process is running
 	cmd := fmt.Sprintf("kill -0 %s", pid)
-	fmt.Printf("DEBUG: Checking if process is running with command: %s\n", cmd)
+	s.log.Debug("Checking if process is running with command", "command", cmd)
 	if err := session.Run(cmd); err != nil {
 		return fmt.Errorf("socat process not running (PID: %s): %w", pid, err)
 	}
-	fmt.Printf("DEBUG: Process is running\n")
+	s.log.Debug("Process is running")
 
 	// Wait a moment for the process to fully start and bind to the port
 	time.Sleep(2 * time.Second)
 
 	// For now, just verify the process is running and assume the port will be ready
 	// The real test will be when we try to connect to Docker
-	fmt.Printf("DEBUG: Socat process verification successful - assuming port will be ready\n")
+	s.log.Debug("Socat process verification successful - assuming port will be ready")
 	return nil
 }
 

@@ -1,179 +1,178 @@
 package logger
 
 import (
-	"fmt"
+	"context"
 	"io"
+	"log/slog"
 	"os"
-	"strings"
+	"path/filepath"
 	"sync"
-	"time"
 )
-
-// LogLevel represents the logging level
-type LogLevel int
-
-const (
-	// DEBUG represents debug logging level
-	DEBUG LogLevel = iota
-	// INFO represents info logging level
-	INFO
-	// WARN represents warning logging level
-	WARN
-	// ERROR represents error logging level
-	ERROR
-	// FATAL represents fatal logging level
-	FATAL
-)
-
-var levelNames = map[LogLevel]string{
-	DEBUG: "DBG",
-	INFO:  "INF",
-	WARN:  "WRN",
-	ERROR: "ERR",
-	FATAL: "FAT",
-}
-
-// Logger represents a logger instance
-type Logger struct {
-	mu        sync.Mutex
-	output    io.Writer
-	minLevel  LogLevel
-	logPrefix string
-	enabled   bool
-}
 
 var (
-	defaultLogger *Logger
-	once          sync.Once
+	instance *slog.Logger
+	logFile  *os.File
+	logPath  string
+	mu       sync.RWMutex
 )
 
-// GetLogger returns the default logger instance
-func GetLogger() *Logger {
-	once.Do(func() {
-		defaultLogger = &Logger{
-			output:    os.Stderr,
-			minLevel:  INFO,
-			logPrefix: "",
-			enabled:   true,
-		}
-	})
-	return defaultLogger
-}
+// GetLogger returns the singleton logger instance
+func GetLogger() *slog.Logger {
+	mu.RLock()
+	if instance != nil {
+		defer mu.RUnlock()
+		return instance
+	}
+	mu.RUnlock()
 
-// SetOutput sets the output writer for the logger
-func (l *Logger) SetOutput(w io.Writer) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	l.output = w
-}
+	mu.Lock()
+	defer mu.Unlock()
 
-// SetLevel sets the minimum logging level
-func (l *Logger) SetLevel(level LogLevel) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	l.minLevel = level
-}
-
-// SetPrefix sets the log prefix
-func (l *Logger) SetPrefix(prefix string) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	l.logPrefix = prefix
-}
-
-// Enable enables or disables logging
-func (l *Logger) Enable(enabled bool) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	l.enabled = enabled
-}
-
-// IsEnabled returns whether logging is enabled
-func (l *Logger) IsEnabled() bool {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	return l.enabled
-}
-
-func (l *Logger) log(level LogLevel, format string, args ...any) {
-	if !l.enabled || level < l.minLevel {
-		return
+	// Double-check after acquiring write lock
+	if instance != nil {
+		return instance
 	}
 
-	l.mu.Lock()
+	// Initialize with default console handler
+	instance = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	slog.SetDefault(instance)
+	return instance
+}
 
-	prefix := ""
-	if l.logPrefix != "" {
-		prefix = "[" + l.logPrefix + "] "
+// SetLevel sets the logging level and configures multistream if DEBUG
+func SetLevel(level string) {
+	SetLevelWithPath(level, "")
+}
+
+// SetLevelWithPath sets the logging level and configures multistream if DEBUG with a specific log file path
+func SetLevelWithPath(level, logFilePath string) {
+	var slogLevel slog.Level
+	switch level {
+	case "DEBUG":
+		slogLevel = slog.LevelDebug
+	case "WARN":
+		slogLevel = slog.LevelWarn
+	case "ERROR":
+		slogLevel = slog.LevelError
+	default:
+		slogLevel = slog.LevelInfo
 	}
 
-	message := fmt.Sprintf(format, args...)
-	message = strings.TrimSuffix(message, "\n")
+	mu.Lock()
+	defer mu.Unlock()
 
-	if level == INFO {
-		if _, err := fmt.Fprintf(l.output, "%s%s\n", prefix, message); err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to write log message: %v\n", err)
-		}
+	// Close existing log file if any
+	if logFile != nil {
+		logFile.Close()
+		logFile = nil
+	}
+
+	var handler slog.Handler
+
+	if level == "DEBUG" {
+		// For DEBUG level, use multistream to log to both file and console
+		handler = createMultistreamHandler(slogLevel, logFilePath)
 	} else {
-		timestamp := time.Now().Format("15:04:05")
-		if _, err := fmt.Fprintf(l.output, "%s [%s] %s%s\n", timestamp, levelNames[level], prefix, message); err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to write log message: %v\n", err)
-		}
+		// For other levels, use console only
+		handler = slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+			Level: slogLevel,
+		})
 	}
 
-	if level == FATAL {
-		l.mu.Unlock() // Unlock before exit
-		os.Exit(1)
+	// Update instance and default
+	instance = slog.New(handler)
+	slog.SetDefault(instance)
+}
+
+// createMultistreamHandler creates a handler that writes to both file and console
+func createMultistreamHandler(level slog.Level, logFilePath string) slog.Handler {
+	// Use provided path or default
+	if logFilePath == "" {
+		logFilePath = "./logs/whaletui.log"
 	}
-	l.mu.Unlock()
+
+	// Create logs directory if it doesn't exist
+	logsDir := filepath.Dir(logFilePath)
+	if err := os.MkdirAll(logsDir, 0o755); err != nil {
+		// Fallback to console only if directory creation fails
+		return slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+			Level: level,
+		})
+	}
+
+	// Open log file
+	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		// Fallback to console only if file creation fails
+		return slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+			Level: level,
+		})
+	}
+
+	logFile = file
+	logPath = logFilePath
+
+	// Create multistream writer
+	multiWriter := io.MultiWriter(os.Stderr, file)
+
+	// Create handler with multistream
+	return slog.NewTextHandler(multiWriter, &slog.HandlerOptions{
+		Level: level,
+	})
 }
 
-// Debug logs a debug message
-func (l *Logger) Debug(format string, args ...any) {
-	l.log(DEBUG, format, args...)
+// CloseLogFile closes the log file if it's open
+func CloseLogFile() {
+	if logFile != nil {
+		logFile.Close()
+		logFile = nil
+	}
 }
 
-// Info logs an info message
-func (l *Logger) Info(format string, args ...any) {
-	l.log(INFO, format, args...)
+// IsDebugMode returns true if the logger is currently in DEBUG mode
+func IsDebugMode() bool {
+	mu.RLock()
+	defer mu.RUnlock()
+	return instance != nil && instance.Handler().Enabled(context.Background(), slog.LevelDebug)
 }
 
-// Warn logs a warning message
-func (l *Logger) Warn(format string, args ...any) {
-	l.log(WARN, format, args...)
+// GetLogFilePath returns the current log file path if any
+func GetLogFilePath() string {
+	mu.RLock()
+	defer mu.RUnlock()
+	return logPath
 }
 
-// Error logs an error message
-func (l *Logger) Error(format string, args ...any) {
-	l.log(ERROR, format, args...)
+// Convenience functions that use the singleton logger
+func Debug(msg string, args ...any) {
+	GetLogger().Debug(msg, args...)
 }
 
-// Fatal logs a fatal message and exits
-func (l *Logger) Fatal(format string, args ...any) {
-	l.log(FATAL, format, args...)
+func Info(msg string, args ...any) {
+	GetLogger().Info(msg, args...)
 }
 
-// Debug logs a debug message using the default logger
-func Debug(format string, args ...any) {
-	GetLogger().Debug(format, args...)
+func Warn(msg string, args ...any) {
+	GetLogger().Warn(msg, args...)
 }
 
-// Info logs an info message using the default logger
-func Info(format string, args ...any) {
-	GetLogger().Info(format, args...)
+func Error(msg string, args ...any) {
+	GetLogger().Error(msg, args...)
 }
 
-// Warn logs a warning message using the default logger
-func Warn(format string, args ...any) {
-	GetLogger().Warn(format, args...)
+func Fatal(msg string, args ...any) {
+	GetLogger().Error(msg, args...)
+	os.Exit(1)
 }
 
-// Error logs an error message using the default logger
-func Error(format string, args ...any) {
-	GetLogger().Error(format, args...)
+// With returns a new logger with the given key-value pairs
+func With(args ...any) *slog.Logger {
+	return GetLogger().With(args...)
 }
 
-// Fatal logs a fatal message using the default logger and exits
-func Fatal(format string, args ...any) {
-	GetLogger().Fatal(format, args...)
+// WithGroup returns a new logger with the given group name
+func WithGroup(name string) *slog.Logger {
+	return GetLogger().WithGroup(name)
 }

@@ -3,6 +3,7 @@ package docker
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -88,7 +89,7 @@ func readExistingConfig() (map[string]any, error) {
 		data, err := os.ReadFile(configFile)
 		if err == nil {
 			if unmarshalErr := json.Unmarshal(data, &config); unmarshalErr != nil {
-				fmt.Printf("Warning: failed to parse config file: %v\n", unmarshalErr)
+				slog.Warn("Failed to parse config file", "error", unmarshalErr)
 			}
 		}
 	}

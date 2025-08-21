@@ -12,6 +12,7 @@ import (
 type Config struct {
 	RefreshInterval int    `json:"refresh_interval"`
 	LogLevel        string `json:"log_level"`
+	LogFilePath     string `json:"log_file_path,omitempty"`
 	DockerHost      string `json:"docker_host"`
 	Theme           string `json:"theme"`
 	RemoteHost      string `json:"remote_host,omitempty"` // Command line specified remote host
@@ -31,6 +32,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		RefreshInterval: 5,
 		LogLevel:        "INFO",
+		LogFilePath:     "./logs/whaletui.log",
 		DockerHost:      host,
 		Theme:           "default",
 		RemotePort:      2375, // Default port for SSH fallback

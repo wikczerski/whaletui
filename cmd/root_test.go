@@ -6,7 +6,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/wikczerski/whaletui/internal/config"
-	"github.com/wikczerski/whaletui/internal/logger"
 )
 
 func TestRootCmd(t *testing.T) {
@@ -76,28 +75,24 @@ func TestApplyFlagOverrides(t *testing.T) {
 }
 
 func TestSetLogLevel(t *testing.T) {
-	// Test log level setting - verify functions don't panic
-	log := logger.GetLogger()
-
-	// Test that setting different log levels doesn't panic
 	assert.NotPanics(t, func() {
-		setLogLevel(log, "DEBUG")
+		setLogLevel("DEBUG")
 	})
 
 	assert.NotPanics(t, func() {
-		setLogLevel(log, "WARN")
+		setLogLevel("WARN")
 	})
 
 	assert.NotPanics(t, func() {
-		setLogLevel(log, "ERROR")
+		setLogLevel("ERROR")
 	})
 
 	assert.NotPanics(t, func() {
-		setLogLevel(log, "INFO")
+		setLogLevel("INFO")
 	})
 
 	assert.NotPanics(t, func() {
-		setLogLevel(log, "INVALID")
+		setLogLevel("INVALID")
 	})
 }
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/wikczerski/whaletui/internal/config"
+	"github.com/wikczerski/whaletui/internal/logger"
 )
 
 // configCmd represents the config command
@@ -31,7 +32,7 @@ func init() {
 func showConfig() {
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Printf("Error loading config: %v\n", err)
+		logger.Error("Error loading config", "error", err)
 		os.Exit(1)
 	}
 

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"runtime"
 	"sort"
 	"strings"
@@ -24,12 +25,12 @@ import (
 type Client struct {
 	cli     *client.Client
 	cfg     *config.Config
-	log     *logger.Logger
+	log     *slog.Logger
 	sshConn *SSHConnection
 }
 
 // detectWindowsDockerHost attempts to find the correct Docker host on Windows
-func detectWindowsDockerHost(log *logger.Logger) (string, error) {
+func detectWindowsDockerHost(log *slog.Logger) (string, error) {
 	if runtime.GOOS != "windows" {
 		return "", fmt.Errorf("not on Windows")
 	}
@@ -51,7 +52,7 @@ func detectWindowsDockerHost(log *logger.Logger) (string, error) {
 }
 
 // isHostWorking tests if a Docker host is working
-func isHostWorking(host string, log *logger.Logger) bool {
+func isHostWorking(host string, log *slog.Logger) bool {
 	opts := []client.Opt{
 		client.WithHost(host),
 		client.WithAPIVersionNegotiation(),
@@ -72,9 +73,9 @@ func isHostWorking(host string, log *logger.Logger) bool {
 }
 
 // closeClientSafely closes a Docker client and logs any errors
-func closeClientSafely(cli *client.Client, log *logger.Logger) {
+func closeClientSafely(cli *client.Client, log *slog.Logger) {
 	if err := cli.Close(); err != nil {
-		log.Warn("Failed to close Docker client during host detection: %v", err)
+		log.Warn("Failed to close Docker client during host detection", "error", err)
 	}
 }
 
@@ -85,7 +86,6 @@ func New(cfg *config.Config) (*Client, error) {
 	}
 
 	log := logger.GetLogger()
-	log.SetPrefix("Docker")
 
 	client, err := createDockerClient(cfg, log)
 	if err != nil {
@@ -96,7 +96,7 @@ func New(cfg *config.Config) (*Client, error) {
 }
 
 // createDockerClient creates a Docker client with the given configuration
-func createDockerClient(cfg *config.Config, log *logger.Logger) (*Client, error) {
+func createDockerClient(cfg *config.Config, log *slog.Logger) (*Client, error) {
 	opts, err := buildClientOptions(cfg)
 	if err != nil {
 		return nil, err
@@ -115,11 +115,18 @@ func buildClientOptions(cfg *config.Config) ([]client.Opt, error) {
 	var opts []client.Opt
 
 	if cfg.RemoteHost != "" {
-		dockerHost, err := formatRemoteHost(cfg.RemoteHost)
-		if err != nil {
-			return nil, fmt.Errorf("invalid remote host format: %w", err)
+		// Check if this is an SSH connection
+		if strings.HasPrefix(cfg.RemoteHost, "ssh://") {
+			// For SSH connections, we'll handle this specially
+			// The Docker client will handle ssh:// URLs natively
+			opts = append(opts, client.WithHost(cfg.RemoteHost), client.WithTimeout(30*time.Second))
+		} else {
+			dockerHost, err := formatRemoteHost(cfg.RemoteHost)
+			if err != nil {
+				return nil, fmt.Errorf("invalid remote host format: %w", err)
+			}
+			opts = append(opts, client.WithHost(dockerHost), client.WithTimeout(30*time.Second))
 		}
-		opts = append(opts, client.WithHost(dockerHost), client.WithTimeout(30*time.Second))
 	} else if cfg.DockerHost != "" {
 		opts = append(opts, client.WithHost(cfg.DockerHost))
 	}
@@ -134,6 +141,11 @@ func buildClientOptions(cfg *config.Config) ([]client.Opt, error) {
 
 // formatRemoteHost formats and validates a remote host URL
 func formatRemoteHost(host string) (string, error) {
+	// Handle SSH URLs - they should be passed through as-is
+	if strings.HasPrefix(host, "ssh://") {
+		return host, nil
+	}
+
 	if err := validateRemoteHost(host); err != nil {
 		return "", err
 	}
@@ -147,7 +159,7 @@ func formatRemoteHost(host string) (string, error) {
 }
 
 // handleClientCreationError handles errors during client creation, including Windows auto-detection
-func handleClientCreationError(cfg *config.Config, log *logger.Logger, err error) (*Client, error) {
+func handleClientCreationError(cfg *config.Config, log *slog.Logger, err error) (*Client, error) {
 	if runtime.GOOS == "windows" && cfg.RemoteHost == "" {
 		return tryWindowsAutoDetection(cfg, log)
 	}
@@ -155,7 +167,7 @@ func handleClientCreationError(cfg *config.Config, log *logger.Logger, err error
 }
 
 // tryWindowsAutoDetection attempts to auto-detect the correct Docker host on Windows
-func tryWindowsAutoDetection(cfg *config.Config, log *logger.Logger) (*Client, error) {
+func tryWindowsAutoDetection(cfg *config.Config, log *slog.Logger) (*Client, error) {
 	log.Warn("Docker client creation failed, attempting to auto-detect correct host...")
 
 	detectedHost, detectErr := detectWindowsDockerHost(log)
@@ -163,12 +175,12 @@ func tryWindowsAutoDetection(cfg *config.Config, log *logger.Logger) (*Client, e
 		return nil, fmt.Errorf("failed to create Docker client: %w", detectErr)
 	}
 
-	log.Info("Detected working Docker host: %s", detectedHost)
+	log.Info("Detected working Docker host", "host", detectedHost)
 	return createClientWithHost(cfg, log, detectedHost)
 }
 
 // createClientWithHost creates a client with a specific host
-func createClientWithHost(cfg *config.Config, log *logger.Logger, host string) (*Client, error) {
+func createClientWithHost(cfg *config.Config, log *slog.Logger, host string) (*Client, error) {
 	detectedOpts := []client.Opt{
 		client.WithHost(host),
 		client.WithAPIVersionNegotiation(),
@@ -184,13 +196,13 @@ func createClientWithHost(cfg *config.Config, log *logger.Logger, host string) (
 }
 
 // testAndCreateClient tests the connection and creates the client
-func testAndCreateClient(cfg *config.Config, log *logger.Logger, cli *client.Client) (*Client, error) {
+func testAndCreateClient(cfg *config.Config, log *slog.Logger, cli *client.Client) (*Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if _, err := cli.Ping(ctx); err != nil {
 		if closeErr := cli.Close(); closeErr != nil {
-			log.Warn("Failed to close Docker client: %v", closeErr)
+			log.Warn("Failed to close Docker client", "error", closeErr)
 		}
 
 		// If this is a remote host and direct connection failed, try SSH fallback
@@ -212,9 +224,9 @@ func testAndCreateClient(cfg *config.Config, log *logger.Logger, cli *client.Cli
 }
 
 // logConnectionSuccess logs the successful connection
-func logConnectionSuccess(cfg *config.Config, log *logger.Logger) {
+func logConnectionSuccess(cfg *config.Config, log *slog.Logger) {
 	if cfg.RemoteHost != "" {
-		log.Info("Successfully connected to remote Docker host: %s", cfg.RemoteHost)
+		log.Info("Successfully connected to remote Docker host", "host", cfg.RemoteHost)
 	} else {
 		log.Info("Successfully connected to local Docker instance")
 	}
@@ -244,7 +256,7 @@ func (c *Client) Close() error {
 }
 
 // trySSHFallback attempts to connect via SSH when direct connection fails
-func trySSHFallback(cfg *config.Config, log *logger.Logger) (*Client, error) {
+func trySSHFallback(cfg *config.Config, log *slog.Logger) (*Client, error) {
 	log.Info("Direct connection failed, attempting SSH fallback...")
 
 	host, err := extractHostFromURL(cfg.RemoteHost)
@@ -273,17 +285,22 @@ func trySSHFallback(cfg *config.Config, log *logger.Logger) (*Client, error) {
 		sshConn: sshConn,
 	}
 
-	log.Info("Successfully connected to remote Docker via SSH: %s", cfg.RemoteHost)
+	log.Info("Successfully connected to remote Docker via SSH", "host", cfg.RemoteHost)
 	return client, nil
 }
 
 // establishSSHConnection establishes an SSH connection to the remote host
-func establishSSHConnection(host, username string, log *logger.Logger) (*SSHConnection, error) {
-	log.Info("Attempting SSH connection to: %s as user: %s", host, username)
+func establishSSHConnection(host, username string, log *slog.Logger) (*SSHConnection, error) {
+	log.Info("Attempting SSH connection", "host", host, "user", username)
 	log.Info("Note: SSH key-based authentication required (no password will be provided)")
 
 	// Format the host with username for SSH connection
-	sshHost := fmt.Sprintf("%s@%s", username, host)
+	var sshHost string
+	if username != "" {
+		sshHost = fmt.Sprintf("%s@%s", username, host)
+	} else {
+		sshHost = host
+	}
 
 	sshClient, err := NewSSHClient(sshHost, 22) // Default SSH port
 	if err != nil {
@@ -297,13 +314,13 @@ func establishSSHConnection(host, username string, log *logger.Logger) (*SSHConn
 	}
 
 	localProxyHost := sshConn.GetLocalProxyHost()
-	log.Info("SSH connection established, socat proxy running on: %s", localProxyHost)
+	log.Info("SSH connection established, socat proxy running on", "host", localProxyHost)
 
 	return sshConn, nil
 }
 
 // createDockerClientViaSSH creates a Docker client using the SSH proxy
-func createDockerClientViaSSH(sshConn *SSHConnection, _ *logger.Logger) (*client.Client, error) {
+func createDockerClientViaSSH(sshConn *SSHConnection, _ *slog.Logger) (*client.Client, error) {
 	localProxyHost := sshConn.GetLocalProxyHost()
 
 	opts := []client.Opt{
@@ -331,6 +348,13 @@ func createDockerClientViaSSH(sshConn *SSHConnection, _ *logger.Logger) (*client
 
 // extractHostFromURL extracts the hostname from a Docker host URL
 func extractHostFromURL(hostURL string) (string, error) {
+	// Handle SSH URLs specially
+	if strings.HasPrefix(hostURL, "ssh://") {
+		// For SSH URLs, extract the hostname from ssh://[user@]host[:port]
+		sshHost := hostURL[6:] // Remove "ssh://" prefix
+		return extractSSHHostname(sshHost)
+	}
+
 	if strings.Contains(hostURL, "://") {
 		parts := strings.Split(hostURL, "://")
 		if len(parts) != 2 {
@@ -365,6 +389,56 @@ func extractHostFromURL(hostURL string) (string, error) {
 	return hostURL, nil
 }
 
+// extractSSHHostname extracts the hostname from an SSH host string
+func extractSSHHostname(sshHost string) (string, error) {
+	if sshHost == "" {
+		return "", fmt.Errorf("SSH host cannot be empty")
+	}
+
+	// SSH host format: [user@]host[:port]
+	hostname := sshHost
+
+	// Remove username part if present
+	if strings.Contains(hostname, "@") {
+		parts := strings.Split(hostname, "@")
+		if len(parts) != 2 {
+			return "", fmt.Errorf("invalid SSH host format: expected [user@]host[:port]")
+		}
+		if parts[0] == "" {
+			return "", fmt.Errorf("username cannot be empty in SSH host format")
+		}
+		hostname = parts[1]
+	}
+
+	// Remove port part if present
+	if strings.Contains(hostname, ":") {
+		parts := strings.Split(hostname, ":")
+		if len(parts) != 2 {
+			return "", fmt.Errorf("invalid SSH host format: expected [user@]host[:port]")
+		}
+		if parts[1] == "" {
+			return "", fmt.Errorf("port cannot be empty in SSH host format")
+		}
+		hostname = parts[0]
+	}
+
+	// Validate hostname
+	if hostname == "" {
+		return "", fmt.Errorf("hostname cannot be empty in SSH host format")
+	}
+
+	// Basic hostname validation
+	if strings.HasPrefix(hostname, ".") || strings.HasSuffix(hostname, ".") {
+		return "", fmt.Errorf("hostname '%s' cannot start or end with a dot", hostname)
+	}
+
+	if strings.Contains(hostname, "..") {
+		return "", fmt.Errorf("hostname '%s' cannot contain consecutive dots", hostname)
+	}
+
+	return hostname, nil
+}
+
 // validateRemoteHost validates the format of a remote Docker host
 func validateRemoteHost(host string) error {
 	if host == "" {
@@ -373,13 +447,18 @@ func validateRemoteHost(host string) error {
 
 	// Check if user provided a scheme
 	if strings.Contains(host, "://") {
-		// User provided a scheme, validate it's tcp://
-		if !strings.HasPrefix(host, "tcp://") {
-			return fmt.Errorf("only tcp:// scheme is supported (e.g., tcp://192.168.1.100)")
+		// Support both tcp:// and ssh:// schemes
+		switch {
+		case strings.HasPrefix(host, "ssh://"):
+			// SSH URLs are handled by the Docker client natively
+			// Format: ssh://[user@]host[:port]
+			return validateSSHHost(host[6:]) // Remove "ssh://" prefix
+		case strings.HasPrefix(host, "tcp://"):
+			// Remove scheme for further validation
+			host = host[6:] // "tcp://" is 6 characters
+		default:
+			return fmt.Errorf("only tcp:// and ssh:// schemes are supported (e.g., tcp://192.168.1.100 or ssh://user@host)")
 		}
-
-		// Remove scheme for further validation
-		host = host[6:] // "tcp://" is 6 characters
 	}
 
 	// Validate hostname part
@@ -398,6 +477,61 @@ func validateRemoteHost(host string) error {
 		if parts[1] == "" {
 			return fmt.Errorf("port cannot be empty")
 		}
+	}
+
+	return nil
+}
+
+// validateSSHHost validates the format of an SSH host string
+func validateSSHHost(host string) error {
+	if host == "" {
+		return fmt.Errorf("SSH host cannot be empty")
+	}
+
+	// SSH host format: [user@]host[:port]
+	// Extract hostname part (remove user@ and :port)
+	hostname := host
+
+	// Remove username part if present
+	if strings.Contains(hostname, "@") {
+		parts := strings.Split(hostname, "@")
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid SSH host format: expected [user@]host[:port]")
+		}
+		if parts[0] == "" {
+			return fmt.Errorf("username cannot be empty in SSH host format")
+		}
+		hostname = parts[1]
+	}
+
+	// Remove port part if present
+	if strings.Contains(hostname, ":") {
+		parts := strings.Split(hostname, ":")
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid SSH host format: expected [user@]host[:port]")
+		}
+		hostname = parts[0]
+		if parts[1] == "" {
+			return fmt.Errorf("port cannot be empty in SSH host format")
+		}
+		// Validate port is numeric
+		if _, err := fmt.Sscanf(parts[1], "%d", new(int)); err != nil {
+			return fmt.Errorf("invalid port in SSH host format: port must be numeric")
+		}
+	}
+
+	// Validate hostname
+	if hostname == "" {
+		return fmt.Errorf("hostname cannot be empty in SSH host format")
+	}
+
+	// Basic hostname validation
+	if strings.HasPrefix(hostname, ".") || strings.HasSuffix(hostname, ".") {
+		return fmt.Errorf("hostname '%s' cannot start or end with a dot", hostname)
+	}
+
+	if strings.Contains(hostname, "..") {
+		return fmt.Errorf("hostname '%s' cannot contain consecutive dots", hostname)
 	}
 
 	return nil

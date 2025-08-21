@@ -658,6 +658,204 @@ func TestClient_ConcurrentAccess(t *testing.T) {
 	}
 }
 
+func TestValidateSSHHost(t *testing.T) {
+	tests := []struct {
+		name        string
+		host        string
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name:        "ValidSSHHost",
+			host:        "user@host1.example.com",
+			expectError: false,
+		},
+		{
+			name:        "ValidSSHHostWithPort",
+			host:        "user@host1.example.com:2222",
+			expectError: false,
+		},
+		{
+			name:        "ValidSSHHostNoUser",
+			host:        "host1.example.com",
+			expectError: false,
+		},
+		{
+			name:        "ValidSSHHostNoUserWithPort",
+			host:        "host1.example.com:2222",
+			expectError: false,
+		},
+		{
+			name:        "EmptyHost",
+			host:        "",
+			expectError: true,
+			errorMsg:    "SSH host cannot be empty",
+		},
+		{
+			name:        "InvalidFormatDoubleAt",
+			host:        "user@@host1.example.com",
+			expectError: true,
+			errorMsg:    "invalid SSH host format: expected [user@]host[:port]",
+		},
+		{
+			name:        "EmptyUsername",
+			host:        "@host1.example.com",
+			expectError: true,
+			errorMsg:    "username cannot be empty in SSH host format",
+		},
+		{
+			name:        "EmptyHostname",
+			host:        "user@",
+			expectError: true,
+			errorMsg:    "hostname cannot be empty in SSH host format",
+		},
+		{
+			name:        "EmptyPort",
+			host:        "user@host1.example.com:",
+			expectError: true,
+			errorMsg:    "port cannot be empty in SSH host format",
+		},
+		{
+			name:        "InvalidPort",
+			host:        "user@host1.example.com:abc",
+			expectError: true,
+			errorMsg:    "invalid port in SSH host format: port must be numeric",
+		},
+		{
+			name:        "HostnameStartingWithDot",
+			host:        "user@.example.com",
+			expectError: true,
+			errorMsg:    "hostname '.example.com' cannot start or end with a dot",
+		},
+		{
+			name:        "HostnameEndingWithDot",
+			host:        "user@example.com.",
+			expectError: true,
+			errorMsg:    "hostname 'example.com.' cannot start or end with a dot",
+		},
+		{
+			name:        "HostnameWithConsecutiveDots",
+			host:        "user@example..com",
+			expectError: true,
+			errorMsg:    "hostname 'example..com' cannot contain consecutive dots",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateSSHHost(tt.host)
+
+			if tt.expectError {
+				assert.Error(t, err)
+				if tt.errorMsg != "" {
+					assert.Contains(t, err.Error(), tt.errorMsg)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestExtractSSHHostname(t *testing.T) {
+	tests := []struct {
+		name        string
+		sshHost     string
+		expected    string
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name:        "ValidSSHHost",
+			sshHost:     "user@host1.example.com",
+			expected:    "host1.example.com",
+			expectError: false,
+		},
+		{
+			name:        "ValidSSHHostWithPort",
+			sshHost:     "user@host1.example.com:2222",
+			expected:    "host1.example.com",
+			expectError: false,
+		},
+		{
+			name:        "ValidSSHHostNoUser",
+			sshHost:     "host1.example.com",
+			expected:    "host1.example.com",
+			expectError: false,
+		},
+		{
+			name:        "ValidSSHHostNoUserWithPort",
+			sshHost:     "host1.example.com:2222",
+			expected:    "host1.example.com",
+			expectError: false,
+		},
+		{
+			name:        "EmptySSHHost",
+			sshHost:     "",
+			expectError: true,
+			errorMsg:    "SSH host cannot be empty",
+		},
+		{
+			name:        "InvalidFormatDoubleAt",
+			sshHost:     "user@@host1.example.com",
+			expectError: true,
+			errorMsg:    "invalid SSH host format: expected [user@]host[:port]",
+		},
+		{
+			name:        "EmptyUsername",
+			sshHost:     "@host1.example.com",
+			expectError: true,
+			errorMsg:    "username cannot be empty in SSH host format",
+		},
+		{
+			name:        "EmptyHostname",
+			sshHost:     "user@",
+			expectError: true,
+			errorMsg:    "hostname cannot be empty in SSH host format",
+		},
+		{
+			name:        "EmptyPort",
+			sshHost:     "user@host1.example.com:",
+			expectError: true,
+			errorMsg:    "port cannot be empty in SSH host format",
+		},
+		{
+			name:        "HostnameStartingWithDot",
+			sshHost:     "user@.example.com",
+			expectError: true,
+			errorMsg:    "hostname '.example.com' cannot start or end with a dot",
+		},
+		{
+			name:        "HostnameEndingWithDot",
+			sshHost:     "user@example.com.",
+			expectError: true,
+			errorMsg:    "hostname 'example.com.' cannot start or end with a dot",
+		},
+		{
+			name:        "HostnameWithConsecutiveDots",
+			sshHost:     "user@example..com",
+			expectError: true,
+			errorMsg:    "hostname 'example..com' cannot contain consecutive dots",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := extractSSHHostname(tt.sshHost)
+
+			if tt.expectError {
+				assert.Error(t, err)
+				if tt.errorMsg != "" {
+					assert.Contains(t, err.Error(), tt.errorMsg)
+				}
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expected, result)
+			}
+		})
+	}
+}
+
 func TestExtractHostFromURL(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -731,6 +929,43 @@ func TestExtractHostFromURL(t *testing.T) {
 			hostURL:     "tcp://example..com:2375",
 			expectError: true,
 			errorMsg:    "hostname 'example..com' cannot contain consecutive dots",
+		},
+		// SSH URL test cases
+		{
+			name:        "ValidSSHURL",
+			hostURL:     "ssh://user@host1.example.com",
+			expected:    "host1.example.com",
+			expectError: false,
+		},
+		{
+			name:        "ValidSSHURLWithPort",
+			hostURL:     "ssh://user@host1.example.com:2222",
+			expected:    "host1.example.com",
+			expectError: false,
+		},
+		{
+			name:        "ValidSSHURLNoUser",
+			hostURL:     "ssh://host1.example.com",
+			expected:    "host1.example.com",
+			expectError: false,
+		},
+		{
+			name:        "ValidSSHURLNoUserWithPort",
+			hostURL:     "ssh://host1.example.com:2222",
+			expected:    "host1.example.com",
+			expectError: false,
+		},
+		{
+			name:        "InvalidSSHURLFormat",
+			hostURL:     "ssh://user@@host1.example.com",
+			expectError: true,
+			errorMsg:    "invalid SSH host format: expected [user@]host[:port]",
+		},
+		{
+			name:        "InvalidSSHURLPort",
+			hostURL:     "ssh://user@host1.example.com:",
+			expectError: true,
+			errorMsg:    "port cannot be empty in SSH host format",
 		},
 	}
 
