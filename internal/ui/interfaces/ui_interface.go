@@ -9,10 +9,12 @@ import (
 )
 
 // Type aliases to avoid import cycles
-type Container = any
-type Image = any
-type Volume = any
-type Network = any
+type (
+	Container = any
+	Image     = any
+	Volume    = any
+	Network   = any
+)
 
 // DockerInfoService defines the minimal interface needed by UI for Docker info
 type DockerInfoService interface {

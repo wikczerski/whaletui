@@ -131,6 +131,60 @@ jobs:
       - name: Run linter
         run: golangci-lint run --timeout=5m
 
+  format-check:
+    name: Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.25.0'
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download Go modules
+        run: go mod download
+
+      - name: Install gofumpt
+        run: go install mvdan.cc/gofumpt@latest
+
+      - name: Check formatting with gofumpt
+        run: |
+          echo "Checking Go code formatting with gofumpt..."
+          if [ "$(gofumpt -d . | wc -l)" -gt 0 ]; then
+            echo "ERROR: Code is not properly formatted with gofumpt"
+            echo "The following files need formatting:"
+            gofumpt -d .
+            echo ""
+            echo "To fix formatting, run: gofumpt -w ."
+            exit 1
+          else
+            echo "✓ All Go files are properly formatted with gofumpt"
+          fi
+
+      - name: Check imports with goimports
+        run: |
+          echo "Checking Go imports with goimports..."
+          if [ "$(goimports -d . | wc -l)" -gt 0 ]; then
+            echo "ERROR: Go imports are not properly formatted"
+            echo "The following files need import formatting:"
+            goimports -d .
+            echo ""
+            echo "To fix imports, run: goimports -w ."
+            exit 1
+          else
+            echo "✓ All Go imports are properly formatted"
+          fi
+
   security:
     name: Security Scan
     runs-on: ubuntu-latest

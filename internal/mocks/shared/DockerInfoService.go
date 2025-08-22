@@ -16,7 +16,8 @@ import (
 func NewMockDockerInfoService(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *MockDockerInfoService {
+},
+) *MockDockerInfoService {
 	mock := &MockDockerInfoService{}
 	mock.Mock.Test(t)
 

@@ -13,7 +13,8 @@ import (
 func NewMockModalManagerInterface(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *MockModalManagerInterface {
+},
+) *MockModalManagerInterface {
 	mock := &MockModalManagerInterface{}
 	mock.Mock.Test(t)
 

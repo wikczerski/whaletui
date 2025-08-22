@@ -16,7 +16,8 @@ import (
 func NewMockVolumeService(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *MockVolumeService {
+},
+) *MockVolumeService {
 	mock := &MockVolumeService{}
 	mock.Mock.Test(t)
 

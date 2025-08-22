@@ -17,7 +17,8 @@ import (
 func NewMockContainerService(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *MockContainerService {
+},
+) *MockContainerService {
 	mock := &MockContainerService{}
 	mock.Mock.Test(t)
 
