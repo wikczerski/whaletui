@@ -136,7 +136,7 @@ go tool cover -html=coverage.out -o coverage.html
 ### Go Conventions
 
 - Follow [Effective Go](https://golang.org/doc/effective_go.html)
-- Use `gofmt` for code formatting
+- Use `gofumpt` for code formatting (superset of gofmt with additional rules)
 - Use `goimports` for import organization
 - Follow Go naming conventions
 

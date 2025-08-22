@@ -14,7 +14,8 @@ import (
 func NewMockServiceFactoryInterface(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *MockServiceFactoryInterface {
+},
+) *MockServiceFactoryInterface {
 	mock := &MockServiceFactoryInterface{}
 	mock.Mock.Test(t)
 

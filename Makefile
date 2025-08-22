@@ -40,7 +40,12 @@ lint:
 	golangci-lint run
 
 fmt:
-	go fmt ./...
+	gofumpt -w .
+
+format-check:
+	gofumpt -d .
+
+format-fix: fmt imports
 
 imports:
 	goimports -w .

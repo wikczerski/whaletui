@@ -16,7 +16,8 @@ import (
 func NewMockImageService(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *MockImageService {
+},
+) *MockImageService {
 	mock := &MockImageService{}
 	mock.Mock.Test(t)
 

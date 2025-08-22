@@ -14,7 +14,8 @@ import (
 func NewMockHeaderManagerInterface(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *MockHeaderManagerInterface {
+},
+) *MockHeaderManagerInterface {
 	mock := &MockHeaderManagerInterface{}
 	mock.Mock.Test(t)
 

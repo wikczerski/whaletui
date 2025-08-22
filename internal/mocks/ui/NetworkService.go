@@ -16,7 +16,8 @@ import (
 func NewMockNetworkService(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *MockNetworkService {
+},
+) *MockNetworkService {
 	mock := &MockNetworkService{}
 	mock.Mock.Test(t)
 

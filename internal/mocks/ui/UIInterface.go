@@ -15,7 +15,8 @@ import (
 func NewMockUIInterface(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *MockUIInterface {
+},
+) *MockUIInterface {
 	mock := &MockUIInterface{}
 	mock.Mock.Test(t)
 
