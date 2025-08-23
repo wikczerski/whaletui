@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/wikczerski/whaletui/internal/docker"
+	"github.com/wikczerski/whaletui/internal/shared"
 	"github.com/wikczerski/whaletui/internal/shared/interfaces"
 )
 
@@ -24,15 +25,22 @@ func NewImageService(client *docker.Client) interfaces.ImageService {
 }
 
 // ListImages retrieves all images
-func (s *imageService) ListImages(ctx context.Context) ([]Image, error) {
+func (s *imageService) ListImages(ctx context.Context) ([]shared.Image, error) {
 	images, err := s.client.ListImages(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list images: %w", err)
 	}
 
-	result := make([]Image, 0, len(images))
+	result := make([]shared.Image, 0, len(images))
 	for _, img := range images {
-		result = append(result, Image(img))
+		sharedImg := shared.Image{
+			ID:       img.ID,
+			RepoTags: []string{img.Repository + ":" + img.Tag},
+			Created:  img.Created,
+			Size:     img.Size,
+			Labels:   make(map[string]string),
+		}
+		result = append(result, sharedImg)
 	}
 	return result, nil
 }

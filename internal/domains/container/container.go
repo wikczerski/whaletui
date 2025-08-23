@@ -1,12 +1,12 @@
 package container
 
 import (
-	"github.com/wikczerski/whaletui/internal/docker"
 	"github.com/wikczerski/whaletui/internal/domains/network"
+	"github.com/wikczerski/whaletui/internal/shared"
 )
 
 // Container represents a Docker container
-type Container = docker.Container
+type Container = shared.Container
 
 // Details represents detailed container information
 type Details struct {

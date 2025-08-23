@@ -10,7 +10,7 @@ import (
 )
 
 type containerService struct {
-	*shared.BaseService[Container]
+	*shared.BaseService[shared.Container]
 	operations *shared.CommonOperations
 }
 
@@ -19,15 +19,28 @@ func NewContainerService(client *docker.Client) interfaces.ContainerService {
 	base := shared.NewBaseService[Container](client, "container")
 	ops := shared.NewCommonOperations(client)
 
-	base.ListFunc = func(client *docker.Client, ctx context.Context) ([]Container, error) {
+	base.ListFunc = func(client *docker.Client, ctx context.Context) ([]shared.Container, error) {
 		dockerContainers, err := client.ListContainers(ctx, true)
 		if err != nil {
 			return nil, err
 		}
 
-		result := make([]Container, len(dockerContainers))
+		result := make([]shared.Container, len(dockerContainers))
 		for i := range dockerContainers {
-			result[i] = Container(dockerContainers[i])
+			result[i] = shared.Container{
+				ID:          dockerContainers[i].ID,
+				Name:        dockerContainers[i].Name,
+				Image:       dockerContainers[i].Image,
+				Status:      dockerContainers[i].Status,
+				Created:     dockerContainers[i].Created,
+				Ports:       []string{dockerContainers[i].Ports},
+				SizeRw:      0, // docker.Container.Size is string, shared.Container.SizeRw is int64
+				SizeRootFs:  0, // docker.Container doesn't have SizeRootFs
+				Labels:      make(map[string]string),
+				State:       dockerContainers[i].State,
+				NetworkMode: "",
+				Mounts:      []string{},
+			}
 		}
 		return result, nil
 	}
@@ -46,7 +59,7 @@ func NewContainerService(client *docker.Client) interfaces.ContainerService {
 	}
 }
 
-func (s *containerService) ListContainers(ctx context.Context) ([]Container, error) {
+func (s *containerService) ListContainers(ctx context.Context) ([]shared.Container, error) {
 	return s.List(ctx)
 }
 
@@ -103,4 +116,20 @@ func (s *containerService) GetActions() map[rune]string {
 // GetActionsString returns the available actions for containers as a formatted string
 func (s *containerService) GetActionsString() string {
 	return "<s> Start\n<S> Stop\n<r> Restart\n<d> Delete\n<a> Attach\n<l> Logs\n<i> Inspect\n<n> New\n<e> Exec\n<f> Filter\n<t> Sort\n<h> History\n<enter> Details\n<:> Command"
+}
+
+// GetNavigation returns the available navigation options for containers as a map
+// This is where navigation for the current view starts
+func (s *containerService) GetNavigation() map[rune]string {
+	return map[rune]string{
+		'↑': "Up",
+		'↓': "Down",
+		':': "Command",
+	}
+}
+
+// GetNavigationString returns the available navigation options for containers as a formatted string
+// This is where navigation for the current view starts
+func (s *containerService) GetNavigationString() string {
+	return "↑/↓: Navigate\n<:> Command mode"
 }

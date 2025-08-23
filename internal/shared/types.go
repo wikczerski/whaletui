@@ -2,12 +2,23 @@ package shared
 
 import (
 	"time"
-
-	"github.com/wikczerski/whaletui/internal/docker"
 )
 
 // Container represents a Docker container
-type Container = docker.Container
+type Container struct {
+	ID          string            `json:"id"`
+	Name        string            `json:"name"`
+	Image       string            `json:"image"`
+	Status      string            `json:"status"`
+	Created     time.Time         `json:"created"`
+	Ports       []string          `json:"ports"`
+	SizeRw      int64             `json:"size_rw"`
+	SizeRootFs  int64             `json:"size_root_fs"`
+	Labels      map[string]string `json:"labels"`
+	State       string            `json:"state"`
+	NetworkMode string            `json:"network_mode"`
+	Mounts      []string          `json:"mounts"`
+}
 
 // ContainerDetails represents detailed container information
 type ContainerDetails struct {
@@ -45,7 +56,16 @@ type Port struct {
 }
 
 // Image represents a Docker image
-type Image = docker.Image
+type Image struct {
+	ID          string            `json:"id"`
+	RepoTags    []string          `json:"repo_tags"`
+	Created     time.Time         `json:"created"`
+	Size        string            `json:"size"`
+	SharedSize  int64             `json:"shared_size"`
+	VirtualSize int64             `json:"virtual_size"`
+	Labels      map[string]string `json:"labels"`
+	ParentID    string            `json:"parent_id"`
+}
 
 // ImageDetails represents detailed image information
 type ImageDetails struct {
@@ -80,7 +100,16 @@ type ImageHistory struct {
 }
 
 // Volume represents a Docker volume
-type Volume = docker.Volume
+type Volume struct {
+	Name       string            `json:"name"`
+	Driver     string            `json:"driver"`
+	Mountpoint string            `json:"mountpoint"`
+	CreatedAt  time.Time         `json:"created_at"`
+	Status     map[string]any    `json:"status"`
+	Labels     map[string]string `json:"labels"`
+	Scope      string            `json:"scope"`
+	Size       string            `json:"size"`
+}
 
 // VolumeDetails represents detailed volume information
 type VolumeDetails struct {
@@ -89,7 +118,34 @@ type VolumeDetails struct {
 }
 
 // Network represents a Docker network
-type Network = docker.Network
+type Network struct {
+	ID         string            `json:"id"`
+	Name       string            `json:"name"`
+	Driver     string            `json:"driver"`
+	Scope      string            `json:"scope"`
+	IPAM       IPAM              `json:"ipam"`
+	Internal   bool              `json:"internal"`
+	Attachable bool              `json:"attachable"`
+	Ingress    bool              `json:"ingress"`
+	EnableIPv6 bool              `json:"enable_ipv6"`
+	Options    map[string]string `json:"options"`
+	Labels     map[string]string `json:"labels"`
+	Created    time.Time         `json:"created"`
+}
+
+// IPAM represents IP Address Management configuration
+type IPAM struct {
+	Driver  string            `json:"driver"`
+	Options map[string]string `json:"options"`
+	Config  []IPAMConfig      `json:"config"`
+}
+
+// IPAMConfig represents IPAM configuration
+type IPAMConfig struct {
+	Subnet  string `json:"subnet"`
+	IPRange string `json:"ip_range"`
+	Gateway string `json:"gateway"`
+}
 
 // NetworkDetails represents detailed network information
 type NetworkDetails struct {

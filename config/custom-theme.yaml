@@ -35,3 +35,6 @@ commandMode:
   background: "#2F4F4F" # Dark slate gray background
   placeholder: "#B0C4DE" # Light steel blue placeholder (matching shell)
   title: "#FFD700"      # Gold title (matching header)
+
+headerLayout:
+  spacerWidth: 3  # Only spacer width is configurable, content columns are dynamic

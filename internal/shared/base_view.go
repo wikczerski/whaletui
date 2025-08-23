@@ -3,22 +3,59 @@ package shared
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"github.com/wikczerski/whaletui/internal/logger"
 	"github.com/wikczerski/whaletui/internal/ui/builders"
 	"github.com/wikczerski/whaletui/internal/ui/constants"
-	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 )
+
+// UIInterface defines minimal interface needed by BaseView to avoid circular dependency
+type UIInterface interface {
+	ShowError(error)
+	ShowDetails(any)
+	ShowCurrentView()
+	ShowConfirm(string, func(bool))
+	GetServicesAny() any
+	ShowInfo(string)
+	ShowNodeAvailabilityModal(string, string, func(string))
+	ShowRetryDialog(string, error, func() error, func())
+	ShowFallbackDialog(string, error, []string, func(string))
+	ShowContextualHelp(string, string)
+	ShowServiceScaleModal(string, uint64, func(int))
+	GetSwarmServiceService() any
+	GetSwarmNodeService() any
+	IsContainerServiceAvailable() bool
+	GetContainerService() any
+}
+
+// ServiceFactoryInterface defines minimal interface for services
+type ServiceFactoryInterface interface {
+	GetContainerService() any
+	GetImageService() any
+	GetVolumeService() any
+	GetNetworkService() any
+	GetDockerInfoService() any
+	GetLogsService() any
+	GetSwarmServiceService() any
+	GetSwarmNodeService() any
+	GetCurrentService() any
+	SetCurrentService(serviceName string)
+	IsServiceAvailable(serviceName string) bool
+	IsContainerServiceAvailable() bool
+}
 
 // BaseView provides common functionality for all Docker resource views
 type BaseView[T any] struct {
-	ui       interfaces.UIInterface
+	ui       UIInterface
 	view     *tview.Flex
 	table    *tview.Table
 	items    []T
 	headers  []string
 	viewName string
+	log      *slog.Logger
 
 	// Callbacks for specific behavior
 	ListItems      func(ctx context.Context) ([]T, error)
@@ -32,7 +69,7 @@ type BaseView[T any] struct {
 }
 
 // NewBaseView creates a new base view with common functionality
-func NewBaseView[T any](ui interfaces.UIInterface, viewName string, headers []string) *BaseView[T] {
+func NewBaseView[T any](ui UIInterface, viewName string, headers []string) *BaseView[T] {
 	view := builders.NewViewBuilder().CreateView()
 	table := builders.NewTableBuilder().CreateTable()
 	builders.NewTableBuilder().SetupHeaders(table, headers)
@@ -43,6 +80,7 @@ func NewBaseView[T any](ui interfaces.UIInterface, viewName string, headers []st
 		table:    table,
 		headers:  headers,
 		viewName: viewName,
+		log:      logger.GetLogger(),
 	}
 
 	bv.setupKeyBindings()
@@ -55,7 +93,7 @@ func (bv *BaseView[T]) GetView() tview.Primitive {
 	return bv.view
 }
 
-func (bv *BaseView[T]) GetUI() interfaces.UIInterface {
+func (bv *BaseView[T]) GetUI() UIInterface {
 	return bv.ui
 }
 
@@ -67,6 +105,16 @@ func (bv *BaseView[T]) GetTable() *tview.Table {
 // GetItems returns the items for testing purposes
 func (bv *BaseView[T]) GetItems() []T {
 	return bv.items
+}
+
+// GetSelectedItem returns the currently selected item from the table
+func (bv *BaseView[T]) GetSelectedItem() *T {
+	row, _ := bv.table.GetSelection()
+	if row <= 0 || row > len(bv.items) {
+		return nil
+	}
+	item := bv.items[row-1]
+	return &item
 }
 
 func (bv *BaseView[T]) Refresh() {
@@ -103,23 +151,40 @@ func (bv *BaseView[T]) ShowConfirmDialog(message string, onConfirm func()) {
 }
 
 func (bv *BaseView[T]) setupKeyBindings() {
+	// Set up key bindings on the table
 	bv.table.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		bv.log.Info("Table InputCapture called", "key", string(event.Rune()), "keyType", event.Key())
+
 		row, _ := bv.table.GetSelection()
 		if row <= 0 || row > len(bv.items) {
+			bv.log.Info("No valid selection", "row", row, "itemCount", len(bv.items))
 			return event
 		}
 
 		item := bv.items[row-1]
 
 		if event.Key() == tcell.KeyEnter {
+			bv.log.Info("Enter key pressed")
 			if bv.ShowDetails != nil {
 				bv.ShowDetails(item)
 			}
 			return nil
 		}
 
-		if bv.HandleKeyPress != nil {
-			bv.HandleKeyPress(event.Rune(), item)
+		// Handle action keys
+		if event.Key() == tcell.KeyRune && bv.HandleKeyPress != nil {
+			// Get available actions for this view
+			actions := bv.getActionsForItem()
+
+			bv.log.Info("Checking action key", "key", string(event.Rune()), "actions", actions, "GetActions_nil", bv.GetActions == nil)
+
+			// If this key is a valid action, handle it and consume the event
+			if _, isValidAction := actions[event.Rune()]; isValidAction {
+				bv.log.Info("Valid action key, handling", "key", string(event.Rune()))
+				bv.HandleKeyPress(event.Rune(), item)
+				return nil // Consume the event so it doesn't propagate to global handlers
+			}
+			bv.log.Info("Key is not a valid action", "key", string(event.Rune()))
 		}
 
 		return event
@@ -190,10 +255,17 @@ func (bv *BaseView[T]) shouldShowErrorDetails(err error) bool {
 
 // getActionsForItem gets the actions for the item, with fallback to defaults
 func (bv *BaseView[T]) getActionsForItem() map[rune]string {
+	bv.log.Info("getActionsForItem called", "GetActions_nil", bv.GetActions == nil)
+
 	actions := bv.GetActions()
+	bv.log.Info("GetActions returned", "actions", actions)
+
 	if actions == nil {
+		bv.log.Info("Using fallback actions")
 		actions = map[rune]string{'d': "Delete", 'i': "Inspect"}
 	}
+
+	bv.log.Info("Final actions", "actions", actions)
 	return actions
 }
 

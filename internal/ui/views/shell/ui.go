@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/rivo/tview"
+	"github.com/wikczerski/whaletui/internal/shared"
 )
 
 // createView creates the shell view UI components
@@ -22,7 +23,7 @@ func (sv *View) createOutputView() {
 	sv.outputView.SetDynamicColors(true)
 	sv.outputView.SetScrollable(true)
 	sv.outputView.SetBorder(true)
-	sv.outputView.SetTitle(fmt.Sprintf(" Shell - %s (%s) ", sv.containerName, sv.containerID[:12]))
+	sv.outputView.SetTitle(fmt.Sprintf(" Shell - %s (%s) ", sv.containerName, shared.TruncName(sv.containerID, 12)))
 	sv.outputView.SetTitleColor(themeManager.GetShellTitleColor())
 	sv.outputView.SetBorderColor(themeManager.GetShellBorderColor())
 	sv.outputView.SetTextColor(themeManager.GetShellTextColor())
@@ -55,6 +56,6 @@ func (sv *View) createMainLayout() {
 
 // addWelcomeMessage adds the initial welcome message to the output view
 func (sv *View) addWelcomeMessage() {
-	sv.addOutput(fmt.Sprintf("Welcome to shell for container: %s (%s)\n", sv.containerName, sv.containerID[:12]))
+	sv.addOutput(fmt.Sprintf("Welcome to shell for container: %s (%s)\n", sv.containerName, shared.TruncName(sv.containerID, 12)))
 	sv.addOutput("Type 'exit' or press ESC to return to container view\n\n")
 }

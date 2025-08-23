@@ -47,7 +47,7 @@ func TestViewRegistry_Register_Count(t *testing.T) {
 	mockView := tview.NewTextView()
 
 	// Test registering a view
-	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions")
+	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions", "Test navigation")
 
 	// Verify view was registered
 	assert.Equal(t, 1, len(vr.views))
@@ -61,7 +61,7 @@ func TestViewRegistry_Register_ViewInfoExists(t *testing.T) {
 	mockView := tview.NewTextView()
 
 	// Test registering a view
-	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions")
+	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions", "Test navigation")
 
 	// Verify view info
 	viewInfo := vr.views["test"]
@@ -76,7 +76,7 @@ func TestViewRegistry_Register_ViewInfoName(t *testing.T) {
 	mockView := tview.NewTextView()
 
 	// Test registering a view
-	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions")
+	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions", "Test navigation")
 
 	// Verify view info
 	viewInfo := vr.views["test"]
@@ -91,7 +91,7 @@ func TestViewRegistry_Register_ViewInfoTitle(t *testing.T) {
 	mockView := tview.NewTextView()
 
 	// Test registering a view
-	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions")
+	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions", "Test navigation")
 
 	// Verify view info
 	viewInfo := vr.views["test"]
@@ -106,7 +106,7 @@ func TestViewRegistry_Register_ViewInfoShortcut(t *testing.T) {
 	mockView := tview.NewTextView()
 
 	// Test registering a view
-	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions")
+	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions", "Test navigation")
 
 	// Verify view info
 	viewInfo := vr.views["test"]
@@ -121,7 +121,7 @@ func TestViewRegistry_Register_ViewInfoView(t *testing.T) {
 	mockView := tview.NewTextView()
 
 	// Test registering a view
-	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions")
+	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions", "Test navigation")
 
 	// Verify view info
 	viewInfo := vr.views["test"]
@@ -136,7 +136,7 @@ func TestViewRegistry_Register_ViewInfoActions(t *testing.T) {
 	mockView := tview.NewTextView()
 
 	// Test registering a view
-	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions")
+	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions", "Test navigation")
 
 	// Verify view info
 	viewInfo := vr.views["test"]
@@ -149,7 +149,7 @@ func TestViewRegistry_Get_ExistingView(t *testing.T) {
 
 	// Register a view
 	mockView := tview.NewTextView()
-	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions")
+	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions", "Test navigation")
 
 	// Test getting existing view
 	viewInfo := vr.Get("test")
@@ -162,7 +162,7 @@ func TestViewRegistry_Get_ExistingViewName(t *testing.T) {
 
 	// Register a view
 	mockView := tview.NewTextView()
-	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions")
+	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions", "Test navigation")
 
 	// Test getting existing view
 	viewInfo := vr.Get("test")
@@ -175,7 +175,7 @@ func TestViewRegistry_Get_NonExistentView(t *testing.T) {
 
 	// Register a view
 	mockView := tview.NewTextView()
-	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions")
+	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions", "Test navigation")
 
 	// Test getting non-existent view
 	nonExistentView := vr.Get("nonexistent")
@@ -189,8 +189,8 @@ func TestViewRegistry_SetCurrent_ExistingView1(t *testing.T) {
 	// Register views
 	mockView1 := tview.NewTextView()
 	mockView2 := tview.NewTextView()
-	vr.Register("view1", "View 1", '1', mockView1, func() {}, "Actions 1")
-	vr.Register("view2", "View 2", '2', mockView2, func() {}, "Actions 2")
+	vr.Register("view1", "View 1", '1', mockView1, func() {}, "Actions 1", "Navigation 1")
+	vr.Register("view2", "View 2", '2', mockView2, func() {}, "Actions 2", "Navigation 2")
 
 	// Test setting current view to existing view
 	vr.SetCurrent("view1")
@@ -204,8 +204,8 @@ func TestViewRegistry_SetCurrent_ExistingView2(t *testing.T) {
 	// Register views
 	mockView1 := tview.NewTextView()
 	mockView2 := tview.NewTextView()
-	vr.Register("view1", "View 1", '1', mockView1, func() {}, "Actions 1")
-	vr.Register("view2", "View 2", '2', mockView2, func() {}, "Actions 2")
+	vr.Register("view1", "View 1", '1', mockView1, func() {}, "Actions 1", "Navigation 1")
+	vr.Register("view2", "View 2", '2', mockView2, func() {}, "Actions 2", "Navigation 2")
 
 	// Test setting current view to another existing view
 	vr.SetCurrent("view2")
@@ -219,8 +219,8 @@ func TestViewRegistry_SetCurrent_NonExistentView(t *testing.T) {
 	// Register views
 	mockView1 := tview.NewTextView()
 	mockView2 := tview.NewTextView()
-	vr.Register("view1", "View 1", '1', mockView1, func() {}, "Actions 1")
-	vr.Register("view2", "View 2", '2', mockView2, func() {}, "Actions 2")
+	vr.Register("view1", "View 1", '1', mockView1, func() {}, "Actions 1", "Navigation 1")
+	vr.Register("view2", "View 2", '2', mockView2, func() {}, "Actions 2", "Navigation 2")
 
 	// Set current view to view2 first
 	vr.SetCurrent("view2")
@@ -246,7 +246,7 @@ func TestViewRegistry_GetCurrent_AfterSetCurrent(t *testing.T) {
 
 	// Register and set current view
 	mockView := tview.NewTextView()
-	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions")
+	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions", "Test navigation")
 	vr.SetCurrent("test")
 
 	// Test getting current view
@@ -260,7 +260,7 @@ func TestViewRegistry_GetCurrent_AfterSetCurrent_Name(t *testing.T) {
 
 	// Register and set current view
 	mockView := tview.NewTextView()
-	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions")
+	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions", "Test navigation")
 	vr.SetCurrent("test")
 
 	// Test getting current view
@@ -283,7 +283,7 @@ func TestViewRegistry_GetCurrentName_AfterSetCurrent(t *testing.T) {
 
 	// Register and set current view
 	mockView := tview.NewTextView()
-	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions")
+	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions", "Test navigation")
 	vr.SetCurrent("test")
 
 	// Test getting current view name
@@ -306,7 +306,7 @@ func TestViewRegistry_GetCurrentActionsString_AfterSetCurrent(t *testing.T) {
 
 	// Register and set current view
 	mockView := tview.NewTextView()
-	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions")
+	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions", "Test navigation")
 	vr.SetCurrent("test")
 
 	// Test getting current view actions
@@ -330,8 +330,8 @@ func TestViewRegistry_GetAll_AfterRegistration(t *testing.T) {
 	// Register views
 	mockView1 := tview.NewTextView()
 	mockView2 := tview.NewTextView()
-	vr.Register("view1", "View 1", '1', mockView1, func() {}, "Actions 1")
-	vr.Register("view2", "View 2", '2', mockView2, func() {}, "Actions 2")
+	vr.Register("view1", "View 1", '1', mockView1, func() {}, "Actions 1", "Navigation 1")
+	vr.Register("view2", "View 2", '2', mockView2, func() {}, "Actions 2", "Navigation 2")
 
 	// Test getting all views
 	allViews := vr.GetAll()
@@ -345,8 +345,8 @@ func TestViewRegistry_GetAll_View1Exists(t *testing.T) {
 	// Register views
 	mockView1 := tview.NewTextView()
 	mockView2 := tview.NewTextView()
-	vr.Register("view1", "View 1", '1', mockView1, func() {}, "Actions 1")
-	vr.Register("view2", "View 2", '2', mockView2, func() {}, "Actions 2")
+	vr.Register("view1", "View 1", '1', mockView1, func() {}, "Actions 1", "Navigation 1")
+	vr.Register("view2", "View 2", '2', mockView2, func() {}, "Actions 2", "Navigation 2")
 
 	// Test getting all views
 	allViews := vr.GetAll()
@@ -363,8 +363,8 @@ func TestViewRegistry_GetAll_View2Exists(t *testing.T) {
 	// Register views
 	mockView1 := tview.NewTextView()
 	mockView2 := tview.NewTextView()
-	vr.Register("view1", "View 1", '1', mockView1, func() {}, "Actions 1")
-	vr.Register("view2", "View 2", '2', mockView2, func() {}, "Actions 2")
+	vr.Register("view1", "View 1", '1', mockView1, func() {}, "Actions 1", "Navigation 1")
+	vr.Register("view2", "View 2", '2', mockView2, func() {}, "Actions 2", "Navigation 2")
 
 	// Test getting all views
 	allViews := vr.GetAll()
@@ -388,7 +388,7 @@ func TestViewRegistry_Exists_AfterRegistration(t *testing.T) {
 
 	// Register a view
 	mockView := tview.NewTextView()
-	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions")
+	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions", "Test navigation")
 
 	// Test existing view
 	assert.True(t, vr.Exists("test"))
@@ -400,7 +400,7 @@ func TestViewRegistry_Exists_NonExistentView(t *testing.T) {
 
 	// Register a view
 	mockView := tview.NewTextView()
-	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions")
+	vr.Register("test", "Test View", 't', mockView, func() {}, "Test actions", "Test navigation")
 
 	// Test non-existent view
 	assert.False(t, vr.Exists("nonexistent"))
@@ -423,9 +423,9 @@ func TestViewRegistry_GetViewNames_AfterRegistration(t *testing.T) {
 	mockView1 := tview.NewTextView()
 	mockView2 := tview.NewTextView()
 	mockView3 := tview.NewTextView()
-	vr.Register("view1", "View 1", '1', mockView1, func() {}, "Actions 1")
-	vr.Register("view2", "View 2", '2', mockView2, func() {}, "Actions 2")
-	vr.Register("view3", "View 3", '3', mockView3, func() {}, "Actions 3")
+	vr.Register("view1", "View 1", '1', mockView1, func() {}, "Actions 1", "Navigation 1")
+	vr.Register("view2", "View 2", '2', mockView2, func() {}, "Actions 2", "Navigation 2")
+	vr.Register("view3", "View 3", '3', mockView3, func() {}, "Actions 3", "Navigation 3")
 
 	// Test getting view names
 	names := vr.GetViewNames()
@@ -440,9 +440,9 @@ func TestViewRegistry_GetViewNames_AllExpectedNamesPresent(t *testing.T) {
 	mockView1 := tview.NewTextView()
 	mockView2 := tview.NewTextView()
 	mockView3 := tview.NewTextView()
-	vr.Register("view1", "View 1", '1', mockView1, func() {}, "Actions 1")
-	vr.Register("view2", "View 2", '2', mockView2, func() {}, "Actions 2")
-	vr.Register("view3", "View 3", '3', mockView3, func() {}, "Actions 3")
+	vr.Register("view1", "View 1", '1', mockView1, func() {}, "Actions 1", "Navigation 1")
+	vr.Register("view2", "View 2", '2', mockView2, func() {}, "Actions 2", "Navigation 2")
+	vr.Register("view3", "View 3", '3', mockView3, func() {}, "Actions 3", "Navigation 3")
 
 	// Test getting view names
 	names := vr.GetViewNames()
@@ -474,9 +474,10 @@ func TestViewRegistry_MultipleRegistrations_Count(t *testing.T) {
 	viewNames := []string{"view1", "view2", "view3", "view4"}
 	shortcuts := []rune{'1', '2', '3', '4'}
 	actions := []string{"Actions 1", "Actions 2", "Actions 3", "Actions 4"}
+	navigations := []string{"Navigation 1", "Navigation 2", "Navigation 3", "Navigation 4"}
 
 	for i, name := range viewNames {
-		vr.Register(name, "View "+string(rune('1'+i)), shortcuts[i], mockViews[i], func() {}, actions[i])
+		vr.Register(name, "View "+string(rune('1'+i)), shortcuts[i], mockViews[i], func() {}, actions[i], navigations[i])
 	}
 
 	// Verify all views were registered
@@ -498,9 +499,10 @@ func TestViewRegistry_MultipleRegistrations_View1Name(t *testing.T) {
 	viewNames := []string{"view1", "view2", "view3", "view4"}
 	shortcuts := []rune{'1', '2', '3', '4'}
 	actions := []string{"Actions 1", "Actions 2", "Actions 3", "Actions 4"}
+	navigations := []string{"Navigation 1", "Navigation 2", "Navigation 3", "Navigation 4"}
 
 	for i, name := range viewNames {
-		vr.Register(name, "View "+string(rune('1'+i)), shortcuts[i], mockViews[i], func() {}, actions[i])
+		vr.Register(name, "View "+string(rune('1'+i)), shortcuts[i], mockViews[i], func() {}, actions[i], navigations[i])
 	}
 
 	// Verify each view
@@ -524,9 +526,10 @@ func TestViewRegistry_MultipleRegistrations_View1Shortcut(t *testing.T) {
 	viewNames := []string{"view1", "view2", "view3", "view4"}
 	shortcuts := []rune{'1', '2', '3', '4'}
 	actions := []string{"Actions 1", "Actions 2", "Actions 3", "Actions 4"}
+	navigations := []string{"Navigation 1", "Navigation 2", "Navigation 3", "Navigation 4"}
 
 	for i, name := range viewNames {
-		vr.Register(name, "View "+string(rune('1'+i)), shortcuts[i], mockViews[i], func() {}, actions[i])
+		vr.Register(name, "View "+string(rune('1'+i)), shortcuts[i], mockViews[i], func() {}, actions[i], navigations[i])
 	}
 
 	// Verify each view
@@ -549,9 +552,10 @@ func TestViewRegistry_MultipleRegistrations_View1Actions(t *testing.T) {
 	viewNames := []string{"view1", "view2", "view3", "view4"}
 	shortcuts := []rune{'1', '2', '3', '4'}
 	actions := []string{"Actions 1", "Actions 2", "Actions 3", "Actions 4"}
+	navigations := []string{"Navigation 1", "Navigation 2", "Navigation 3", "Navigation 4"}
 
 	for i, name := range viewNames {
-		vr.Register(name, "View "+string(rune('1'+i)), shortcuts[i], mockViews[i], func() {}, actions[i])
+		vr.Register(name, "View "+string(rune('1'+i)), shortcuts[i], mockViews[i], func() {}, actions[i], navigations[i])
 	}
 
 	// Verify each view
@@ -568,7 +572,7 @@ func TestViewRegistry_ViewInfoStructure_Name(t *testing.T) {
 	mockRefresh := func() { /* mock refresh function */ }
 
 	// Register view with all properties
-	vr.Register("test", "Test Title", 't', mockView, mockRefresh, "Test Actions")
+	vr.Register("test", "Test Title", 't', mockView, mockRefresh, "Test Actions", "Test Navigation")
 
 	// Get view info
 	viewInfo := vr.Get("test")
@@ -585,7 +589,7 @@ func TestViewRegistry_ViewInfoStructure_Title(t *testing.T) {
 	mockRefresh := func() { /* mock refresh function */ }
 
 	// Register view with all properties
-	vr.Register("test", "Test Title", 't', mockView, mockRefresh, "Test Actions")
+	vr.Register("test", "Test Title", 't', mockView, mockRefresh, "Test Actions", "Test Navigation")
 
 	// Get view info
 	viewInfo := vr.Get("test")
@@ -601,7 +605,7 @@ func TestViewRegistry_ViewInfoStructure_Shortcut(t *testing.T) {
 	mockRefresh := func() { /* mock refresh function */ }
 
 	// Register view with all properties
-	vr.Register("test", "Test Title", 't', mockView, mockRefresh, "Test Actions")
+	vr.Register("test", "Test Title", 't', mockView, mockRefresh, "Test Actions", "Test Navigation")
 
 	// Get view info
 	viewInfo := vr.Get("test")
@@ -617,7 +621,7 @@ func TestViewRegistry_ViewInfoStructure_View(t *testing.T) {
 	mockRefresh := func() { /* mock refresh function */ }
 
 	// Register view with all properties
-	vr.Register("test", "Test Title", 't', mockView, mockRefresh, "Test Actions")
+	vr.Register("test", "Test Title", 't', mockView, mockRefresh, "Test Actions", "Test Navigation")
 
 	// Get view info
 	viewInfo := vr.Get("test")
@@ -633,7 +637,7 @@ func TestViewRegistry_ViewInfoStructure_Refresh(t *testing.T) {
 	mockRefresh := func() { /* mock refresh function */ }
 
 	// Register view with all properties
-	vr.Register("test", "Test Title", 't', mockView, mockRefresh, "Test Actions")
+	vr.Register("test", "Test Title", 't', mockView, mockRefresh, "Test Actions", "Test Navigation")
 
 	// Get view info
 	viewInfo := vr.Get("test")
@@ -649,7 +653,7 @@ func TestViewRegistry_ViewInfoStructure_Actions(t *testing.T) {
 	mockRefresh := func() { /* mock refresh function */ }
 
 	// Register view with all properties
-	vr.Register("test", "Test Title", 't', mockView, mockRefresh, "Test Actions")
+	vr.Register("test", "Test Title", 't', mockView, mockRefresh, "Test Actions", "Test Navigation")
 
 	// Get view info
 	viewInfo := vr.Get("test")
@@ -661,7 +665,7 @@ func TestViewRegistry_EdgeCases_EmptyName(t *testing.T) {
 	vr := NewViewRegistry()
 
 	// Test registering view with empty name
-	vr.Register("", "Empty Name", ' ', tview.NewTextView(), func() {}, "Empty Actions")
+	vr.Register("", "Empty Name", ' ', tview.NewTextView(), func() {}, "Empty Actions", "Empty Navigation")
 
 	assert.True(t, vr.Exists(""))
 }
@@ -671,7 +675,7 @@ func TestViewRegistry_EdgeCases_EmptyTitle(t *testing.T) {
 	vr := NewViewRegistry()
 
 	// Test registering view with empty title
-	vr.Register("empty_title", "", 'e', tview.NewTextView(), func() {}, "Empty Title Actions")
+	vr.Register("empty_title", "", 'e', tview.NewTextView(), func() {}, "Empty Title Actions", "Empty Title Navigation")
 
 	viewInfo := vr.Get("empty_title")
 	assert.NotNil(t, viewInfo)
@@ -683,7 +687,7 @@ func TestViewRegistry_EdgeCases_EmptyActions(t *testing.T) {
 	vr := NewViewRegistry()
 
 	// Test registering view with empty actions
-	vr.Register("empty_actions", "Empty Actions", 'a', tview.NewTextView(), func() {}, "")
+	vr.Register("empty_actions", "Empty Actions", 'a', tview.NewTextView(), func() {}, "", "Empty Actions Navigation")
 
 	viewInfo := vr.Get("empty_actions")
 	assert.NotNil(t, viewInfo)
@@ -695,7 +699,7 @@ func TestViewRegistry_EdgeCases_NilRefresh(t *testing.T) {
 	vr := NewViewRegistry()
 
 	// Test registering view with nil refresh function
-	vr.Register("nil_refresh", "Nil Refresh", 'n', tview.NewTextView(), nil, "Nil Refresh Actions")
+	vr.Register("nil_refresh", "Nil Refresh", 'n', tview.NewTextView(), nil, "Nil Refresh Actions", "Nil Refresh Navigation")
 
 	viewInfo := vr.Get("nil_refresh")
 	assert.NotNil(t, viewInfo)

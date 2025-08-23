@@ -249,8 +249,8 @@ func (_c *MockNetworkService_ListNetworks_Call) Run(run func(ctx context.Context
 	return _c
 }
 
-func (_c *MockNetworkService_ListNetworks_Call) Return(vs []shared.Network, err error) *MockNetworkService_ListNetworks_Call {
-	_c.Call.Return(vs, err)
+func (_c *MockNetworkService_ListNetworks_Call) Return(networks []shared.Network, err error) *MockNetworkService_ListNetworks_Call {
+	_c.Call.Return(networks, err)
 	return _c
 }
 

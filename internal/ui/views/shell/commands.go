@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/wikczerski/whaletui/internal/shared"
 )
 
 // handleCommand processes the entered command
@@ -57,7 +58,7 @@ func (sv *View) handleBuiltInCommand(command string) bool {
 		return true
 	case "clear":
 		sv.outputView.Clear()
-		sv.addOutput(fmt.Sprintf("Welcome to shell for container: %s (%s)\n", sv.containerName, sv.containerID[:12]))
+		sv.addOutput(fmt.Sprintf("Welcome to shell for container: %s (%s)\n", sv.containerName, shared.TruncName(sv.containerID, 12)))
 		sv.addOutput("Type 'exit' or press ESC to return to container view\n\n")
 		return true
 	case "help":

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/wikczerski/whaletui/internal/docker"
+	"github.com/wikczerski/whaletui/internal/shared"
 	"github.com/wikczerski/whaletui/internal/shared/interfaces"
 )
 
@@ -21,7 +22,7 @@ func NewNetworkService(client *docker.Client) interfaces.NetworkService {
 }
 
 // ListNetworks retrieves all networks
-func (s *networkService) ListNetworks(ctx context.Context) ([]Network, error) {
+func (s *networkService) ListNetworks(ctx context.Context) ([]shared.Network, error) {
 	if s.client == nil {
 		return nil, fmt.Errorf("docker client is not initialized")
 	}
@@ -31,14 +32,19 @@ func (s *networkService) ListNetworks(ctx context.Context) ([]Network, error) {
 		return nil, fmt.Errorf("failed to list networks: %w", err)
 	}
 
-	result := make([]Network, 0, len(networks))
+	result := make([]shared.Network, 0, len(networks))
 	for _, net := range networks {
-		result = append(result, Network{
-			ID:      net.ID,
-			Name:    net.Name,
-			Driver:  net.Driver,
-			Scope:   net.Scope,
-			Created: net.Created,
+		result = append(result, shared.Network{
+			ID:         net.ID,
+			Name:       net.Name,
+			Driver:     net.Driver,
+			Scope:      net.Scope,
+			Created:    net.Created,
+			Internal:   net.Internal,
+			Attachable: net.Attachable,
+			Ingress:    net.Ingress,
+			EnableIPv6: net.EnableIPv6,
+			Labels:     net.Labels,
 		})
 	}
 

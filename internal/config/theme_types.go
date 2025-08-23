@@ -28,6 +28,7 @@ type ThemeConfig struct {
 	Shell         ShellTheme         `json:"shell" yaml:"shell"`
 	ContainerExec ContainerExecTheme `json:"containerExec" yaml:"containerExec"`
 	CommandMode   CommandModeTheme   `json:"commandMode" yaml:"commandMode"`
+	HeaderLayout  HeaderLayout       `json:"headerLayout" yaml:"headerLayout"`
 }
 
 // MergeWith merges this config with another, copying non-empty values
@@ -51,6 +52,55 @@ func (tc *ThemeConfig) MergeWith(other any) {
 	tc.Shell.MergeWith(otherConfig.Shell)
 	tc.ContainerExec.MergeWith(otherConfig.ContainerExec)
 	tc.CommandMode.MergeWith(otherConfig.CommandMode)
+	tc.HeaderLayout.MergeWith(otherConfig.HeaderLayout)
+}
+
+// HeaderLayout defines the header column width configuration
+type HeaderLayout struct {
+	DockerInfoWidth int `json:"dockerInfoWidth" yaml:"dockerInfoWidth"`
+	SpacerWidth     int `json:"spacerWidth" yaml:"spacerWidth"`
+	NavigationWidth int `json:"navigationWidth" yaml:"navigationWidth"`
+	ActionsWidth    int `json:"actionsWidth" yaml:"actionsWidth"`
+	ContentWidth    int `json:"contentWidth" yaml:"contentWidth"`
+	LogoWidth       int `json:"logoWidth" yaml:"logoWidth"`
+}
+
+// MergeWith merges this HeaderLayout with another, copying non-zero values
+func (hl *HeaderLayout) MergeWith(other any) {
+	// Handle both value and pointer types
+	var otherLayout HeaderLayout
+	switch v := other.(type) {
+	case HeaderLayout:
+		otherLayout = v
+	case *HeaderLayout:
+		if v != nil {
+			otherLayout = *v
+		} else {
+			return
+		}
+	default:
+		return
+	}
+
+	// Merge non-zero integer fields
+	if otherLayout.DockerInfoWidth > 0 {
+		hl.DockerInfoWidth = otherLayout.DockerInfoWidth
+	}
+	if otherLayout.SpacerWidth > 0 {
+		hl.SpacerWidth = otherLayout.SpacerWidth
+	}
+	if otherLayout.NavigationWidth > 0 {
+		hl.NavigationWidth = otherLayout.NavigationWidth
+	}
+	if otherLayout.ActionsWidth > 0 {
+		hl.ActionsWidth = otherLayout.ActionsWidth
+	}
+	if otherLayout.ContentWidth > 0 {
+		hl.ContentWidth = otherLayout.ContentWidth
+	}
+	if otherLayout.LogoWidth > 0 {
+		hl.LogoWidth = otherLayout.LogoWidth
+	}
 }
 
 // ThemeColors defines the color scheme

@@ -4,12 +4,13 @@ import "github.com/rivo/tview"
 
 // ViewInfo holds information about a UI view
 type ViewInfo struct {
-	Name     string
-	Title    string
-	Shortcut rune
-	View     tview.Primitive
-	Refresh  func()
-	Actions  string
+	Name       string
+	Title      string
+	Shortcut   rune
+	View       tview.Primitive
+	Refresh    func()
+	Actions    string
+	Navigation string
 }
 
 // ViewRegistry manages all available views and their metadata
@@ -26,14 +27,15 @@ func NewViewRegistry() *ViewRegistry {
 }
 
 // Register adds a view to the registry
-func (vr *ViewRegistry) Register(name, title string, shortcut rune, view tview.Primitive, refresh func(), actions string) {
+func (vr *ViewRegistry) Register(name, title string, shortcut rune, view tview.Primitive, refresh func(), actions, navigation string) {
 	vr.views[name] = &ViewInfo{
-		Name:     name,
-		Title:    title,
-		Shortcut: shortcut,
-		View:     view,
-		Refresh:  refresh,
-		Actions:  actions,
+		Name:       name,
+		Title:      title,
+		Shortcut:   shortcut,
+		View:       view,
+		Refresh:    refresh,
+		Actions:    actions,
+		Navigation: navigation,
 	}
 }
 
@@ -63,6 +65,14 @@ func (vr *ViewRegistry) GetCurrentName() string {
 func (vr *ViewRegistry) GetCurrentActionsString() string {
 	if currentView := vr.GetCurrent(); currentView != nil {
 		return currentView.Actions
+	}
+	return ""
+}
+
+// GetCurrentNavigationString returns the navigation string from the current view
+func (vr *ViewRegistry) GetCurrentNavigationString() string {
+	if currentView := vr.GetCurrent(); currentView != nil {
+		return currentView.Navigation
 	}
 	return ""
 }

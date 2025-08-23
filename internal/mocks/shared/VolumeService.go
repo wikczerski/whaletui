@@ -249,8 +249,8 @@ func (_c *MockVolumeService_ListVolumes_Call) Run(run func(ctx context.Context))
 	return _c
 }
 
-func (_c *MockVolumeService_ListVolumes_Call) Return(vs []shared.Volume, err error) *MockVolumeService_ListVolumes_Call {
-	_c.Call.Return(vs, err)
+func (_c *MockVolumeService_ListVolumes_Call) Return(volumes []shared.Volume, err error) *MockVolumeService_ListVolumes_Call {
+	_c.Call.Return(volumes, err)
 	return _c
 }
 

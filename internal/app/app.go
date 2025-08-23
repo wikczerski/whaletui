@@ -41,9 +41,11 @@ func New(cfg *config.Config) (*App, error) {
 	}
 
 	services := core.NewServiceFactory(client)
+	log.Info("Service factory created", "services", services != nil)
+
 	ctx, cancel := context.WithCancel(context.Background())
 
-	ui, err := core.New(services, cfg.Theme, nil, nil) // Managers will be created after UI creation
+	ui, err := core.New(services, cfg.Theme, nil, nil, cfg) // Managers will be created after UI creation
 	if err != nil {
 		cancel()
 		if client != nil {
@@ -51,6 +53,7 @@ func New(cfg *config.Config) (*App, error) {
 		}
 		return nil, fmt.Errorf("UI creation failed: %w", err)
 	}
+	log.Info("UI created", "ui", ui != nil)
 
 	// Create managers after UI creation
 	headerManager := managers.NewHeaderManager(ui)

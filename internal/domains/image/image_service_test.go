@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/wikczerski/whaletui/internal/config"
 	"github.com/wikczerski/whaletui/internal/docker"
+	"github.com/wikczerski/whaletui/internal/shared"
 )
 
 func TestNewImageService(t *testing.T) {
@@ -170,21 +171,17 @@ func TestImageService_ContextHandling(t *testing.T) {
 }
 
 func TestImageService_ImageConversion(t *testing.T) {
-	dockerImage := docker.Image{
-		ID:         "sha256:abc123",
-		Repository: "nginx",
-		Tag:        "latest",
-		Size:       "133MB",
-		Created:    time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC),
-		Containers: 5,
+	dockerImage := shared.Image{
+		ID:       "sha256:abc123",
+		RepoTags: []string{"nginx:latest"},
+		Size:     "133MB",
+		Created:  time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC),
 	}
 
 	modelImage := Image(dockerImage)
 
 	assert.Equal(t, dockerImage.ID, modelImage.ID)
-	assert.Equal(t, dockerImage.Repository, modelImage.Repository)
-	assert.Equal(t, dockerImage.Tag, modelImage.Tag)
+	assert.Equal(t, dockerImage.RepoTags, modelImage.RepoTags)
 	assert.Equal(t, dockerImage.Size, modelImage.Size)
 	assert.Equal(t, dockerImage.Created, modelImage.Created)
-	assert.Equal(t, dockerImage.Containers, modelImage.Containers)
 }

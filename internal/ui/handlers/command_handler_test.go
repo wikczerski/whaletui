@@ -180,6 +180,30 @@ func TestProcessCommand(t *testing.T) {
 	assert.False(t, handler.isActive)
 
 	handler.isActive = true
+	mockUI.On("SwitchView", "swarmServices").Once()
+	result = handler.processCommand("swarm services")
+	assert.True(t, result)
+	assert.False(t, handler.isActive)
+
+	handler.isActive = true
+	mockUI.On("SwitchView", "swarmServices").Once()
+	result = handler.processCommand("services")
+	assert.True(t, result)
+	assert.False(t, handler.isActive)
+
+	handler.isActive = true
+	mockUI.On("SwitchView", "swarmNodes").Once()
+	result = handler.processCommand("swarm nodes")
+	assert.True(t, result)
+	assert.False(t, handler.isActive)
+
+	handler.isActive = true
+	mockUI.On("SwitchView", "swarmNodes").Once()
+	result = handler.processCommand("nodes")
+	assert.True(t, result)
+	assert.False(t, handler.isActive)
+
+	handler.isActive = true
 	shutdownChan := make(chan struct{}, 1)
 	mockUI.On("GetShutdownChan").Return(shutdownChan)
 	result = handler.processCommand("quit")
@@ -205,11 +229,15 @@ func TestGetAutocomplete(t *testing.T) {
 	handler := NewCommandHandler(mockUI)
 
 	suggestions := handler.getAutocomplete("")
-	assert.Len(t, suggestions, 9)
+	assert.Len(t, suggestions, 13)
 	assert.Contains(t, suggestions, "containers")
 	assert.Contains(t, suggestions, "images")
 	assert.Contains(t, suggestions, "volumes")
 	assert.Contains(t, suggestions, "networks")
+	assert.Contains(t, suggestions, "swarm services")
+	assert.Contains(t, suggestions, "swarm nodes")
+	assert.Contains(t, suggestions, "services")
+	assert.Contains(t, suggestions, "nodes")
 	assert.Contains(t, suggestions, "quit")
 	assert.Contains(t, suggestions, "q")
 	assert.Contains(t, suggestions, "exit")
@@ -223,6 +251,17 @@ func TestGetAutocomplete(t *testing.T) {
 	suggestions = handler.getAutocomplete("C")
 	assert.Len(t, suggestions, 1)
 	assert.Contains(t, suggestions, "containers")
+
+	suggestions = handler.getAutocomplete("s")
+	assert.Len(t, suggestions, 3)
+	assert.Contains(t, suggestions, "swarm services")
+	assert.Contains(t, suggestions, "swarm nodes")
+	assert.Contains(t, suggestions, "services")
+
+	suggestions = handler.getAutocomplete("swarm")
+	assert.Len(t, suggestions, 2)
+	assert.Contains(t, suggestions, "swarm services")
+	assert.Contains(t, suggestions, "swarm nodes")
 
 	suggestions = handler.getAutocomplete("xyz")
 	assert.Len(t, suggestions, 0)

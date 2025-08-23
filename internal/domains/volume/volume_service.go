@@ -9,7 +9,7 @@ import (
 )
 
 type volumeService struct {
-	*shared.BaseService[Volume]
+	*shared.BaseService[shared.Volume]
 }
 
 // NewVolumeService creates a new volume service
@@ -17,16 +17,25 @@ func NewVolumeService(client *docker.Client) interfaces.VolumeService {
 	base := shared.NewBaseService[Volume](client, "volume")
 
 	// Set up Docker-specific functions
-	base.ListFunc = func(client *docker.Client, ctx context.Context) ([]Volume, error) {
+	base.ListFunc = func(client *docker.Client, ctx context.Context) ([]shared.Volume, error) {
 		dockerVolumes, err := client.ListVolumes(ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		// Convert docker types to models (now they're the same via type alias)
-		result := make([]Volume, len(dockerVolumes))
+		// Convert docker types to shared types
+		result := make([]shared.Volume, len(dockerVolumes))
 		for i, vol := range dockerVolumes {
-			result[i] = Volume(vol)
+			result[i] = shared.Volume{
+				Name:       vol.Name,
+				Driver:     vol.Driver,
+				Mountpoint: vol.Mountpoint,
+				CreatedAt:  vol.Created,
+				Status:     make(map[string]any),
+				Labels:     vol.Labels,
+				Scope:      vol.Scope,
+				Size:       vol.Size,
+			}
 		}
 		return result, nil
 	}
@@ -42,7 +51,7 @@ func NewVolumeService(client *docker.Client) interfaces.VolumeService {
 	return &volumeService{BaseService: base}
 }
 
-func (s *volumeService) ListVolumes(ctx context.Context) ([]Volume, error) {
+func (s *volumeService) ListVolumes(ctx context.Context) ([]shared.Volume, error) {
 	return s.List(ctx)
 }
 

@@ -9,6 +9,7 @@ import (
 	"github.com/wikczerski/whaletui/internal/domains/image"
 	"github.com/wikczerski/whaletui/internal/domains/logs"
 	"github.com/wikczerski/whaletui/internal/domains/network"
+	"github.com/wikczerski/whaletui/internal/domains/swarm"
 	"github.com/wikczerski/whaletui/internal/domains/volume"
 	"github.com/wikczerski/whaletui/internal/shared"
 	sharedInterfaces "github.com/wikczerski/whaletui/internal/shared/interfaces"
@@ -29,12 +30,15 @@ type ServiceFactoryInterface interface {
 
 // ServiceFactory creates and manages all services
 type ServiceFactory struct {
-	ContainerService  interfaces.ContainerService
-	ImageService      interfaces.ImageService
-	VolumeService     interfaces.VolumeService
-	NetworkService    interfaces.NetworkService
-	DockerInfoService interfaces.DockerInfoService
-	LogsService       interfaces.LogsService
+	ContainerService    interfaces.ContainerService
+	ImageService        interfaces.ImageService
+	VolumeService       interfaces.VolumeService
+	NetworkService      interfaces.NetworkService
+	DockerInfoService   interfaces.DockerInfoService
+	LogsService         interfaces.LogsService
+	SwarmServiceService sharedInterfaces.SwarmServiceService
+	SwarmNodeService    sharedInterfaces.SwarmNodeService
+	currentService      string // Track which service is currently active
 }
 
 // NewServiceFactory creates a new service factory
@@ -47,6 +51,7 @@ func NewServiceFactory(client *docker.Client) *ServiceFactory {
 			NetworkService:    nil,
 			DockerInfoService: nil,
 			LogsService:       nil,
+			currentService:    "container", // Default to container service
 		}
 	}
 
@@ -59,16 +64,23 @@ func NewServiceFactory(client *docker.Client) *ServiceFactory {
 	uiVolumeService := &volumeServiceAdapter{service: volume.NewVolumeService(client)}
 	uiNetworkService := &networkServiceAdapter{service: network.NewNetworkService(client)}
 
+	// Create swarm services
+	swarmServiceService := swarm.NewServiceService(client)
+	swarmNodeService := swarm.NewNodeService(client)
+
 	// Create a wrapper that converts between shared.DockerInfo and interfaces.DockerInfo
 	dockerInfoService := &dockerInfoServiceWrapper{service: sharedDockerInfoService}
 
 	return &ServiceFactory{
-		ContainerService:  uiContainerService,
-		ImageService:      uiImageService,
-		VolumeService:     uiVolumeService,
-		NetworkService:    uiNetworkService,
-		DockerInfoService: dockerInfoService,
-		LogsService:       logs.NewLogsService(containerService),
+		ContainerService:    uiContainerService,
+		ImageService:        uiImageService,
+		VolumeService:       uiVolumeService,
+		NetworkService:      uiNetworkService,
+		DockerInfoService:   dockerInfoService,
+		LogsService:         logs.NewLogsService(containerService),
+		SwarmServiceService: swarmServiceService,
+		SwarmNodeService:    swarmNodeService,
+		currentService:      "container", // Default to container service
 	}
 }
 
@@ -79,16 +91,12 @@ type containerServiceAdapter struct {
 	service sharedInterfaces.ContainerService
 }
 
-func (a *containerServiceAdapter) ListContainers(ctx context.Context) ([]interfaces.Container, error) {
+func (a *containerServiceAdapter) ListContainers(ctx context.Context) ([]shared.Container, error) {
 	containers, err := a.service.ListContainers(ctx)
 	if err != nil {
 		return nil, err
 	}
-	result := make([]interfaces.Container, len(containers))
-	for i := range containers {
-		result[i] = containers[i]
-	}
-	return result, nil
+	return containers, nil
 }
 
 func (a *containerServiceAdapter) StartContainer(ctx context.Context, id string) error {
@@ -131,21 +139,25 @@ func (a *containerServiceAdapter) GetActionsString() string {
 	return a.service.GetActionsString()
 }
 
+func (a *containerServiceAdapter) GetNavigation() map[rune]string {
+	return a.service.GetNavigation()
+}
+
+func (a *containerServiceAdapter) GetNavigationString() string {
+	return a.service.GetNavigationString()
+}
+
 // imageServiceAdapter adapts shared.ImageService to interfaces.ImageService
 type imageServiceAdapter struct {
 	service sharedInterfaces.ImageService
 }
 
-func (a *imageServiceAdapter) ListImages(ctx context.Context) ([]interfaces.Image, error) {
+func (a *imageServiceAdapter) ListImages(ctx context.Context) ([]shared.Image, error) {
 	images, err := a.service.ListImages(ctx)
 	if err != nil {
 		return nil, err
 	}
-	result := make([]interfaces.Image, len(images))
-	for i := range images {
-		result[i] = images[i]
-	}
-	return result, nil
+	return images, nil
 }
 
 func (a *imageServiceAdapter) RemoveImage(ctx context.Context, id string, force bool) error {
@@ -169,16 +181,12 @@ type volumeServiceAdapter struct {
 	service sharedInterfaces.VolumeService
 }
 
-func (a *volumeServiceAdapter) ListVolumes(ctx context.Context) ([]interfaces.Volume, error) {
+func (a *volumeServiceAdapter) ListVolumes(ctx context.Context) ([]shared.Volume, error) {
 	volumes, err := a.service.ListVolumes(ctx)
 	if err != nil {
 		return nil, err
 	}
-	result := make([]interfaces.Volume, len(volumes))
-	for i := range volumes {
-		result[i] = volumes[i]
-	}
-	return result, nil
+	return volumes, nil
 }
 
 func (a *volumeServiceAdapter) RemoveVolume(ctx context.Context, name string, force bool) error {
@@ -202,16 +210,12 @@ type networkServiceAdapter struct {
 	service sharedInterfaces.NetworkService
 }
 
-func (a *networkServiceAdapter) ListNetworks(ctx context.Context) ([]interfaces.Network, error) {
+func (a *networkServiceAdapter) ListNetworks(ctx context.Context) ([]shared.Network, error) {
 	networks, err := a.service.ListNetworks(ctx)
 	if err != nil {
 		return nil, err
 	}
-	result := make([]interfaces.Network, len(networks))
-	for i, network := range networks {
-		result[i] = network
-	}
-	return result, nil
+	return networks, nil
 }
 
 func (a *networkServiceAdapter) RemoveNetwork(ctx context.Context, id string) error {
@@ -230,31 +234,87 @@ func (a *networkServiceAdapter) GetActionsString() string {
 	return a.service.GetActionsString()
 }
 
+// dockerInfoImpl implements interfaces.DockerInfo
+type dockerInfoImpl struct {
+	version         string
+	containers      int
+	images          int
+	volumes         int
+	networks        int
+	operatingSystem string
+	architecture    string
+	driver          string
+	loggingDriver   string
+}
+
+func (d *dockerInfoImpl) GetVersion() string {
+	return d.version
+}
+
+func (d *dockerInfoImpl) GetOperatingSystem() string {
+	return d.operatingSystem
+}
+
+func (d *dockerInfoImpl) GetLoggingDriver() string {
+	return d.loggingDriver
+}
+
+func (d *dockerInfoImpl) GetContainers() int {
+	return d.containers
+}
+
+func (d *dockerInfoImpl) GetImages() int {
+	return d.images
+}
+
+func (d *dockerInfoImpl) GetVolumes() int {
+	return d.volumes
+}
+
+func (d *dockerInfoImpl) GetNetworks() int {
+	return d.networks
+}
+
 // dockerInfoServiceWrapper wraps shared.DockerInfoService to implement interfaces.DockerInfoService
 type dockerInfoServiceWrapper struct {
 	service shared.DockerInfoService
 }
 
-func (w *dockerInfoServiceWrapper) GetDockerInfo(ctx context.Context) (interfaces.DockerInfo, error) {
+// nolint:gocritic // Interface design requires pointer return type
+func (w *dockerInfoServiceWrapper) GetDockerInfo(ctx context.Context) (*interfaces.DockerInfo, error) {
 	sharedInfo, err := w.service.GetDockerInfo(ctx)
 	if err != nil {
-		return interfaces.DockerInfo{}, err
+		return nil, err
 	}
 
-	// Convert shared.DockerInfo to interfaces.DockerInfo
-	info := interfaces.DockerInfo{
-		Version:         sharedInfo.Version,
-		Containers:      sharedInfo.Containers,
-		Images:          sharedInfo.Images,
-		Volumes:         sharedInfo.Volumes,
-		Networks:        sharedInfo.Networks,
-		OperatingSystem: sharedInfo.OperatingSystem,
-		Architecture:    sharedInfo.Architecture,
-		Driver:          sharedInfo.Driver,
-		LoggingDriver:   sharedInfo.LoggingDriver,
+	// Create a concrete implementation of interfaces.DockerInfo
+	info := &dockerInfoImpl{
+		version:         sharedInfo.Version,
+		containers:      sharedInfo.Containers,
+		images:          sharedInfo.Images,
+		volumes:         sharedInfo.Volumes,
+		networks:        sharedInfo.Networks,
+		operatingSystem: sharedInfo.OperatingSystem,
+		architecture:    sharedInfo.Architecture,
+		driver:          sharedInfo.Driver,
+		loggingDriver:   sharedInfo.LoggingDriver,
 	}
 
-	return info, nil
+	// Convert to interface pointer
+	var dockerInfo interfaces.DockerInfo = info
+	return &dockerInfo, nil
+}
+
+func (w *dockerInfoServiceWrapper) GetActions() map[rune]string {
+	// Return default actions for docker info
+	return map[rune]string{
+		'r': "Refresh",
+		'h': "Help",
+	}
+}
+
+func (w *dockerInfoServiceWrapper) GetActionsString() string {
+	return "r:Refresh h:Help"
 }
 
 // GetContainerService returns the container service
@@ -287,6 +347,16 @@ func (sf *ServiceFactory) GetLogsService() interfaces.LogsService {
 	return sf.LogsService
 }
 
+// GetSwarmServiceService returns the swarm service service
+func (sf *ServiceFactory) GetSwarmServiceService() any {
+	return sf.SwarmServiceService
+}
+
+// GetSwarmNodeService returns the swarm node service
+func (sf *ServiceFactory) GetSwarmNodeService() any {
+	return sf.SwarmNodeService
+}
+
 // IsServiceAvailable checks if a specific service is available
 func (sf *ServiceFactory) IsServiceAvailable(serviceName string) bool {
 	if sf == nil {
@@ -306,6 +376,10 @@ func (sf *ServiceFactory) IsServiceAvailable(serviceName string) bool {
 		return sf.DockerInfoService != nil
 	case "logs":
 		return sf.LogsService != nil
+	case "swarmService":
+		return sf.SwarmServiceService != nil
+	case "swarmNode":
+		return sf.SwarmNodeService != nil
 	default:
 		return false
 	}
@@ -314,4 +388,39 @@ func (sf *ServiceFactory) IsServiceAvailable(serviceName string) bool {
 // IsContainerServiceAvailable checks if the container service is available
 func (sf *ServiceFactory) IsContainerServiceAvailable() bool {
 	return sf != nil && sf.ContainerService != nil
+}
+
+// GetCurrentService returns the currently active service
+func (sf *ServiceFactory) GetCurrentService() any {
+	if sf == nil {
+		return nil
+	}
+
+	switch sf.currentService {
+	case "container":
+		return sf.ContainerService
+	case "image":
+		return sf.ImageService
+	case "volume":
+		return sf.VolumeService
+	case "network":
+		return sf.NetworkService
+	case "dockerInfo":
+		return sf.DockerInfoService
+	case "logs":
+		return sf.LogsService
+	case "swarmService":
+		return sf.SwarmServiceService
+	case "swarmNode":
+		return sf.SwarmNodeService
+	default:
+		return nil
+	}
+}
+
+// SetCurrentService sets the currently active service
+func (sf *ServiceFactory) SetCurrentService(serviceName string) {
+	if sf != nil {
+		sf.currentService = serviceName
+	}
 }

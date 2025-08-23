@@ -1,9 +1,9 @@
 package network
 
-import "github.com/wikczerski/whaletui/internal/docker"
+import "github.com/wikczerski/whaletui/internal/shared"
 
 // Network represents a Docker network
-type Network = docker.Network
+type Network = shared.Network
 
 // Details represents detailed network information
 type Details struct {

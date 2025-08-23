@@ -3,268 +3,421 @@ package managers
 import (
 	"context"
 	"fmt"
+	"strings"
 
-	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	"github.com/wikczerski/whaletui/internal/config"
 	"github.com/wikczerski/whaletui/internal/ui/constants"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 )
 
-// HeaderManager manages the header columns and their updates
+// HeaderManager manages the header section of the UI
 type HeaderManager struct {
-	ui            interfaces.UIInterface
-	dockerInfoCol *tview.TextView
-	navCol        *tview.TextView
-	actionsCol    *tview.TextView
-	logoCol       *tview.TextView
-	themeManager  *config.ThemeManager
+	ui         interfaces.UIInterface
+	headerFlex *tview.Flex
 }
 
 // NewHeaderManager creates a new header manager
 func NewHeaderManager(ui interfaces.UIInterface) *HeaderManager {
 	return &HeaderManager{
-		ui:           ui,
-		themeManager: ui.GetThemeManager(),
+		ui: ui,
 	}
 }
 
-// CreateHeaderSection creates the complete header section with all columns
-func (hm *HeaderManager) CreateHeaderSection() *tview.Flex {
-	headerSection := tview.NewFlex().SetDirection(tview.FlexColumn)
+// CreateHeaderSection creates the header section with Docker info, navigation, and actions
+func (hm *HeaderManager) CreateHeaderSection() tview.Primitive {
+	// Create a simple flex layout that spans the full width
+	headerFlex := tview.NewFlex()
+	headerFlex.SetDirection(tview.FlexColumn)
 
-	hm.dockerInfoCol = hm.createColumn(tview.AlignLeft, hm.themeManager.GetTextColor())
-	hm.navCol = hm.createColumn(tview.AlignLeft, hm.themeManager.GetTextColor())
-	hm.actionsCol = hm.createColumn(tview.AlignLeft, hm.themeManager.GetTextColor())
-	hm.logoCol = hm.createLogoColumn()
+	// Get Docker info
+	dockerInfo := hm.getDockerInfoText()
+	dockerLines := strings.Split(dockerInfo, "\n")
+	// Add padding to make header taller
+	dockerLines = append(dockerLines, "", "", "")
 
-	headerSection.AddItem(hm.dockerInfoCol, 0, 1, false)
-	headerSection.AddItem(hm.navCol, 0, 1, false)
-	headerSection.AddItem(hm.actionsCol, 0, 1, false)
-	headerSection.AddItem(hm.logoCol, 0, 1, false)
+	// Get navigation info
+	navigationInfo := hm.getNavigationText()
+	navigationLines := strings.Split(navigationInfo, "\n")
+	// Add padding to make header taller
+	navigationLines = append(navigationLines, "", "", "")
 
-	return headerSection
+	// Get actions info
+	actionsInfo := hm.getActionsText()
+	actionsLines := strings.Split(actionsInfo, "\n")
+	// Add padding to make header taller
+	actionsLines = append(actionsLines, "", "", "")
+
+	// Get logo
+	logoInfo := hm.getLogoText()
+	logoLines := strings.Split(logoInfo, "\n")
+	// Add padding to make header taller
+	logoLines = append(logoLines, "", "", "")
+
+	// Create enhanced text views for each section with more height
+	dockerView := hm.createEnhancedTextView(dockerLines, tview.AlignLeft, "Docker Info")
+	navigationView := hm.createEnhancedTextView(navigationLines, tview.AlignLeft, "Navigation")
+	actionsView := hm.createEnhancedTextView(actionsLines, tview.AlignLeft, "Actions")
+	logoView := hm.createEnhancedTextView(logoLines, tview.AlignCenter, "WhaleTui")
+
+	// Add views to flex with specified proportions
+	headerFlex.AddItem(dockerView, 0, 1, false)     // Docker Info: 1 part
+	headerFlex.AddItem(navigationView, 0, 1, false) // Navigation: 1 part
+	headerFlex.AddItem(actionsView, 0, 3, false)    // Actions: 3 parts
+	headerFlex.AddItem(logoView, 0, 2, false)       // Logo: 2 parts
+
+	// Store reference for updates
+	hm.headerFlex = headerFlex
+
+	return headerFlex
 }
 
-// createColumn creates a standard header column with consistent styling
-func (hm *HeaderManager) createColumn(align int, color tcell.Color) *tview.TextView {
-	col := tview.NewTextView()
-	col.SetBorder(false)
-	col.SetBackgroundColor(hm.themeManager.GetBackgroundColor())
-	col.SetTextColor(color)
-	col.SetTextAlign(align)
-	col.SetWordWrap(false)
-	col.SetDynamicColors(false)
-	return col
+// createEnhancedTextView creates an enhanced text view with border and title
+func (hm *HeaderManager) createEnhancedTextView(lines []string, align int, title string) tview.Primitive {
+	// Docker Info and Logo should never use table layout
+	if title == "Docker Info" || title == "WhaleTui" {
+		textView := tview.NewTextView()
+		textView.SetText(strings.Join(lines, "\n"))
+		textView.SetTextColor(hm.ui.GetThemeManager().GetTextColor())
+		textView.SetBackgroundColor(hm.ui.GetThemeManager().GetBackgroundColor())
+		textView.SetTextAlign(align)
+		textView.SetBorder(true)
+		textView.SetTitle(fmt.Sprintf(" %s ", title))
+		textView.SetBorderColor(hm.ui.GetThemeManager().GetBorderColor())
+		textView.SetTitleColor(hm.ui.GetThemeManager().GetHeaderColor())
+		textView.SetScrollable(false)
+		textView.SetDynamicColors(false)
+		textView.SetWordWrap(false)
+		textView.SetWrap(false)
+		return textView
+	}
+
+	// For Navigation and Actions, use table layout if content is long
+	if len(lines) > 7 {
+		return hm.createTableLayout(lines, align, title)
+	}
+
+	// Simple text view for short content
+	textView := tview.NewTextView()
+	textView.SetText(strings.Join(lines, "\n"))
+	textView.SetTextColor(hm.ui.GetThemeManager().GetTextColor())
+	textView.SetBackgroundColor(hm.ui.GetThemeManager().GetBackgroundColor())
+	textView.SetTextAlign(align)
+	textView.SetBorder(true)
+	textView.SetTitle(fmt.Sprintf(" %s ", title))
+	textView.SetBorderColor(hm.ui.GetThemeManager().GetBorderColor())
+	textView.SetTitleColor(hm.ui.GetThemeManager().GetHeaderColor())
+	textView.SetScrollable(false)
+	textView.SetDynamicColors(false)
+	textView.SetWordWrap(false)
+	textView.SetWrap(false)
+	return textView
 }
 
-// createLogoColumn creates the logo column with special styling
-func (hm *HeaderManager) createLogoColumn() *tview.TextView {
-	logoCol := hm.createColumn(tview.AlignRight, hm.themeManager.GetHeaderColor())
-	logoCol.SetText(`  ____  ____
- |  _ \|  _ \
- | | | | | | |
- | |_| | |_| |
- |____/|____/
- `)
-	return logoCol
+// createTableLayout creates a table-like layout for content longer than 7 lines
+func (hm *HeaderManager) createTableLayout(lines []string, align int, title string) tview.Primitive {
+	// Calculate how many columns we need
+	maxRows := 7
+	numColumns := (len(lines) + maxRows - 1) / maxRows // Ceiling division
+
+	// Create a flex container for the table layout
+	flex := tview.NewFlex()
+	flex.SetDirection(tview.FlexColumn)
+	flex.SetBorder(true)
+	flex.SetTitle(fmt.Sprintf(" %s ", title))
+	flex.SetBorderColor(hm.ui.GetThemeManager().GetBorderColor())
+	flex.SetBackgroundColor(hm.ui.GetThemeManager().GetBackgroundColor())
+
+	// Create columns
+	for col := 0; col < numColumns; col++ {
+		// Create a text view for this column
+		columnText := tview.NewTextView()
+		columnText.SetTextColor(hm.ui.GetThemeManager().GetTextColor())
+		columnText.SetBackgroundColor(hm.ui.GetThemeManager().GetBackgroundColor())
+		columnText.SetTextAlign(align)
+		columnText.SetBorder(false)
+		columnText.SetScrollable(false)
+		columnText.SetDynamicColors(false)
+		columnText.SetWordWrap(false)
+		columnText.SetWrap(false)
+
+		// Collect lines for this column
+		var columnLines []string
+		for i := col * maxRows; i < (col+1)*maxRows && i < len(lines); i++ {
+			columnLines = append(columnLines, lines[i])
+		}
+
+		// Set the text for this column
+		columnText.SetText(strings.Join(columnLines, "\n"))
+
+		// Add column to flex container
+		flex.AddItem(columnText, 0, 1, false)
+	}
+
+	return flex
 }
 
-// UpdateAll updates all header columns
+// UpdateAll updates all header content
 func (hm *HeaderManager) UpdateAll() {
-	// Skip header updates during refresh cycles to prevent empty spaces and newlines
-	if hm.ui.IsRefreshing() {
+	if hm.headerFlex == nil {
 		return
 	}
 
-	// Ensure columns are initialized before updating
-	if hm.dockerInfoCol == nil || hm.navCol == nil || hm.actionsCol == nil {
-		return
-	}
+	// Get updated content
+	dockerInfo := hm.getDockerInfoText()
+	dockerLines := strings.Split(dockerInfo, "\n")
 
-	hm.UpdateDockerInfo()
-	hm.UpdateNavigation()
-	hm.UpdateActions()
+	navigationInfo := hm.getNavigationText()
+	navigationLines := strings.Split(navigationInfo, "\n")
+
+	actionsInfo := hm.getActionsText()
+	actionsLines := strings.Split(actionsInfo, "\n")
+
+	logoInfo := hm.getLogoText()
+	logoLines := strings.Split(logoInfo, "\n")
+
+	// Update each view - handle both TextView and Grid types
+	if hm.headerFlex.GetItemCount() >= 4 {
+		// Update Docker view
+		switch item := hm.headerFlex.GetItem(0).(type) {
+		case *tview.TextView:
+			item.SetText(strings.Join(dockerLines, "\n"))
+		case *tview.Grid:
+			// For now, just update text if it's a grid (simplified approach)
+			// TODO: Implement proper grid recreation
+		}
+
+		// Update Navigation view
+		switch item := hm.headerFlex.GetItem(1).(type) {
+		case *tview.TextView:
+			item.SetText(strings.Join(navigationLines, "\n"))
+		case *tview.Grid:
+			// For now, just update text if it's a grid (simplified approach)
+			// TODO: Implement proper grid recreation
+		}
+
+		// Update Actions view
+		switch item := hm.headerFlex.GetItem(2).(type) {
+		case *tview.TextView:
+			item.SetText(strings.Join(actionsLines, "\n"))
+		case *tview.Grid:
+			// For now, just update text if it's a grid (simplified approach)
+			// TODO: Implement proper grid recreation
+		}
+
+		// Update Logo view
+		switch item := hm.headerFlex.GetItem(3).(type) {
+		case *tview.TextView:
+			item.SetText(strings.Join(logoLines, "\n"))
+		case *tview.Grid:
+			// For now, just update text if it's a grid (simplified approach)
+			// TODO: Implement proper grid recreation
+		}
+	}
 }
 
-// UpdateDockerInfo updates the Docker info column
-func (hm *HeaderManager) UpdateDockerInfo() {
-	if hm.dockerInfoCol == nil {
-		return
-	}
-
+// getDockerInfoText returns the formatted Docker info text
+func (hm *HeaderManager) getDockerInfoText() string {
+	// Try to get Docker info from service first
 	services := hm.ui.GetServices()
-	if services == nil {
-		hm.setDefaultDockerInfo()
-		return
+	if services != nil && services.IsContainerServiceAvailable() {
+		return hm.getDockerInfoFromService(services)
 	}
 
-	hm.updateDockerInfoFromService(services)
+	// Fallback to default info
+	return hm.getDefaultDockerInfo()
 }
 
-// setDefaultDockerInfo sets the default Docker info when services are not available
-func (hm *HeaderManager) setDefaultDockerInfo() {
-	hm.dockerInfoCol.SetText("Context: docker\nCluster: local\nUser: docker\nwhaletui Rev: dev\nDocker Rev: --\nCPU: --\nMEM: --")
+// getDefaultDockerInfo returns default Docker info when service is not available
+func (hm *HeaderManager) getDefaultDockerInfo() string {
+	return fmt.Sprintf(constants.DockerInfoTemplate,
+		"❌ Disconnected",
+		"--",
+		"--",
+		"--",
+		constants.AppVersion)
 }
 
-// updateDockerInfoFromService updates Docker info from the service
-func (hm *HeaderManager) updateDockerInfoFromService(services interfaces.ServiceFactoryInterface) {
-	if services == nil {
-		hm.setDefaultDockerInfo()
-		return
+// getDockerInfoFromService gets Docker info from the service
+func (hm *HeaderManager) getDockerInfoFromService(services interfaces.ServiceFactoryInterface) string {
+	if !services.IsContainerServiceAvailable() {
+		return hm.getDefaultDockerInfo()
 	}
 
+	// Try to get real Docker info
 	dockerInfoService := services.GetDockerInfoService()
-	if dockerInfoService == nil {
-		hm.setDefaultDockerInfo()
-		return
+	if dockerInfoService != nil {
+		ctx := context.Background()
+		if dockerInfo, err := dockerInfoService.GetDockerInfo(ctx); err == nil {
+			return hm.formatDockerInfo(*dockerInfo)
+		}
 	}
 
-	ctx := context.Background()
-	dockerInfo, err := dockerInfoService.GetDockerInfo(ctx)
-	if err != nil {
-		// Show connection info even if Docker info fails
-		hm.setDefaultDockerInfo()
-		return
+	// Fallback - if service is available but info fetch failed, show partial connection
+	connectionStatus := "⚠️ Partial"
+	if services.IsContainerServiceAvailable() {
+		connectionStatus = "✅ Connected"
 	}
 
-	hm.setDockerInfoFromData(&dockerInfo)
+	return fmt.Sprintf(constants.DockerInfoTemplate,
+		connectionStatus,
+		"Available",
+		"--",
+		"--",
+		constants.AppVersion)
 }
 
-// setDockerInfoFromData sets Docker info from the retrieved data
-func (hm *HeaderManager) setDockerInfoFromData(dockerInfo *interfaces.DockerInfo) {
-	// Use the DockerInfoTemplate constant with comprehensive information
-	infoText := fmt.Sprintf(constants.DockerInfoTemplate,
-		dockerInfo.Version,
-		dockerInfo.Containers,
-		dockerInfo.Images,
-		dockerInfo.Volumes,
-		dockerInfo.Networks,
-		dockerInfo.OperatingSystem,
-		dockerInfo.Architecture,
-		dockerInfo.Driver,
-		dockerInfo.LoggingDriver,
-	)
+// formatDockerInfo formats Docker info data into displayable text
+func (hm *HeaderManager) formatDockerInfo(dockerInfo interfaces.DockerInfo) string {
+	if dockerInfo == nil {
+		return hm.getDefaultDockerInfo()
+	}
 
-	hm.dockerInfoCol.SetText(infoText)
+	// Dynamic connection status based on Docker info availability
+	connectionStatus := "✅ Connected"
+	if dockerInfo.GetVersion() == "" {
+		connectionStatus = "❌ Disconnected"
+	}
+
+	// Use the template from constants
+	return fmt.Sprintf(constants.DockerInfoTemplate,
+		connectionStatus,
+		dockerInfo.GetVersion(),
+		dockerInfo.GetOperatingSystem(),
+		dockerInfo.GetLoggingDriver(),
+		constants.AppVersion)
 }
 
-// UpdateNavigation updates the navigation column based on current mode
-func (hm *HeaderManager) UpdateNavigation() {
-	if hm.navCol == nil {
-		return
+// getNavigationText returns the navigation text based on current context
+func (hm *HeaderManager) getNavigationText() string {
+	// Get navigation for current view from registry
+	viewNavigation := hm.ui.GetCurrentViewNavigation()
+	if viewNavigation != "" {
+		return viewNavigation
 	}
 
-	var navText string
-	switch {
-	case hm.ui.IsInLogsMode():
-		navText = "Logs Navigation:\n<up/down> Scroll line\n<pgup/pgdn> Page\n<home/end> Top/Bottom\n<space> Half page\n<esc> Back to table"
-	case hm.ui.IsInDetailsMode():
-		navText = "Navigation:\n<up/down> Scroll line\n<pgup/pgdn> Page\n<home/end> Top/Bottom\n<space> Half page\n<esc> Back to table"
-	default:
-		navText = "View Actions:\n<:> Command mode\n<enter> Inspect item\n<l> View logs\n<up/down> Navigate rows\n<q> Quit app\n<ctrl-c> Exit"
-	}
-
-	hm.navCol.SetText(navText)
+	// Get navigation dynamically from the current view's service
+	return hm.getDynamicViewNavigation()
 }
 
-// UpdateActions updates the actions column based on current view and mode
-func (hm *HeaderManager) UpdateActions() {
-	if hm.actionsCol == nil {
-		return
-	}
-
+// getActionsText returns the actions text based on current view and mode
+func (hm *HeaderManager) getActionsText() string {
 	// If in logs mode, show logs actions
 	if hm.ui.IsInLogsMode() {
-		hm.updateLogsActions()
-		return
+		return hm.getLogsActionsText()
 	}
 
 	// If in details mode, show current actions
 	if hm.ui.IsInDetailsMode() {
-		hm.updateDetailsActions()
-		return
+		return hm.getDetailsActionsText()
 	}
 
 	// Get actions for current view from registry
-	hm.updateViewActions()
+	viewActions := hm.ui.GetCurrentViewActions()
+	if viewActions != "" {
+		return viewActions
+	}
+
+	// Get actions dynamically from the current view's service
+	return hm.getDynamicViewActions()
 }
 
-// updateLogsActions updates the actions column with logs-specific actions
-func (hm *HeaderManager) updateLogsActions() {
+// getLogsActionsText returns the logs-specific actions text
+func (hm *HeaderManager) getLogsActionsText() string {
 	services := hm.ui.GetServices()
 	if !services.IsServiceAvailable("logs") {
-		hm.actionsCol.SetText("ESC/Enter: Back to table")
-		return
+		return "ESC/Enter: Back to table"
 	}
 
 	logsActions := services.GetLogsService().GetActions()
-
 	var actionsText string
 	for key, action := range logsActions {
 		actionsText += fmt.Sprintf("<%c> %s\n", key, action)
 	}
 	actionsText += "ESC/Enter: Back to table"
-	hm.actionsCol.SetText(actionsText)
+	return actionsText
 }
 
-// updateDetailsActions updates the actions column with details-specific actions
-func (hm *HeaderManager) updateDetailsActions() {
+// getDetailsActionsText returns the details-specific actions text
+func (hm *HeaderManager) getDetailsActionsText() string {
 	currentActions := hm.ui.GetCurrentActions()
 	if currentActions != nil {
 		var actionsText string
 		for key, action := range currentActions {
 			actionsText += fmt.Sprintf("<%c> %s\n", key, action)
 		}
-		actionsText += "ESC/Enter: Back\n<up/down> Scroll JSON\n<:> Command mode"
-		hm.actionsCol.SetText(actionsText)
-		return
+		actionsText += "ESC/Enter: Back\n↑/↓: Scroll JSON\n<:> Command mode"
+		return actionsText
 	}
 	// Fallback to default actions
-	hm.actionsCol.SetText("ESC/Enter: Back\n<up/down> Scroll JSON\n<:> Command mode")
+	return "ESC/Enter: Back\n↑/↓: Scroll JSON\n<:> Command mode"
 }
 
-// updateViewActions updates the actions column with view-specific actions
-func (hm *HeaderManager) updateViewActions() {
-	// Get actions for current view from registry
-	viewActions := hm.ui.GetCurrentViewActions()
-	if viewActions != "" {
-		hm.actionsCol.SetText(viewActions)
-		return
-	}
-
-	// Fallback to default container actions
-	hm.setDefaultContainerActions()
-}
-
-// setDefaultContainerActions sets the default container actions
-func (hm *HeaderManager) setDefaultContainerActions() {
+// getDynamicViewActions returns actions from the current view's service
+func (hm *HeaderManager) getDynamicViewActions() string {
 	services := hm.ui.GetServices()
-	if !services.IsContainerServiceAvailable() {
-		hm.actionsCol.SetText("")
-		return
+	if services == nil {
+		return "No services available"
 	}
 
-	containerService := services.GetContainerService()
-	if actionService, ok := containerService.(interfaces.ServiceWithActions); ok {
-		defaultActions := actionService.GetActionsString()
-		hm.actionsCol.SetText(defaultActions)
-	} else {
-		hm.actionsCol.SetText("")
+	// Get the currently active service
+	if currentService := services.GetCurrentService(); currentService != nil {
+		if actionService, ok := currentService.(interfaces.ServiceWithActions); ok {
+			return actionService.GetActionsString()
+		}
 	}
+
+	return "No actions available"
 }
 
-// GetDockerInfoCol returns the docker info column for external access
+// getDynamicViewNavigation returns navigation from the current view's service
+func (hm *HeaderManager) getDynamicViewNavigation() string {
+	// Try to get navigation from the current view's service
+	services := hm.ui.GetServices()
+	if services == nil {
+		return "No services available"
+	}
+
+	// Get the currently active service
+	if currentService := services.GetCurrentService(); currentService != nil {
+		if navigationService, ok := currentService.(interfaces.ServiceWithNavigation); ok {
+			return navigationService.GetNavigationString()
+		}
+	}
+
+	return "No actions available"
+}
+
+// getLogoText returns the logo text
+func (hm *HeaderManager) getLogoText() string {
+	return constants.WhaleTuiLogo
+}
+
+// UpdateDockerInfo updates the Docker info (kept for backward compatibility)
+func (hm *HeaderManager) UpdateDockerInfo() {
+	hm.UpdateAll()
+}
+
+// UpdateNavigation updates the navigation (kept for backward compatibility)
+func (hm *HeaderManager) UpdateNavigation() {
+	hm.UpdateAll()
+}
+
+// UpdateActions updates the actions (kept for backward compatibility)
+func (hm *HeaderManager) UpdateActions() {
+	hm.UpdateAll()
+}
+
+// GetDockerInfoCol returns nil (kept for backward compatibility)
 func (hm *HeaderManager) GetDockerInfoCol() *tview.TextView {
-	return hm.dockerInfoCol
+	return nil
 }
 
-// GetNavCol returns the navigation column for external access
+// GetNavCol returns nil (kept for backward compatibility)
 func (hm *HeaderManager) GetNavCol() *tview.TextView {
-	return hm.navCol
+	return nil
 }
 
-// GetActionsCol returns the actions column for external access
+// GetActionsCol returns nil (kept for backward compatibility)
 func (hm *HeaderManager) GetActionsCol() *tview.TextView {
-	return hm.actionsCol
+	return nil
 }
