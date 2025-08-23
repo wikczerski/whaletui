@@ -44,7 +44,7 @@ func (ch *CommandHandler) configureCommandInput() {
 	ch.commandInput.SetTitle(" Command Mode ")
 	ch.commandInput.SetTitleColor(themeManager.GetCommandModeTitleColor())
 	ch.commandInput.SetBackgroundColor(themeManager.GetCommandModeBackgroundColor())
-	ch.commandInput.SetPlaceholder("Type view name (containers, images, volumes, networks)")
+	ch.commandInput.SetPlaceholder("Type view name (containers, images, volumes, networks, swarm services, swarm nodes)")
 	ch.commandInput.SetPlaceholderTextColor(themeManager.GetCommandModePlaceholderColor())
 	ch.commandInput.SetDoneFunc(ch.HandleInput)
 	ch.commandInput.SetAutocompleteFunc(ch.getAutocomplete)
@@ -183,6 +183,14 @@ func (ch *CommandHandler) handleViewSwitchCommand(command string) bool {
 		ch.ui.SwitchView("networks")
 		ch.Exit()
 		return true
+	case "swarm services", "swarm", "services", "s":
+		ch.ui.SwitchView("swarmServices")
+		ch.Exit()
+		return true
+	case "swarm nodes", "nodes", "w":
+		ch.ui.SwitchView("swarmNodes")
+		ch.Exit()
+		return true
 	}
 	return false
 }
@@ -279,6 +287,7 @@ func (ch *CommandHandler) clearError() {
 func (ch *CommandHandler) getAutocomplete(currentText string) []string {
 	suggestions := []string{
 		"containers", "images", "volumes", "networks",
+		"swarm services", "swarm nodes", "services", "nodes",
 		"quit", "q", "exit", "help", "?",
 	}
 

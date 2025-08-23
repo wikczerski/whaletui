@@ -6,26 +6,61 @@ import (
 
 	"github.com/rivo/tview"
 	"github.com/stretchr/testify/assert"
+	"github.com/wikczerski/whaletui/internal/config"
+	sharedMocks "github.com/wikczerski/whaletui/internal/mocks/shared"
+	mocks "github.com/wikczerski/whaletui/internal/mocks/ui"
 	"github.com/wikczerski/whaletui/internal/ui/handlers"
+	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 	"github.com/wikczerski/whaletui/internal/ui/managers"
 )
+
+// setupMocksForUIInitialization sets up all the required mock expectations for UI initialization
+// This function is intentionally unused - it's a helper for future test setup
+// nolint:unused // Intentionally unused - helper for future test setup
+func setupMocksForUIInitialization(t *testing.T, headerManager *mocks.MockHeaderManagerInterface, serviceFactory *mocks.MockServiceFactoryInterface) {
+	// Header manager expectations
+	headerManager.On("CreateHeaderSection").Return(tview.NewTextView()).Maybe()
+	headerManager.On("UpdateDockerInfo").Return().Maybe()
+	headerManager.On("UpdateNavigation").Return().Maybe()
+	headerManager.On("UpdateActions").Return().Maybe()
+
+	// Service factory expectations (only if serviceFactory is not nil)
+	if serviceFactory != nil {
+		serviceFactory.On("GetContainerService").Return(nil).Maybe()
+		serviceFactory.On("GetImageService").Return(nil).Maybe()
+		serviceFactory.On("GetVolumeService").Return(nil).Maybe()
+		serviceFactory.On("GetNetworkService").Return(nil).Maybe()
+		serviceFactory.On("GetDockerInfoService").Return(nil).Maybe()
+		serviceFactory.On("GetLogsService").Return(nil).Maybe()
+		serviceFactory.On("GetSwarmServiceService").Return(sharedMocks.NewMockSwarmServiceService(t)).Maybe()
+		serviceFactory.On("GetSwarmNodeService").Return(sharedMocks.NewMockSwarmNodeService(t)).Maybe()
+		serviceFactory.On("IsServiceAvailable", "container").Return(false).Maybe()
+		serviceFactory.On("IsContainerServiceAvailable").Return(false).Maybe()
+	}
+}
 
 func TestNew(t *testing.T) {
 	tests := []struct {
 		name           string
-		serviceFactory *ServiceFactory
+		serviceFactory *mocks.MockServiceFactoryInterface
+		headerManager  interfaces.HeaderManagerInterface
+		modalManager   interfaces.ModalManagerInterface
 		expectError    bool
 		expectNilUI    bool
 	}{
 		{
 			name:           "NilServiceFactory",
-			serviceFactory: nil,
-			expectError:    false, // UI.New doesn't return error for nil service factory
+			serviceFactory: mocks.NewMockServiceFactoryInterface(t),
+			headerManager:  nil, // Use actual nil
+			modalManager:   nil, // Use actual nil
+			expectError:    false,
 			expectNilUI:    false,
 		},
 		{
 			name:           "ValidServiceFactory",
-			serviceFactory: &ServiceFactory{},
+			serviceFactory: mocks.NewMockServiceFactoryInterface(t),
+			headerManager:  nil, // Use actual nil to avoid problematic initialization
+			modalManager:   nil, // Use actual nil to avoid problematic initialization
 			expectError:    false,
 			expectNilUI:    false,
 		},
@@ -33,19 +68,95 @@ func TestNew(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Skip this test for now as it requires full UI initialization
-			// which is problematic in test environment
-			t.Skip("Skipping full UI test - requires proper mocking")
+			// Set up mock expectations only for service factory
+			if tt.serviceFactory != nil {
+				tt.serviceFactory.On("GetContainerService").Return(nil).Maybe()
+				tt.serviceFactory.On("GetImageService").Return(nil).Maybe()
+				tt.serviceFactory.On("GetVolumeService").Return(nil).Maybe()
+				tt.serviceFactory.On("GetNetworkService").Return(nil).Maybe()
+				tt.serviceFactory.On("GetDockerInfoService").Return(nil).Maybe()
+				tt.serviceFactory.On("GetLogsService").Return(nil).Maybe()
+				tt.serviceFactory.On("GetSwarmServiceService").Return(sharedMocks.NewMockSwarmServiceService(t)).Maybe()
+				tt.serviceFactory.On("GetSwarmNodeService").Return(sharedMocks.NewMockSwarmNodeService(t)).Maybe()
+				tt.serviceFactory.On("IsServiceAvailable", "container").Return(false).Maybe()
+				tt.serviceFactory.On("IsContainerServiceAvailable").Return(false).Maybe()
+			}
+
+			ui, err := New(tt.serviceFactory, "", tt.headerManager, tt.modalManager, &config.Config{})
+
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+
+			if tt.expectNilUI {
+				assert.Nil(t, ui)
+			} else {
+				assert.NotNil(t, ui)
+			}
 		})
 	}
 }
 
 func TestUI_InitialState(t *testing.T) {
-	t.Skip("Skipping full UI test - requires proper mocking")
+	serviceFactory := mocks.NewMockServiceFactoryInterface(t)
+	headerManager := interfaces.HeaderManagerInterface(nil) // Use actual nil
+	modalManager := interfaces.ModalManagerInterface(nil)   // Use actual nil
+
+	// Set up mock expectations only for service factory
+	serviceFactory.On("GetContainerService").Return(nil).Maybe()
+	serviceFactory.On("GetImageService").Return(nil).Maybe()
+	serviceFactory.On("GetVolumeService").Return(nil).Maybe()
+	serviceFactory.On("GetNetworkService").Return(nil).Maybe()
+	serviceFactory.On("GetDockerInfoService").Return(nil).Maybe()
+	serviceFactory.On("GetLogsService").Return(nil).Maybe()
+	serviceFactory.On("GetSwarmServiceService").Return(sharedMocks.NewMockSwarmServiceService(t)).Maybe()
+	serviceFactory.On("GetSwarmNodeService").Return(sharedMocks.NewMockSwarmNodeService(t)).Maybe()
+	serviceFactory.On("IsServiceAvailable", "container").Return(false).Maybe()
+	serviceFactory.On("IsContainerServiceAvailable").Return(false).Maybe()
+
+	ui, err := New(serviceFactory, "", headerManager, modalManager, &config.Config{})
+	assert.NoError(t, err)
+	assert.NotNil(t, ui)
+
+	// Test initial state
+	assert.NotNil(t, ui.app)
+	assert.NotNil(t, ui.pages)
+	assert.NotNil(t, ui.log)
+	assert.NotNil(t, ui.shutdownChan)
+	assert.NotNil(t, ui.currentActions)
+	assert.Equal(t, serviceFactory, ui.services)
+	assert.Nil(t, ui.headerManager) // Changed: expect nil since we're not providing it
+	assert.Nil(t, ui.modalManager)  // Changed: expect nil since we're not providing it
 }
 
 func TestUI_ViewManagement(t *testing.T) {
-	t.Skip("Skipping full UI test - requires proper mocking")
+	serviceFactory := mocks.NewMockServiceFactoryInterface(t)
+	headerManager := interfaces.HeaderManagerInterface(nil) // Use actual nil
+	modalManager := interfaces.ModalManagerInterface(nil)   // Use actual nil
+
+	// Set up mock expectations only for service factory
+	serviceFactory.On("GetContainerService").Return(nil).Maybe()
+	serviceFactory.On("GetImageService").Return(nil).Maybe()
+	serviceFactory.On("GetVolumeService").Return(nil).Maybe()
+	serviceFactory.On("GetNetworkService").Return(nil).Maybe()
+	serviceFactory.On("GetDockerInfoService").Return(nil).Maybe()
+	serviceFactory.On("GetLogsService").Return(nil).Maybe()
+	serviceFactory.On("GetSwarmServiceService").Return(sharedMocks.NewMockSwarmServiceService(t)).Maybe()
+	serviceFactory.On("GetSwarmNodeService").Return(sharedMocks.NewMockSwarmNodeService(t)).Maybe()
+	serviceFactory.On("IsServiceAvailable", "container").Return(false).Maybe()
+	serviceFactory.On("IsContainerServiceAvailable").Return(false).Maybe()
+
+	ui, err := New(serviceFactory, "", headerManager, modalManager, &config.Config{})
+	assert.NoError(t, err)
+	assert.NotNil(t, ui)
+
+	// Test view registry
+	assert.NotNil(t, ui.viewRegistry)
+
+	// Note: These views won't be created when managers are nil, so we can't test them
+	// The UI initialization skips initComponents() when managers are nil
 }
 
 func TestUI_ComponentInitialization_App(t *testing.T) {
@@ -394,7 +505,30 @@ func TestUI_ViewReferences_NetworksPrimitive(t *testing.T) {
 }
 
 func TestUI_ServiceFactoryIntegration(t *testing.T) {
-	t.Skip("Skipping full UI test - requires proper mocking")
+	serviceFactory := mocks.NewMockServiceFactoryInterface(t)
+	headerManager := interfaces.HeaderManagerInterface(nil) // Changed: set to nil to avoid problematic initialization
+	modalManager := interfaces.ModalManagerInterface(nil)   // Changed: set to nil to avoid problematic initialization
+
+	// Set up mock expectations only for service factory
+	serviceFactory.On("GetContainerService").Return(nil).Maybe()
+	serviceFactory.On("GetImageService").Return(nil).Maybe()
+	serviceFactory.On("GetVolumeService").Return(nil).Maybe()
+	serviceFactory.On("GetNetworkService").Return(nil).Maybe()
+	serviceFactory.On("GetDockerInfoService").Return(nil).Maybe()
+	serviceFactory.On("GetLogsService").Return(nil).Maybe()
+	serviceFactory.On("GetSwarmServiceService").Return(sharedMocks.NewMockSwarmServiceService(t)).Maybe()
+	serviceFactory.On("GetSwarmNodeService").Return(sharedMocks.NewMockSwarmNodeService(t)).Maybe()
+	serviceFactory.On("IsServiceAvailable", "container").Return(false).Maybe()
+	serviceFactory.On("IsContainerServiceAvailable").Return(false).Maybe()
+
+	ui, err := New(serviceFactory, "", headerManager, modalManager, &config.Config{})
+	assert.NoError(t, err)
+	assert.NotNil(t, ui)
+
+	// Test service factory integration
+	assert.Equal(t, serviceFactory, ui.services)
+	assert.Nil(t, ui.headerManager) // Changed: expect nil since we're not providing it
+	assert.Nil(t, ui.modalManager)  // Changed: expect nil since we're not providing it
 }
 
 func TestUI_CommandModeState_InitiallyInactive(t *testing.T) {

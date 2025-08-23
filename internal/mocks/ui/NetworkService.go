@@ -8,7 +8,7 @@ import (
 	"context"
 
 	mock "github.com/stretchr/testify/mock"
-	"github.com/wikczerski/whaletui/internal/ui/interfaces"
+	"github.com/wikczerski/whaletui/internal/shared"
 )
 
 // NewMockNetworkService creates a new instance of MockNetworkService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -198,23 +198,23 @@ func (_c *MockNetworkService_InspectNetwork_Call) RunAndReturn(run func(ctx cont
 }
 
 // ListNetworks provides a mock function for the type MockNetworkService
-func (_mock *MockNetworkService) ListNetworks(ctx context.Context) ([]interfaces.Network, error) {
+func (_mock *MockNetworkService) ListNetworks(ctx context.Context) ([]shared.Network, error) {
 	ret := _mock.Called(ctx)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ListNetworks")
 	}
 
-	var r0 []interfaces.Network
+	var r0 []shared.Network
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context) ([]interfaces.Network, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context) ([]shared.Network, error)); ok {
 		return returnFunc(ctx)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context) []interfaces.Network); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context) []shared.Network); ok {
 		r0 = returnFunc(ctx)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]interfaces.Network)
+			r0 = ret.Get(0).([]shared.Network)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
@@ -249,12 +249,12 @@ func (_c *MockNetworkService_ListNetworks_Call) Run(run func(ctx context.Context
 	return _c
 }
 
-func (_c *MockNetworkService_ListNetworks_Call) Return(vs []interfaces.Network, err error) *MockNetworkService_ListNetworks_Call {
-	_c.Call.Return(vs, err)
+func (_c *MockNetworkService_ListNetworks_Call) Return(networks []shared.Network, err error) *MockNetworkService_ListNetworks_Call {
+	_c.Call.Return(networks, err)
 	return _c
 }
 
-func (_c *MockNetworkService_ListNetworks_Call) RunAndReturn(run func(ctx context.Context) ([]interfaces.Network, error)) *MockNetworkService_ListNetworks_Call {
+func (_c *MockNetworkService_ListNetworks_Call) RunAndReturn(run func(ctx context.Context) ([]shared.Network, error)) *MockNetworkService_ListNetworks_Call {
 	_c.Call.Return(run)
 	return _c
 }

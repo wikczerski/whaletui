@@ -3,11 +3,11 @@ package image
 import (
 	"time"
 
-	"github.com/wikczerski/whaletui/internal/docker"
+	"github.com/wikczerski/whaletui/internal/shared"
 )
 
 // Image represents a Docker image
-type Image = docker.Image
+type Image = shared.Image
 
 // Details represents detailed image information
 type Details struct {

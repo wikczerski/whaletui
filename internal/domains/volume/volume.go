@@ -1,9 +1,9 @@
 package volume
 
-import "github.com/wikczerski/whaletui/internal/docker"
+import "github.com/wikczerski/whaletui/internal/shared"
 
 // Volume represents a Docker volume
-type Volume = docker.Volume
+type Volume = shared.Volume
 
 // Details represents detailed volume information
 type Details struct {

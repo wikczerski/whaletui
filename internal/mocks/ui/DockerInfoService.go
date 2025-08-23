@@ -39,23 +39,115 @@ func (_m *MockDockerInfoService) EXPECT() *MockDockerInfoService_Expecter {
 	return &MockDockerInfoService_Expecter{mock: &_m.Mock}
 }
 
+// GetActions provides a mock function for the type MockDockerInfoService
+func (_mock *MockDockerInfoService) GetActions() map[rune]string {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetActions")
+	}
+
+	var r0 map[rune]string
+	if returnFunc, ok := ret.Get(0).(func() map[rune]string); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[rune]string)
+		}
+	}
+	return r0
+}
+
+// MockDockerInfoService_GetActions_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetActions'
+type MockDockerInfoService_GetActions_Call struct {
+	*mock.Call
+}
+
+// GetActions is a helper method to define mock.On call
+func (_e *MockDockerInfoService_Expecter) GetActions() *MockDockerInfoService_GetActions_Call {
+	return &MockDockerInfoService_GetActions_Call{Call: _e.mock.On("GetActions")}
+}
+
+func (_c *MockDockerInfoService_GetActions_Call) Run(run func()) *MockDockerInfoService_GetActions_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockDockerInfoService_GetActions_Call) Return(runeToString map[rune]string) *MockDockerInfoService_GetActions_Call {
+	_c.Call.Return(runeToString)
+	return _c
+}
+
+func (_c *MockDockerInfoService_GetActions_Call) RunAndReturn(run func() map[rune]string) *MockDockerInfoService_GetActions_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetActionsString provides a mock function for the type MockDockerInfoService
+func (_mock *MockDockerInfoService) GetActionsString() string {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetActionsString")
+	}
+
+	var r0 string
+	if returnFunc, ok := ret.Get(0).(func() string); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+	return r0
+}
+
+// MockDockerInfoService_GetActionsString_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetActionsString'
+type MockDockerInfoService_GetActionsString_Call struct {
+	*mock.Call
+}
+
+// GetActionsString is a helper method to define mock.On call
+func (_e *MockDockerInfoService_Expecter) GetActionsString() *MockDockerInfoService_GetActionsString_Call {
+	return &MockDockerInfoService_GetActionsString_Call{Call: _e.mock.On("GetActionsString")}
+}
+
+func (_c *MockDockerInfoService_GetActionsString_Call) Run(run func()) *MockDockerInfoService_GetActionsString_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockDockerInfoService_GetActionsString_Call) Return(s string) *MockDockerInfoService_GetActionsString_Call {
+	_c.Call.Return(s)
+	return _c
+}
+
+func (_c *MockDockerInfoService_GetActionsString_Call) RunAndReturn(run func() string) *MockDockerInfoService_GetActionsString_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetDockerInfo provides a mock function for the type MockDockerInfoService
-func (_mock *MockDockerInfoService) GetDockerInfo(ctx context.Context) (interfaces.DockerInfo, error) {
+func (_mock *MockDockerInfoService) GetDockerInfo(ctx context.Context) (*interfaces.DockerInfo, error) {
 	ret := _mock.Called(ctx)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetDockerInfo")
 	}
 
-	var r0 interfaces.DockerInfo
+	var r0 *interfaces.DockerInfo
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context) (interfaces.DockerInfo, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context) (*interfaces.DockerInfo, error)); ok {
 		return returnFunc(ctx)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context) interfaces.DockerInfo); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context) *interfaces.DockerInfo); ok {
 		r0 = returnFunc(ctx)
 	} else {
-		r0 = ret.Get(0).(interfaces.DockerInfo)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*interfaces.DockerInfo)
+		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
 		r1 = returnFunc(ctx)
@@ -89,12 +181,12 @@ func (_c *MockDockerInfoService_GetDockerInfo_Call) Run(run func(ctx context.Con
 	return _c
 }
 
-func (_c *MockDockerInfoService_GetDockerInfo_Call) Return(dockerInfo interfaces.DockerInfo, err error) *MockDockerInfoService_GetDockerInfo_Call {
+func (_c *MockDockerInfoService_GetDockerInfo_Call) Return(dockerInfo *interfaces.DockerInfo, err error) *MockDockerInfoService_GetDockerInfo_Call {
 	_c.Call.Return(dockerInfo, err)
 	return _c
 }
 
-func (_c *MockDockerInfoService_GetDockerInfo_Call) RunAndReturn(run func(ctx context.Context) (interfaces.DockerInfo, error)) *MockDockerInfoService_GetDockerInfo_Call {
+func (_c *MockDockerInfoService_GetDockerInfo_Call) RunAndReturn(run func(ctx context.Context) (*interfaces.DockerInfo, error)) *MockDockerInfoService_GetDockerInfo_Call {
 	_c.Call.Return(run)
 	return _c
 }

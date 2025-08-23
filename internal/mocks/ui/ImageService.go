@@ -8,7 +8,7 @@ import (
 	"context"
 
 	mock "github.com/stretchr/testify/mock"
-	"github.com/wikczerski/whaletui/internal/ui/interfaces"
+	"github.com/wikczerski/whaletui/internal/shared"
 )
 
 // NewMockImageService creates a new instance of MockImageService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -198,23 +198,23 @@ func (_c *MockImageService_InspectImage_Call) RunAndReturn(run func(ctx context.
 }
 
 // ListImages provides a mock function for the type MockImageService
-func (_mock *MockImageService) ListImages(ctx context.Context) ([]interfaces.Image, error) {
+func (_mock *MockImageService) ListImages(ctx context.Context) ([]shared.Image, error) {
 	ret := _mock.Called(ctx)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ListImages")
 	}
 
-	var r0 []interfaces.Image
+	var r0 []shared.Image
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context) ([]interfaces.Image, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context) ([]shared.Image, error)); ok {
 		return returnFunc(ctx)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context) []interfaces.Image); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context) []shared.Image); ok {
 		r0 = returnFunc(ctx)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]interfaces.Image)
+			r0 = ret.Get(0).([]shared.Image)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
@@ -249,12 +249,12 @@ func (_c *MockImageService_ListImages_Call) Run(run func(ctx context.Context)) *
 	return _c
 }
 
-func (_c *MockImageService_ListImages_Call) Return(vs []interfaces.Image, err error) *MockImageService_ListImages_Call {
-	_c.Call.Return(vs, err)
+func (_c *MockImageService_ListImages_Call) Return(images []shared.Image, err error) *MockImageService_ListImages_Call {
+	_c.Call.Return(images, err)
 	return _c
 }
 
-func (_c *MockImageService_ListImages_Call) RunAndReturn(run func(ctx context.Context) ([]interfaces.Image, error)) *MockImageService_ListImages_Call {
+func (_c *MockImageService_ListImages_Call) RunAndReturn(run func(ctx context.Context) ([]shared.Image, error)) *MockImageService_ListImages_Call {
 	_c.Call.Return(run)
 	return _c
 }

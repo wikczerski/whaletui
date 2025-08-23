@@ -3,6 +3,7 @@ package image
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/wikczerski/whaletui/internal/shared"
 	"github.com/wikczerski/whaletui/internal/ui/builders"
@@ -12,14 +13,14 @@ import (
 
 // ImagesView displays and manages Docker images
 type ImagesView struct {
-	*shared.BaseView[Image]
+	*shared.BaseView[shared.Image]
 	handlers *handlers.ActionHandlers
 }
 
 // NewImagesView creates a new images view
 func NewImagesView(ui interfaces.UIInterface) *ImagesView {
 	headers := []string{"ID", "Repository", "Tag", "Size", "Created", "Containers"}
-	baseView := shared.NewBaseView[Image](ui, "images", headers)
+	baseView := shared.NewBaseView[shared.Image](ui, "images", headers)
 
 	iv := &ImagesView{
 		BaseView: baseView,
@@ -28,49 +29,59 @@ func NewImagesView(ui interfaces.UIInterface) *ImagesView {
 
 	// Set up callbacks
 	iv.ListItems = iv.listImages
-	iv.FormatRow = func(i Image) []string { return iv.formatImageRow(&i) }
-	iv.GetItemID = func(i Image) string { return i.ID }
-	iv.GetItemName = func(i Image) string { return i.Repository }
-	iv.HandleKeyPress = func(key rune, i Image) { iv.handleImageKey(key, &i) }
-	iv.ShowDetails = func(i Image) { iv.showImageDetails(&i) }
+	iv.FormatRow = func(i shared.Image) []string { return iv.formatImageRow(&i) }
+	iv.GetItemID = func(i shared.Image) string { return i.ID }
+	iv.GetItemName = func(i shared.Image) string { return i.RepoTags[0] }
+	iv.HandleKeyPress = func(key rune, i shared.Image) { iv.handleImageKey(key, &i) }
+	iv.ShowDetails = func(i shared.Image) { iv.showImageDetails(&i) }
 	iv.GetActions = iv.getImageActions
 
 	return iv
 }
 
-func (iv *ImagesView) listImages(ctx context.Context) ([]Image, error) {
-	services := iv.GetUI().GetServices()
+func (iv *ImagesView) listImages(ctx context.Context) ([]shared.Image, error) {
+	services := iv.GetUI().GetServicesAny()
 	if services == nil {
-		return []Image{}, nil
+		return []shared.Image{}, nil
 	}
 
-	if imageService := services.GetImageService(); imageService != nil {
-		images, err := imageService.ListImages(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		result := make([]Image, len(images))
-		for i, image := range images {
-			if img, ok := image.(Image); ok {
-				result[i] = img
+	// Type assertion to get the service factory
+	if serviceFactory, ok := services.(interfaces.ServiceFactoryInterface); ok {
+		if imageService := serviceFactory.GetImageService(); imageService != nil {
+			// Type assertion to get the ListImages method
+			if imageService != nil {
+				images, err := imageService.ListImages(ctx)
+				if err != nil {
+					return nil, err
+				}
+				return images, nil
 			}
 		}
-
-		return result, nil
 	}
 
-	return []Image{}, nil
+	return []shared.Image{}, nil
 }
 
-func (iv *ImagesView) formatImageRow(image *Image) []string {
+func (iv *ImagesView) formatImageRow(image *shared.Image) []string {
+	repoTag := ""
+	if len(image.RepoTags) > 0 {
+		repoTag = image.RepoTags[0]
+	}
+	parts := strings.Split(repoTag, ":")
+	repo := ""
+	tag := ""
+	if len(parts) >= 2 {
+		repo = parts[0]
+		tag = parts[1]
+	}
+
 	return []string{
 		image.ID,
-		image.Repository,
-		image.Tag,
+		repo,
+		tag,
 		image.Size,
 		builders.FormatTime(image.Created),
-		fmt.Sprintf("%d", image.Containers),
+		"0", // shared.Image doesn't have Containers field
 	}
 }
 
@@ -81,53 +92,90 @@ func (iv *ImagesView) getImageActions() map[rune]string {
 	}
 }
 
-func (iv *ImagesView) handleImageKey(key rune, image *Image) {
+func (iv *ImagesView) handleImageKey(key rune, image *shared.Image) {
 	iv.handleAction(key, image)
 }
 
-func (iv *ImagesView) showImageDetails(image *Image) {
+func (iv *ImagesView) showImageDetails(image *shared.Image) {
 	ctx := context.Background()
-	services := iv.GetUI().GetServices()
-	if services == nil || services.GetImageService() == nil {
+	services := iv.GetUI().GetServicesAny()
+	if services == nil {
 		iv.ShowItemDetails(*image, nil, fmt.Errorf("image service not available"))
 		return
 	}
-	inspectData, err := services.GetImageService().InspectImage(ctx, image.ID)
-	iv.ShowItemDetails(*image, inspectData, err)
+
+	// Type assertion to get the service factory
+	if serviceFactory, ok := services.(interface{ GetImageService() any }); ok {
+		if imageService := serviceFactory.GetImageService(); imageService != nil {
+			// Type assertion to get the InspectImage method
+			if inspectService, ok := imageService.(interface {
+				InspectImage(context.Context, string) (map[string]any, error)
+			}); ok {
+				inspectData, err := inspectService.InspectImage(ctx, image.ID)
+				iv.ShowItemDetails(*image, inspectData, err)
+				return
+			}
+		}
+	}
+
+	iv.ShowItemDetails(*image, nil, fmt.Errorf("image service not available"))
 }
 
-func (iv *ImagesView) handleAction(key rune, image *Image) {
-	services := iv.GetUI().GetServices()
+func (iv *ImagesView) handleAction(key rune, image *shared.Image) {
+	services := iv.GetUI().GetServicesAny()
 	if services == nil {
 		return
 	}
 
-	if services.GetImageService() == nil {
-		return
-	}
-
-	switch key {
-	case 'd':
-		iv.deleteImage(image.ID)
-	case 'i':
-		iv.inspectImage(image.ID)
+	// Type assertion to get the service factory
+	if serviceFactory, ok := services.(interface{ GetImageService() any }); ok {
+		if serviceFactory.GetImageService() != nil {
+			switch key {
+			case 'd':
+				iv.deleteImage(image.ID)
+			case 'i':
+				iv.inspectImage(image.ID)
+			}
+		}
 	}
 }
 
 func (iv *ImagesView) deleteImage(id string) {
-	services := iv.GetUI().GetServices()
-	if services == nil || services.GetImageService() == nil {
+	services := iv.GetUI().GetServicesAny()
+	if services == nil {
 		return
 	}
-	iv.handlers.HandleResourceAction('d', "image", id, "",
-		services.GetImageService().InspectImage, nil, func() { iv.Refresh() })
+
+	// Type assertion to get the service factory
+	if serviceFactory, ok := services.(interface{ GetImageService() any }); ok {
+		if imageService := serviceFactory.GetImageService(); imageService != nil {
+			// Type assertion to get the InspectImage method
+			if inspectService, ok := imageService.(interface {
+				InspectImage(context.Context, string) (map[string]any, error)
+			}); ok {
+				iv.handlers.HandleResourceAction('d', "image", id, "",
+					inspectService.InspectImage, nil, func() { iv.Refresh() })
+			}
+		}
+	}
 }
 
 func (iv *ImagesView) inspectImage(id string) {
-	services := iv.GetUI().GetServices()
-	if services == nil || services.GetImageService() == nil {
+	services := iv.GetUI().GetServicesAny()
+	if services == nil {
 		return
 	}
-	iv.handlers.HandleResourceAction('i', "image", id, "",
-		services.GetImageService().InspectImage, nil, func() { iv.Refresh() })
+
+	// Type assertion to get the service factory
+	if serviceFactory, ok := services.(interface{ GetImageService() any }); ok {
+		if imageService := serviceFactory.GetImageService(); imageService != nil {
+			// Type assertion to get the InspectImage method
+			if inspectService, ok := imageService.(interface {
+				InspectImage(context.Context, string) (map[string]any, error)
+			}); ok {
+				iv.handlers.HandleResourceAction('i', "image", id, "",
+					inspectService.InspectImage, nil, func() { iv.Refresh() })
+			}
+		}
+	}
 }

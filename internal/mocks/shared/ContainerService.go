@@ -342,6 +342,96 @@ func (_c *MockContainerService_GetContainerLogs_Call) RunAndReturn(run func(ctx 
 	return _c
 }
 
+// GetNavigation provides a mock function for the type MockContainerService
+func (_mock *MockContainerService) GetNavigation() map[rune]string {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetNavigation")
+	}
+
+	var r0 map[rune]string
+	if returnFunc, ok := ret.Get(0).(func() map[rune]string); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[rune]string)
+		}
+	}
+	return r0
+}
+
+// MockContainerService_GetNavigation_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetNavigation'
+type MockContainerService_GetNavigation_Call struct {
+	*mock.Call
+}
+
+// GetNavigation is a helper method to define mock.On call
+func (_e *MockContainerService_Expecter) GetNavigation() *MockContainerService_GetNavigation_Call {
+	return &MockContainerService_GetNavigation_Call{Call: _e.mock.On("GetNavigation")}
+}
+
+func (_c *MockContainerService_GetNavigation_Call) Run(run func()) *MockContainerService_GetNavigation_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockContainerService_GetNavigation_Call) Return(runeToString map[rune]string) *MockContainerService_GetNavigation_Call {
+	_c.Call.Return(runeToString)
+	return _c
+}
+
+func (_c *MockContainerService_GetNavigation_Call) RunAndReturn(run func() map[rune]string) *MockContainerService_GetNavigation_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetNavigationString provides a mock function for the type MockContainerService
+func (_mock *MockContainerService) GetNavigationString() string {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetNavigationString")
+	}
+
+	var r0 string
+	if returnFunc, ok := ret.Get(0).(func() string); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+	return r0
+}
+
+// MockContainerService_GetNavigationString_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetNavigationString'
+type MockContainerService_GetNavigationString_Call struct {
+	*mock.Call
+}
+
+// GetNavigationString is a helper method to define mock.On call
+func (_e *MockContainerService_Expecter) GetNavigationString() *MockContainerService_GetNavigationString_Call {
+	return &MockContainerService_GetNavigationString_Call{Call: _e.mock.On("GetNavigationString")}
+}
+
+func (_c *MockContainerService_GetNavigationString_Call) Run(run func()) *MockContainerService_GetNavigationString_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockContainerService_GetNavigationString_Call) Return(s string) *MockContainerService_GetNavigationString_Call {
+	_c.Call.Return(s)
+	return _c
+}
+
+func (_c *MockContainerService_GetNavigationString_Call) RunAndReturn(run func() string) *MockContainerService_GetNavigationString_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // InspectContainer provides a mock function for the type MockContainerService
 func (_mock *MockContainerService) InspectContainer(ctx context.Context, id string) (map[string]any, error) {
 	ret := _mock.Called(ctx, id)
@@ -462,8 +552,8 @@ func (_c *MockContainerService_ListContainers_Call) Run(run func(ctx context.Con
 	return _c
 }
 
-func (_c *MockContainerService_ListContainers_Call) Return(vs []shared.Container, err error) *MockContainerService_ListContainers_Call {
-	_c.Call.Return(vs, err)
+func (_c *MockContainerService_ListContainers_Call) Return(containers []shared.Container, err error) *MockContainerService_ListContainers_Call {
+	_c.Call.Return(containers, err)
 	return _c
 }
 

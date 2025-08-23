@@ -12,6 +12,7 @@ import (
 	"github.com/wikczerski/whaletui/internal/config"
 	"github.com/wikczerski/whaletui/internal/docker"
 	"github.com/wikczerski/whaletui/internal/logger"
+	"github.com/wikczerski/whaletui/internal/ui/constants"
 )
 
 var (
@@ -81,6 +82,7 @@ Examples:
   whaletui                                    - Start with local Docker instance
   whaletui --log-level DEBUG                  - Start with debug logging to console and file
   whaletui --log-level DEBUG --log-file ./myapp.log  - Start with debug logging to custom file
+
   whaletui connect --host ssh://admin@host1  - Connect to remote host via SSH
   whaletui connect --host 192.168.1.100 --user admin  - Connect to remote host
   whaletui theme                             - Manage theme configuration`,
@@ -124,6 +126,9 @@ func Execute() {
 }
 
 func init() {
+	// Set the app version for UI display
+	constants.SetAppVersion(Version)
+
 	rootCmd.PersistentFlags().IntVar(&refresh, "refresh", 5, "Refresh interval in seconds")
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "INFO", "Log level (DEBUG, INFO, WARN, ERROR)")
 	rootCmd.PersistentFlags().StringVar(&logFilePath, "log-file", "", "Path to log file (used when --log-level DEBUG is set)")
@@ -331,6 +336,11 @@ func runApp(_ *cobra.Command, _ []string) error {
 
 // cleanupTerminal performs additional terminal cleanup operations
 func cleanupTerminal() {
+	// Skip terminal cleanup operations when in TUI mode to prevent interference
+	if logger.IsTUIMode() {
+		return
+	}
+
 	cleanupTerminalClearScreen()
 	cleanupTerminalResetColors()
 	cleanupTerminalShowCursor()

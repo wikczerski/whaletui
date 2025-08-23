@@ -82,6 +82,52 @@ func (_c *MockModalManagerInterface_ShowConfirm_Call) RunAndReturn(run func(s st
 	return _c
 }
 
+// ShowContextualHelp provides a mock function for the type MockModalManagerInterface
+func (_mock *MockModalManagerInterface) ShowContextualHelp(s string, s1 string) {
+	_mock.Called(s, s1)
+	return
+}
+
+// MockModalManagerInterface_ShowContextualHelp_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ShowContextualHelp'
+type MockModalManagerInterface_ShowContextualHelp_Call struct {
+	*mock.Call
+}
+
+// ShowContextualHelp is a helper method to define mock.On call
+//   - s string
+//   - s1 string
+func (_e *MockModalManagerInterface_Expecter) ShowContextualHelp(s interface{}, s1 interface{}) *MockModalManagerInterface_ShowContextualHelp_Call {
+	return &MockModalManagerInterface_ShowContextualHelp_Call{Call: _e.mock.On("ShowContextualHelp", s, s1)}
+}
+
+func (_c *MockModalManagerInterface_ShowContextualHelp_Call) Run(run func(s string, s1 string)) *MockModalManagerInterface_ShowContextualHelp_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockModalManagerInterface_ShowContextualHelp_Call) Return() *MockModalManagerInterface_ShowContextualHelp_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockModalManagerInterface_ShowContextualHelp_Call) RunAndReturn(run func(s string, s1 string)) *MockModalManagerInterface_ShowContextualHelp_Call {
+	_c.Run(run)
+	return _c
+}
+
 // ShowError provides a mock function for the type MockModalManagerInterface
 func (_mock *MockModalManagerInterface) ShowError(err error) {
 	_mock.Called(err)
@@ -122,6 +168,64 @@ func (_c *MockModalManagerInterface_ShowError_Call) RunAndReturn(run func(err er
 	return _c
 }
 
+// ShowFallbackDialog provides a mock function for the type MockModalManagerInterface
+func (_mock *MockModalManagerInterface) ShowFallbackDialog(s string, err error, strings []string, fn func(string)) {
+	_mock.Called(s, err, strings, fn)
+	return
+}
+
+// MockModalManagerInterface_ShowFallbackDialog_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ShowFallbackDialog'
+type MockModalManagerInterface_ShowFallbackDialog_Call struct {
+	*mock.Call
+}
+
+// ShowFallbackDialog is a helper method to define mock.On call
+//   - s string
+//   - err error
+//   - strings []string
+//   - fn func(string)
+func (_e *MockModalManagerInterface_Expecter) ShowFallbackDialog(s interface{}, err interface{}, strings interface{}, fn interface{}) *MockModalManagerInterface_ShowFallbackDialog_Call {
+	return &MockModalManagerInterface_ShowFallbackDialog_Call{Call: _e.mock.On("ShowFallbackDialog", s, err, strings, fn)}
+}
+
+func (_c *MockModalManagerInterface_ShowFallbackDialog_Call) Run(run func(s string, err error, strings []string, fn func(string))) *MockModalManagerInterface_ShowFallbackDialog_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 error
+		if args[1] != nil {
+			arg1 = args[1].(error)
+		}
+		var arg2 []string
+		if args[2] != nil {
+			arg2 = args[2].([]string)
+		}
+		var arg3 func(string)
+		if args[3] != nil {
+			arg3 = args[3].(func(string))
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockModalManagerInterface_ShowFallbackDialog_Call) Return() *MockModalManagerInterface_ShowFallbackDialog_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockModalManagerInterface_ShowFallbackDialog_Call) RunAndReturn(run func(s string, err error, strings []string, fn func(string))) *MockModalManagerInterface_ShowFallbackDialog_Call {
+	_c.Run(run)
+	return _c
+}
+
 // ShowHelp provides a mock function for the type MockModalManagerInterface
 func (_mock *MockModalManagerInterface) ShowHelp() {
 	_mock.Called()
@@ -151,6 +255,208 @@ func (_c *MockModalManagerInterface_ShowHelp_Call) Return() *MockModalManagerInt
 }
 
 func (_c *MockModalManagerInterface_ShowHelp_Call) RunAndReturn(run func()) *MockModalManagerInterface_ShowHelp_Call {
+	_c.Run(run)
+	return _c
+}
+
+// ShowInfo provides a mock function for the type MockModalManagerInterface
+func (_mock *MockModalManagerInterface) ShowInfo(s string) {
+	_mock.Called(s)
+	return
+}
+
+// MockModalManagerInterface_ShowInfo_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ShowInfo'
+type MockModalManagerInterface_ShowInfo_Call struct {
+	*mock.Call
+}
+
+// ShowInfo is a helper method to define mock.On call
+//   - s string
+func (_e *MockModalManagerInterface_Expecter) ShowInfo(s interface{}) *MockModalManagerInterface_ShowInfo_Call {
+	return &MockModalManagerInterface_ShowInfo_Call{Call: _e.mock.On("ShowInfo", s)}
+}
+
+func (_c *MockModalManagerInterface_ShowInfo_Call) Run(run func(s string)) *MockModalManagerInterface_ShowInfo_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockModalManagerInterface_ShowInfo_Call) Return() *MockModalManagerInterface_ShowInfo_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockModalManagerInterface_ShowInfo_Call) RunAndReturn(run func(s string)) *MockModalManagerInterface_ShowInfo_Call {
+	_c.Run(run)
+	return _c
+}
+
+// ShowNodeAvailabilityModal provides a mock function for the type MockModalManagerInterface
+func (_mock *MockModalManagerInterface) ShowNodeAvailabilityModal(s string, s1 string, fn func(string)) {
+	_mock.Called(s, s1, fn)
+	return
+}
+
+// MockModalManagerInterface_ShowNodeAvailabilityModal_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ShowNodeAvailabilityModal'
+type MockModalManagerInterface_ShowNodeAvailabilityModal_Call struct {
+	*mock.Call
+}
+
+// ShowNodeAvailabilityModal is a helper method to define mock.On call
+//   - s string
+//   - s1 string
+//   - fn func(string)
+func (_e *MockModalManagerInterface_Expecter) ShowNodeAvailabilityModal(s interface{}, s1 interface{}, fn interface{}) *MockModalManagerInterface_ShowNodeAvailabilityModal_Call {
+	return &MockModalManagerInterface_ShowNodeAvailabilityModal_Call{Call: _e.mock.On("ShowNodeAvailabilityModal", s, s1, fn)}
+}
+
+func (_c *MockModalManagerInterface_ShowNodeAvailabilityModal_Call) Run(run func(s string, s1 string, fn func(string))) *MockModalManagerInterface_ShowNodeAvailabilityModal_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 func(string)
+		if args[2] != nil {
+			arg2 = args[2].(func(string))
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockModalManagerInterface_ShowNodeAvailabilityModal_Call) Return() *MockModalManagerInterface_ShowNodeAvailabilityModal_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockModalManagerInterface_ShowNodeAvailabilityModal_Call) RunAndReturn(run func(s string, s1 string, fn func(string))) *MockModalManagerInterface_ShowNodeAvailabilityModal_Call {
+	_c.Run(run)
+	return _c
+}
+
+// ShowRetryDialog provides a mock function for the type MockModalManagerInterface
+func (_mock *MockModalManagerInterface) ShowRetryDialog(s string, err error, fn func() error, fn1 func()) {
+	_mock.Called(s, err, fn, fn1)
+	return
+}
+
+// MockModalManagerInterface_ShowRetryDialog_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ShowRetryDialog'
+type MockModalManagerInterface_ShowRetryDialog_Call struct {
+	*mock.Call
+}
+
+// ShowRetryDialog is a helper method to define mock.On call
+//   - s string
+//   - err error
+//   - fn func() error
+//   - fn1 func()
+func (_e *MockModalManagerInterface_Expecter) ShowRetryDialog(s interface{}, err interface{}, fn interface{}, fn1 interface{}) *MockModalManagerInterface_ShowRetryDialog_Call {
+	return &MockModalManagerInterface_ShowRetryDialog_Call{Call: _e.mock.On("ShowRetryDialog", s, err, fn, fn1)}
+}
+
+func (_c *MockModalManagerInterface_ShowRetryDialog_Call) Run(run func(s string, err error, fn func() error, fn1 func())) *MockModalManagerInterface_ShowRetryDialog_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 error
+		if args[1] != nil {
+			arg1 = args[1].(error)
+		}
+		var arg2 func() error
+		if args[2] != nil {
+			arg2 = args[2].(func() error)
+		}
+		var arg3 func()
+		if args[3] != nil {
+			arg3 = args[3].(func())
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockModalManagerInterface_ShowRetryDialog_Call) Return() *MockModalManagerInterface_ShowRetryDialog_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockModalManagerInterface_ShowRetryDialog_Call) RunAndReturn(run func(s string, err error, fn func() error, fn1 func())) *MockModalManagerInterface_ShowRetryDialog_Call {
+	_c.Run(run)
+	return _c
+}
+
+// ShowServiceScaleModal provides a mock function for the type MockModalManagerInterface
+func (_mock *MockModalManagerInterface) ShowServiceScaleModal(s string, v uint64, fn func(int)) {
+	_mock.Called(s, v, fn)
+	return
+}
+
+// MockModalManagerInterface_ShowServiceScaleModal_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ShowServiceScaleModal'
+type MockModalManagerInterface_ShowServiceScaleModal_Call struct {
+	*mock.Call
+}
+
+// ShowServiceScaleModal is a helper method to define mock.On call
+//   - s string
+//   - v uint64
+//   - fn func(int)
+func (_e *MockModalManagerInterface_Expecter) ShowServiceScaleModal(s interface{}, v interface{}, fn interface{}) *MockModalManagerInterface_ShowServiceScaleModal_Call {
+	return &MockModalManagerInterface_ShowServiceScaleModal_Call{Call: _e.mock.On("ShowServiceScaleModal", s, v, fn)}
+}
+
+func (_c *MockModalManagerInterface_ShowServiceScaleModal_Call) Run(run func(s string, v uint64, fn func(int))) *MockModalManagerInterface_ShowServiceScaleModal_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 uint64
+		if args[1] != nil {
+			arg1 = args[1].(uint64)
+		}
+		var arg2 func(int)
+		if args[2] != nil {
+			arg2 = args[2].(func(int))
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockModalManagerInterface_ShowServiceScaleModal_Call) Return() *MockModalManagerInterface_ShowServiceScaleModal_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockModalManagerInterface_ShowServiceScaleModal_Call) RunAndReturn(run func(s string, v uint64, fn func(int))) *MockModalManagerInterface_ShowServiceScaleModal_Call {
 	_c.Run(run)
 	return _c
 }

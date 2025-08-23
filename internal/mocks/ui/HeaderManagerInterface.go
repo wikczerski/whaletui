@@ -38,19 +38,19 @@ func (_m *MockHeaderManagerInterface) EXPECT() *MockHeaderManagerInterface_Expec
 }
 
 // CreateHeaderSection provides a mock function for the type MockHeaderManagerInterface
-func (_mock *MockHeaderManagerInterface) CreateHeaderSection() *tview.Flex {
+func (_mock *MockHeaderManagerInterface) CreateHeaderSection() tview.Primitive {
 	ret := _mock.Called()
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateHeaderSection")
 	}
 
-	var r0 *tview.Flex
-	if returnFunc, ok := ret.Get(0).(func() *tview.Flex); ok {
+	var r0 tview.Primitive
+	if returnFunc, ok := ret.Get(0).(func() tview.Primitive); ok {
 		r0 = returnFunc()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*tview.Flex)
+			r0 = ret.Get(0).(tview.Primitive)
 		}
 	}
 	return r0
@@ -73,12 +73,12 @@ func (_c *MockHeaderManagerInterface_CreateHeaderSection_Call) Run(run func()) *
 	return _c
 }
 
-func (_c *MockHeaderManagerInterface_CreateHeaderSection_Call) Return(flex *tview.Flex) *MockHeaderManagerInterface_CreateHeaderSection_Call {
-	_c.Call.Return(flex)
+func (_c *MockHeaderManagerInterface_CreateHeaderSection_Call) Return(primitive tview.Primitive) *MockHeaderManagerInterface_CreateHeaderSection_Call {
+	_c.Call.Return(primitive)
 	return _c
 }
 
-func (_c *MockHeaderManagerInterface_CreateHeaderSection_Call) RunAndReturn(run func() *tview.Flex) *MockHeaderManagerInterface_CreateHeaderSection_Call {
+func (_c *MockHeaderManagerInterface_CreateHeaderSection_Call) RunAndReturn(run func() tview.Primitive) *MockHeaderManagerInterface_CreateHeaderSection_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -112,39 +112,6 @@ func (_c *MockHeaderManagerInterface_UpdateActions_Call) Return() *MockHeaderMan
 }
 
 func (_c *MockHeaderManagerInterface_UpdateActions_Call) RunAndReturn(run func()) *MockHeaderManagerInterface_UpdateActions_Call {
-	_c.Run(run)
-	return _c
-}
-
-// UpdateAll provides a mock function for the type MockHeaderManagerInterface
-func (_mock *MockHeaderManagerInterface) UpdateAll() {
-	_mock.Called()
-	return
-}
-
-// MockHeaderManagerInterface_UpdateAll_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateAll'
-type MockHeaderManagerInterface_UpdateAll_Call struct {
-	*mock.Call
-}
-
-// UpdateAll is a helper method to define mock.On call
-func (_e *MockHeaderManagerInterface_Expecter) UpdateAll() *MockHeaderManagerInterface_UpdateAll_Call {
-	return &MockHeaderManagerInterface_UpdateAll_Call{Call: _e.mock.On("UpdateAll")}
-}
-
-func (_c *MockHeaderManagerInterface_UpdateAll_Call) Run(run func()) *MockHeaderManagerInterface_UpdateAll_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run()
-	})
-	return _c
-}
-
-func (_c *MockHeaderManagerInterface_UpdateAll_Call) Return() *MockHeaderManagerInterface_UpdateAll_Call {
-	_c.Call.Return()
-	return _c
-}
-
-func (_c *MockHeaderManagerInterface_UpdateAll_Call) RunAndReturn(run func()) *MockHeaderManagerInterface_UpdateAll_Call {
 	_c.Run(run)
 	return _c
 }

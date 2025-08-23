@@ -32,3 +32,5 @@ commandMode:
     background: darkgray
     placeholder: gray
     title: yellow
+headerLayout:
+  spacerWidth: 1  # Only spacer width is configurable, content columns are dynamic

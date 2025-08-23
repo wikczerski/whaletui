@@ -249,8 +249,8 @@ func (_c *MockImageService_ListImages_Call) Run(run func(ctx context.Context)) *
 	return _c
 }
 
-func (_c *MockImageService_ListImages_Call) Return(vs []shared.Image, err error) *MockImageService_ListImages_Call {
-	_c.Call.Return(vs, err)
+func (_c *MockImageService_ListImages_Call) Return(images []shared.Image, err error) *MockImageService_ListImages_Call {
+	_c.Call.Return(images, err)
 	return _c
 }
 

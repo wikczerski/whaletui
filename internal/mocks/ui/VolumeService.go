@@ -8,7 +8,7 @@ import (
 	"context"
 
 	mock "github.com/stretchr/testify/mock"
-	"github.com/wikczerski/whaletui/internal/ui/interfaces"
+	"github.com/wikczerski/whaletui/internal/shared"
 )
 
 // NewMockVolumeService creates a new instance of MockVolumeService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -130,8 +130,8 @@ func (_c *MockVolumeService_GetActionsString_Call) RunAndReturn(run func() strin
 }
 
 // InspectVolume provides a mock function for the type MockVolumeService
-func (_mock *MockVolumeService) InspectVolume(ctx context.Context, name string) (map[string]any, error) {
-	ret := _mock.Called(ctx, name)
+func (_mock *MockVolumeService) InspectVolume(ctx context.Context, id string) (map[string]any, error) {
+	ret := _mock.Called(ctx, id)
 
 	if len(ret) == 0 {
 		panic("no return value specified for InspectVolume")
@@ -140,17 +140,17 @@ func (_mock *MockVolumeService) InspectVolume(ctx context.Context, name string) 
 	var r0 map[string]any
 	var r1 error
 	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (map[string]any, error)); ok {
-		return returnFunc(ctx, name)
+		return returnFunc(ctx, id)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, string) map[string]any); ok {
-		r0 = returnFunc(ctx, name)
+		r0 = returnFunc(ctx, id)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(map[string]any)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = returnFunc(ctx, name)
+		r1 = returnFunc(ctx, id)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -164,12 +164,12 @@ type MockVolumeService_InspectVolume_Call struct {
 
 // InspectVolume is a helper method to define mock.On call
 //   - ctx context.Context
-//   - name string
-func (_e *MockVolumeService_Expecter) InspectVolume(ctx interface{}, name interface{}) *MockVolumeService_InspectVolume_Call {
-	return &MockVolumeService_InspectVolume_Call{Call: _e.mock.On("InspectVolume", ctx, name)}
+//   - id string
+func (_e *MockVolumeService_Expecter) InspectVolume(ctx interface{}, id interface{}) *MockVolumeService_InspectVolume_Call {
+	return &MockVolumeService_InspectVolume_Call{Call: _e.mock.On("InspectVolume", ctx, id)}
 }
 
-func (_c *MockVolumeService_InspectVolume_Call) Run(run func(ctx context.Context, name string)) *MockVolumeService_InspectVolume_Call {
+func (_c *MockVolumeService_InspectVolume_Call) Run(run func(ctx context.Context, id string)) *MockVolumeService_InspectVolume_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -192,29 +192,29 @@ func (_c *MockVolumeService_InspectVolume_Call) Return(stringToV map[string]any,
 	return _c
 }
 
-func (_c *MockVolumeService_InspectVolume_Call) RunAndReturn(run func(ctx context.Context, name string) (map[string]any, error)) *MockVolumeService_InspectVolume_Call {
+func (_c *MockVolumeService_InspectVolume_Call) RunAndReturn(run func(ctx context.Context, id string) (map[string]any, error)) *MockVolumeService_InspectVolume_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ListVolumes provides a mock function for the type MockVolumeService
-func (_mock *MockVolumeService) ListVolumes(ctx context.Context) ([]interfaces.Volume, error) {
+func (_mock *MockVolumeService) ListVolumes(ctx context.Context) ([]shared.Volume, error) {
 	ret := _mock.Called(ctx)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ListVolumes")
 	}
 
-	var r0 []interfaces.Volume
+	var r0 []shared.Volume
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context) ([]interfaces.Volume, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context) ([]shared.Volume, error)); ok {
 		return returnFunc(ctx)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context) []interfaces.Volume); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context) []shared.Volume); ok {
 		r0 = returnFunc(ctx)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]interfaces.Volume)
+			r0 = ret.Get(0).([]shared.Volume)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
@@ -249,19 +249,19 @@ func (_c *MockVolumeService_ListVolumes_Call) Run(run func(ctx context.Context))
 	return _c
 }
 
-func (_c *MockVolumeService_ListVolumes_Call) Return(vs []interfaces.Volume, err error) *MockVolumeService_ListVolumes_Call {
-	_c.Call.Return(vs, err)
+func (_c *MockVolumeService_ListVolumes_Call) Return(volumes []shared.Volume, err error) *MockVolumeService_ListVolumes_Call {
+	_c.Call.Return(volumes, err)
 	return _c
 }
 
-func (_c *MockVolumeService_ListVolumes_Call) RunAndReturn(run func(ctx context.Context) ([]interfaces.Volume, error)) *MockVolumeService_ListVolumes_Call {
+func (_c *MockVolumeService_ListVolumes_Call) RunAndReturn(run func(ctx context.Context) ([]shared.Volume, error)) *MockVolumeService_ListVolumes_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // RemoveVolume provides a mock function for the type MockVolumeService
-func (_mock *MockVolumeService) RemoveVolume(ctx context.Context, name string, force bool) error {
-	ret := _mock.Called(ctx, name, force)
+func (_mock *MockVolumeService) RemoveVolume(ctx context.Context, id string, force bool) error {
+	ret := _mock.Called(ctx, id, force)
 
 	if len(ret) == 0 {
 		panic("no return value specified for RemoveVolume")
@@ -269,7 +269,7 @@ func (_mock *MockVolumeService) RemoveVolume(ctx context.Context, name string, f
 
 	var r0 error
 	if returnFunc, ok := ret.Get(0).(func(context.Context, string, bool) error); ok {
-		r0 = returnFunc(ctx, name, force)
+		r0 = returnFunc(ctx, id, force)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -283,13 +283,13 @@ type MockVolumeService_RemoveVolume_Call struct {
 
 // RemoveVolume is a helper method to define mock.On call
 //   - ctx context.Context
-//   - name string
+//   - id string
 //   - force bool
-func (_e *MockVolumeService_Expecter) RemoveVolume(ctx interface{}, name interface{}, force interface{}) *MockVolumeService_RemoveVolume_Call {
-	return &MockVolumeService_RemoveVolume_Call{Call: _e.mock.On("RemoveVolume", ctx, name, force)}
+func (_e *MockVolumeService_Expecter) RemoveVolume(ctx interface{}, id interface{}, force interface{}) *MockVolumeService_RemoveVolume_Call {
+	return &MockVolumeService_RemoveVolume_Call{Call: _e.mock.On("RemoveVolume", ctx, id, force)}
 }
 
-func (_c *MockVolumeService_RemoveVolume_Call) Run(run func(ctx context.Context, name string, force bool)) *MockVolumeService_RemoveVolume_Call {
+func (_c *MockVolumeService_RemoveVolume_Call) Run(run func(ctx context.Context, id string, force bool)) *MockVolumeService_RemoveVolume_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -317,7 +317,7 @@ func (_c *MockVolumeService_RemoveVolume_Call) Return(err error) *MockVolumeServ
 	return _c
 }
 
-func (_c *MockVolumeService_RemoveVolume_Call) RunAndReturn(run func(ctx context.Context, name string, force bool) error) *MockVolumeService_RemoveVolume_Call {
+func (_c *MockVolumeService_RemoveVolume_Call) RunAndReturn(run func(ctx context.Context, id string, force bool) error) *MockVolumeService_RemoveVolume_Call {
 	_c.Call.Return(run)
 	return _c
 }

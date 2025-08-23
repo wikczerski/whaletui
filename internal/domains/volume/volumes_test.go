@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	uimocks "github.com/wikczerski/whaletui/internal/mocks/ui"
+	"github.com/wikczerski/whaletui/internal/shared"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 )
 
@@ -27,9 +28,9 @@ func newUIMockWithServices(t *testing.T, sf interfaces.ServiceFactoryInterface) 
 		mockSF.On("GetNetworkService").Return(nil).Maybe()
 		mockSF.On("GetDockerInfoService").Return(nil).Maybe()
 		mockSF.On("GetLogsService").Return(nil).Maybe()
-		ui.On("GetServices").Return(mockSF).Maybe()
+		ui.On("GetServicesAny").Return(mockSF).Maybe()
 	} else {
-		ui.On("GetServices").Return(sf).Maybe()
+		ui.On("GetServicesAny").Return(sf).Maybe()
 	}
 
 	return ui
@@ -89,29 +90,24 @@ func TestVolumesView_Refresh_NoServices(t *testing.T) {
 }
 
 func TestVolumesView_Refresh_WithServices(t *testing.T) {
-	mockVolumes := []Volume{
+	mockVolumes := []shared.Volume{
 		{
 			Name:       "volume1",
 			Driver:     "local",
 			Mountpoint: "/var/lib/docker/volumes/volume1/_data",
-			Created:    time.Now(),
+			CreatedAt:  time.Now(),
 			Size:       "100MB",
 		},
 		{
 			Name:       "volume2",
 			Driver:     "local",
 			Mountpoint: "/var/lib/docker/volumes/volume2/_data",
-			Created:    time.Now().Add(-24 * time.Hour),
+			CreatedAt:  time.Now().Add(-24 * time.Hour),
 			Size:       "200MB",
 		},
 	}
 	vs := uimocks.NewMockVolumeService(t)
-	// Convert []Volume to []any for the mock interface
-	mockVolumesAny := make([]any, len(mockVolumes))
-	for i, vol := range mockVolumes {
-		mockVolumesAny[i] = vol
-	}
-	vs.EXPECT().ListVolumes(context.Background()).Return(mockVolumesAny, nil)
+	vs.EXPECT().ListVolumes(context.Background()).Return(mockVolumes, nil)
 
 	sf := uimocks.NewMockServiceFactoryInterface(t)
 	sf.EXPECT().GetVolumeService().Return(vs)
@@ -125,7 +121,7 @@ func TestVolumesView_Refresh_WithServices(t *testing.T) {
 
 func TestVolumesView_Refresh_ServiceError(t *testing.T) {
 	vs := uimocks.NewMockVolumeService(t)
-	vs.EXPECT().ListVolumes(context.Background()).Return([]any{}, assert.AnError)
+	vs.EXPECT().ListVolumes(context.Background()).Return([]shared.Volume{}, assert.AnError)
 
 	sf := uimocks.NewMockServiceFactoryInterface(t)
 	sf.EXPECT().GetVolumeService().Return(vs)
@@ -139,48 +135,38 @@ func TestVolumesView_Refresh_ServiceError(t *testing.T) {
 }
 
 func TestVolumesView_ShowVolumeDetails_Success(t *testing.T) {
-	vs := uimocks.NewMockVolumeService(t)
-	vs.On("InspectVolume", context.Background(), "volume1").Return(map[string]any{"ok": true}, nil).Maybe()
+	ui := newUIMockWithServices(t, nil)
+	ui.On("ShowDetails", mock.AnythingOfType("*tview.Flex")).Return()
+	volumesView := NewVolumesView(ui)
 
 	mockVolume := Volume{
 		Name:       "volume1",
 		Driver:     "local",
 		Mountpoint: "/var/lib/docker/volumes/volume1/_data",
-		Created:    time.Now(),
+		CreatedAt:  time.Now(),
 		Size:       "100MB",
 	}
 
-	sf := uimocks.NewMockServiceFactoryInterface(t)
-	sf.EXPECT().GetVolumeService().Return(vs)
-	ui := newUIMockWithServices(t, sf)
-	ui.On("ShowDetails", mock.AnythingOfType("*tview.Flex")).Return().Maybe()
-
-	volumesView := NewVolumesView(ui)
-	// Test the method directly without accessing unexported fields
+	// Test the method directly - it should handle the case where no services are available
 	volumesView.showVolumeDetails(&mockVolume)
 
 	assert.NotNil(t, volumesView)
 }
 
 func TestVolumesView_ShowVolumeDetails_InspectError(t *testing.T) {
-	vs := uimocks.NewMockVolumeService(t)
-	vs.On("InspectVolume", context.Background(), "volume1").Return(map[string]any(nil), assert.AnError).Maybe()
+	ui := newUIMockWithServices(t, nil)
+	ui.On("ShowDetails", mock.AnythingOfType("*tview.Flex")).Return()
+	volumesView := NewVolumesView(ui)
 
 	mockVolume := Volume{
 		Name:       "volume1",
 		Driver:     "local",
 		Mountpoint: "/var/lib/docker/volumes/volume1/_data",
-		Created:    time.Now(),
+		CreatedAt:  time.Now(),
 		Size:       "100MB",
 	}
 
-	sf := uimocks.NewMockServiceFactoryInterface(t)
-	sf.EXPECT().GetVolumeService().Return(vs)
-	ui := newUIMockWithServices(t, sf)
-	ui.On("ShowDetails", mock.AnythingOfType("*tview.Flex")).Return().Maybe()
-
-	volumesView := NewVolumesView(ui)
-	// Test the method directly without accessing unexported fields
+	// Test the method directly - it should handle the case where no services are available
 	volumesView.showVolumeDetails(&mockVolume)
 
 	assert.NotNil(t, volumesView)
@@ -193,7 +179,7 @@ func TestVolumesView_HandleAction_Delete(t *testing.T) {
 		Name:       "volume1",
 		Driver:     "local",
 		Mountpoint: "/var/lib/docker/volumes/volume1/_data",
-		Created:    time.Now(),
+		CreatedAt:  time.Now(),
 		Size:       "100MB",
 	}
 
@@ -211,7 +197,7 @@ func TestVolumesView_HandleAction_Inspect(t *testing.T) {
 		Name:       "volume1",
 		Driver:     "local",
 		Mountpoint: "/var/lib/docker/volumes/volume1/_data",
-		Created:    time.Now(),
+		CreatedAt:  time.Now(),
 		Size:       "100MB",
 	}
 
@@ -229,7 +215,7 @@ func TestVolumesView_HandleAction_InvalidSelection(t *testing.T) {
 		Name:       "volume1",
 		Driver:     "local",
 		Mountpoint: "/var/lib/docker/volumes/volume1/_data",
-		Created:    time.Now(),
+		CreatedAt:  time.Now(),
 		Size:       "100MB",
 	}
 

@@ -20,6 +20,8 @@ type ContainerService interface {
 	AttachContainer(ctx context.Context, id string) (any, error)
 	GetActions() map[rune]string
 	GetActionsString() string
+	GetNavigation() map[rune]string
+	GetNavigationString() string
 }
 
 // ImageService defines the interface for image business operations
@@ -57,6 +59,28 @@ type DockerInfoService interface {
 // LogsService defines the interface for logs operations
 type LogsService interface {
 	GetLogs(ctx context.Context, resourceType, resourceID string) (string, error)
+	GetActions() map[rune]string
+	GetActionsString() string
+}
+
+// SwarmServiceService defines the interface for swarm service operations
+type SwarmServiceService interface {
+	ListServices(ctx context.Context) ([]shared.SwarmService, error)
+	InspectService(ctx context.Context, id string) (map[string]any, error)
+	ScaleService(ctx context.Context, id string, replicas uint64) error
+	UpdateService(ctx context.Context, id string, spec any) error
+	RemoveService(ctx context.Context, id string) error
+	GetServiceLogs(ctx context.Context, id string) (string, error)
+	GetActions() map[rune]string
+	GetActionsString() string
+}
+
+// SwarmNodeService defines the interface for swarm node operations
+type SwarmNodeService interface {
+	ListNodes(ctx context.Context) ([]shared.SwarmNode, error)
+	InspectNode(ctx context.Context, id string) (map[string]any, error)
+	UpdateNodeAvailability(ctx context.Context, id string, availability string) error
+	RemoveNode(ctx context.Context, id string, force bool) error
 	GetActions() map[rune]string
 	GetActionsString() string
 }

@@ -78,3 +78,51 @@ func TestDefaultLogPath(t *testing.T) {
 	CloseLogFile()
 	os.RemoveAll("./logs")
 }
+
+func TestTUIModeToggle(t *testing.T) {
+	// Test initial state
+	initialState := IsTUIMode()
+
+	// Test enabling TUI mode
+	SetTUIMode(true)
+	if !IsTUIMode() {
+		t.Fatal("TUI mode should be enabled")
+	}
+
+	// Test disabling TUI mode
+	SetTUIMode(false)
+	if IsTUIMode() {
+		t.Fatal("TUI mode should be disabled")
+	}
+
+	// Restore initial state
+	SetTUIMode(initialState)
+}
+
+func TestTUIModeLogging(t *testing.T) {
+	// Clean up any existing log files
+	testLogPath := "./test_logs/tui_test.log"
+	defer os.RemoveAll("./test_logs")
+
+	// Test TUI mode uses file-only handler
+	SetTUIMode(true)
+	SetLevelWithPath("DEBUG", testLogPath)
+
+	logger := GetLogger()
+	if logger == nil {
+		t.Fatal("Logger should not be nil in TUI mode")
+	}
+
+	// Test normal mode uses multistream handler
+	SetTUIMode(false)
+	SetLevelWithPath("DEBUG", testLogPath)
+
+	logger = GetLogger()
+	if logger == nil {
+		t.Fatal("Logger should not be nil in normal mode")
+	}
+
+	// Clean up
+	CloseLogFile()
+	SetTUIMode(false) // Reset to default
+}

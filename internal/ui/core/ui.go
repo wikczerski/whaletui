@@ -14,13 +14,17 @@ import (
 	"github.com/wikczerski/whaletui/internal/domains/image"
 	"github.com/wikczerski/whaletui/internal/domains/logs"
 	"github.com/wikczerski/whaletui/internal/domains/network"
+	swarmDomain "github.com/wikczerski/whaletui/internal/domains/swarm"
 	"github.com/wikczerski/whaletui/internal/domains/volume"
 	"github.com/wikczerski/whaletui/internal/logger"
+	"github.com/wikczerski/whaletui/internal/shared"
 	"github.com/wikczerski/whaletui/internal/ui/builders"
 	"github.com/wikczerski/whaletui/internal/ui/constants"
 	"github.com/wikczerski/whaletui/internal/ui/handlers"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
+	"github.com/wikczerski/whaletui/internal/ui/managers"
 	"github.com/wikczerski/whaletui/internal/ui/views/shell"
+	"github.com/wikczerski/whaletui/internal/ui/views/swarm"
 )
 
 // UI represents the main UI
@@ -54,6 +58,10 @@ type UI struct {
 	logsView       *logs.View
 	shellView      *shell.View
 
+	// Swarm views
+	swarmServicesView *swarm.ServicesView
+	swarmNodesView    *swarm.NodesView
+
 	// Component builders
 	componentBuilder *builders.ComponentBuilder
 	viewBuilder      *builders.ViewBuilder
@@ -64,7 +72,7 @@ type UI struct {
 }
 
 // New creates a new UI
-func New(serviceFactory interfaces.ServiceFactoryInterface, themePath string, headerManager interfaces.HeaderManagerInterface, modalManager interfaces.ModalManagerInterface) (*UI, error) {
+func New(serviceFactory interfaces.ServiceFactoryInterface, themePath string, headerManager interfaces.HeaderManagerInterface, modalManager interfaces.ModalManagerInterface, _ *config.Config) (*UI, error) {
 	// Enable TUI mode in logger immediately when creating UI to prevent stderr interference
 	logger.SetTUIMode(true)
 
@@ -109,9 +117,48 @@ func (ui *UI) GetShutdownChan() chan struct{} {
 	return ui.shutdownChan
 }
 
-// GetServices returns the service factory
+// GetServices returns the service factory (for interfaces.UIInterface)
 func (ui *UI) GetServices() interfaces.ServiceFactoryInterface {
+	ui.log.Debug("GetServices called", "services_nil", ui.services == nil)
 	return ui.services
+}
+
+// GetServicesAny returns the service factory as any (for shared.UIInterface)
+func (ui *UI) GetServicesAny() any {
+	ui.log.Debug("GetServices called (any)", "services_nil", ui.services == nil)
+	return ui.services
+}
+
+// GetSwarmServiceService returns the swarm service service (for shared.UIInterface)
+func (ui *UI) GetSwarmServiceService() any {
+	if ui.services != nil {
+		return ui.services.GetSwarmServiceService()
+	}
+	return nil
+}
+
+// GetSwarmNodeService returns the swarm node service (for shared.UIInterface)
+func (ui *UI) GetSwarmNodeService() any {
+	if ui.services != nil {
+		return ui.services.GetSwarmNodeService()
+	}
+	return nil
+}
+
+// IsContainerServiceAvailable checks if container service is available (for shared.UIInterface)
+func (ui *UI) IsContainerServiceAvailable() bool {
+	if ui.services != nil {
+		return ui.services.IsContainerServiceAvailable()
+	}
+	return false
+}
+
+// GetContainerService returns the container service (for shared.UIInterface)
+func (ui *UI) GetContainerService() any {
+	if ui.services != nil {
+		return ui.services.GetContainerService()
+	}
+	return nil
 }
 
 // GetApp returns the tview application
@@ -122,6 +169,26 @@ func (ui *UI) GetApp() any {
 // ShowError displays an error message
 func (ui *UI) ShowError(err error) {
 	ui.showError(err)
+}
+
+// ShowInfo displays an info message
+func (ui *UI) ShowInfo(message string) {
+	ui.showInfo(message)
+}
+
+// ShowContextualHelp displays context-sensitive help based on current operation
+func (ui *UI) ShowContextualHelp(context, operation string) {
+	ui.showContextualHelp(context, operation)
+}
+
+// ShowRetryDialog displays a retry dialog with automatic retry logic
+func (ui *UI) ShowRetryDialog(operation string, err error, retryFunc func() error, onSuccess func()) {
+	ui.showRetryDialog(operation, err, retryFunc, onSuccess)
+}
+
+// ShowFallbackDialog displays a fallback operations dialog
+func (ui *UI) ShowFallbackDialog(operation string, err error, fallbackOptions []string, onFallback func(string)) {
+	ui.showFallbackDialog(operation, err, fallbackOptions, onFallback)
 }
 
 // ShowDetails displays a details view
@@ -141,6 +208,16 @@ func (ui *UI) ShowCurrentView() {
 // ShowConfirm shows a confirmation dialog
 func (ui *UI) ShowConfirm(message string, onConfirm func(bool)) {
 	ui.showConfirm(message, onConfirm)
+}
+
+// ShowServiceScaleModal shows a modal for scaling swarm services
+func (ui *UI) ShowServiceScaleModal(serviceName string, currentReplicas uint64, callback func(int)) {
+	ui.modalManager.ShowServiceScaleModal(serviceName, currentReplicas, callback)
+}
+
+// ShowNodeAvailabilityModal shows a modal for updating node availability
+func (ui *UI) ShowNodeAvailabilityModal(nodeName, currentAvailability string, callback func(string)) {
+	ui.modalManager.ShowNodeAvailabilityModal(nodeName, currentAvailability, callback)
 }
 
 // IsInLogsMode returns whether the UI is currently in logs mode
@@ -176,6 +253,14 @@ func (ui *UI) GetCurrentActions() map[rune]string {
 func (ui *UI) GetCurrentViewActions() string {
 	if ui.viewRegistry != nil {
 		return ui.viewRegistry.GetCurrentActionsString()
+	}
+	return ""
+}
+
+// GetCurrentViewNavigation returns the navigation string from the current view
+func (ui *UI) GetCurrentViewNavigation() string {
+	if ui.viewRegistry != nil {
+		return ui.viewRegistry.GetCurrentNavigationString()
 	}
 	return ""
 }
@@ -232,11 +317,6 @@ func (ui *UI) GetLogsView(resourceType, resourceID, resourceName string) *logs.V
 // GetViewContainer returns the view container
 func (ui *UI) GetViewContainer() any {
 	return ui.viewContainer
-}
-
-// GetContainerService returns the container service
-func (ui *UI) GetContainerService() any {
-	return ui.services.GetContainerService()
 }
 
 // GetImageService returns the image service
@@ -324,6 +404,10 @@ func (ui *UI) initComponents() {
 	ui.mainFlex = ui.viewBuilder.CreateView()
 
 	headerSection := ui.headerManager.CreateHeaderSection()
+	// Force initial header update to populate content
+	ui.headerManager.UpdateDockerInfo()
+	ui.headerManager.UpdateNavigation()
+	ui.headerManager.UpdateActions()
 	commandInput := ui.commandHandler.CreateCommandInput()
 
 	ui.createAndRegisterViews()
@@ -358,7 +442,9 @@ func (ui *UI) initializeUIState() {
 
 	if ui.services != nil {
 		ui.log.Debug("Services available, updating headers")
-		ui.headerManager.UpdateAll()
+		ui.headerManager.UpdateDockerInfo()
+		ui.headerManager.UpdateNavigation()
+		ui.headerManager.UpdateActions()
 	} else {
 		ui.log.Debug("No services available")
 	}
@@ -372,6 +458,7 @@ func (ui *UI) initializeUIState() {
 func (ui *UI) createAndRegisterViews() {
 	ui.createResourceViews()
 	ui.registerViewsWithActions()
+	// Ensure views are fully registered before setting default view
 	ui.setDefaultView()
 }
 
@@ -381,6 +468,10 @@ func (ui *UI) createResourceViews() {
 	ui.imagesView = image.NewImagesView(ui)
 	ui.volumesView = volume.NewVolumesView(ui)
 	ui.networksView = network.NewNetworksView(ui)
+
+	// Create swarm views
+	ui.swarmServicesView = swarm.NewServicesView(ui, ui.services.GetSwarmServiceService().(*swarmDomain.ServiceService), ui.modalManager.(*managers.ModalManager), ui.headerManager.(*managers.HeaderManager))
+	ui.swarmNodesView = swarm.NewNodesView(ui, ui.services.GetSwarmNodeService().(*swarmDomain.NodeService), ui.modalManager.(*managers.ModalManager), ui.headerManager.(*managers.HeaderManager))
 }
 
 // registerViewsWithActions registers views with their metadata and actions
@@ -397,12 +488,16 @@ func (ui *UI) registerViewsWithActions() {
 // registerContainerView registers the containers view with its actions
 func (ui *UI) registerContainerView() {
 	containerActions := ""
+	containerNavigation := ""
 	if ui.services != nil && ui.services.GetContainerService() != nil {
 		if actionService, ok := ui.services.GetContainerService().(interfaces.ServiceWithActions); ok {
 			containerActions = actionService.GetActionsString()
 		}
+		if navigationService, ok := ui.services.GetContainerService().(interfaces.ServiceWithNavigation); ok {
+			containerNavigation = navigationService.GetNavigationString()
+		}
 	}
-	ui.viewRegistry.Register("containers", "Containers", 'c', ui.containersView.GetView(), ui.containersView.Refresh, containerActions)
+	ui.viewRegistry.Register("containers", "Containers", 'c', ui.containersView.GetView(), ui.containersView.Refresh, containerActions, containerNavigation)
 }
 
 // registerResourceViews registers the resource views with their actions
@@ -410,6 +505,8 @@ func (ui *UI) registerResourceViews() {
 	imageActions := ""
 	volumeActions := ""
 	networkActions := ""
+	swarmServiceActions := ""
+	swarmNodeActions := ""
 
 	if ui.services != nil {
 		if imageService := ui.services.GetImageService(); imageService != nil {
@@ -427,24 +524,43 @@ func (ui *UI) registerResourceViews() {
 				networkActions = actionService.GetActionsString()
 			}
 		}
+		if swarmServiceService := ui.services.GetSwarmServiceService(); swarmServiceService != nil {
+			if actionService, ok := swarmServiceService.(interfaces.ServiceWithActions); ok {
+				swarmServiceActions = actionService.GetActionsString()
+			}
+		}
+		if swarmNodeService := ui.services.GetSwarmNodeService(); swarmNodeService != nil {
+			if actionService, ok := swarmNodeService.(interfaces.ServiceWithActions); ok {
+				swarmNodeActions = actionService.GetActionsString()
+			}
+		}
 	}
 
-	ui.viewRegistry.Register("images", "Images", 'i', ui.imagesView.GetView(), ui.imagesView.Refresh, imageActions)
-	ui.viewRegistry.Register("volumes", "Volumes", 'v', ui.volumesView.GetView(), ui.volumesView.Refresh, volumeActions)
-	ui.viewRegistry.Register("networks", "Networks", 'n', ui.networksView.GetView(), ui.networksView.Refresh, networkActions)
+	ui.viewRegistry.Register("images", "Images", 'i', ui.imagesView.GetView(), ui.imagesView.Refresh, imageActions, "")
+	ui.viewRegistry.Register("volumes", "Volumes", 'v', ui.volumesView.GetView(), ui.volumesView.Refresh, volumeActions, "")
+	ui.viewRegistry.Register("networks", "Networks", 'n', ui.networksView.GetView(), ui.networksView.Refresh, networkActions, "")
+	ui.viewRegistry.Register("swarmServices", "Swarm Services", 's', ui.swarmServicesView.GetView(), ui.swarmServicesView.Refresh, swarmServiceActions, "")
+	ui.viewRegistry.Register("swarmNodes", "Swarm Nodes", 'w', ui.swarmNodesView.GetView(), ui.swarmNodesView.Refresh, swarmNodeActions, "")
 }
 
 // registerViewsWithoutServices registers views without service actions
 func (ui *UI) registerViewsWithoutServices() {
-	ui.viewRegistry.Register("containers", "Containers", 'c', ui.containersView.GetView(), ui.containersView.Refresh, "")
-	ui.viewRegistry.Register("images", "Images", 'i', ui.imagesView.GetView(), ui.imagesView.Refresh, "")
-	ui.viewRegistry.Register("volumes", "Volumes", 'v', ui.volumesView.GetView(), ui.volumesView.Refresh, "")
-	ui.viewRegistry.Register("networks", "Networks", 'n', ui.networksView.GetView(), ui.networksView.Refresh, "")
+	ui.viewRegistry.Register("containers", "Containers", 'c', ui.containersView.GetView(), ui.containersView.Refresh, "", "")
+	ui.viewRegistry.Register("images", "Images", 'i', ui.imagesView.GetView(), ui.imagesView.Refresh, "", "")
+	ui.viewRegistry.Register("volumes", "Volumes", 'v', ui.volumesView.GetView(), ui.volumesView.Refresh, "", "")
+	ui.viewRegistry.Register("networks", "Networks", 'n', ui.networksView.GetView(), ui.networksView.Refresh, "", "")
+	ui.viewRegistry.Register("swarmServices", "Swarm Services", 's', ui.swarmServicesView.GetView(), ui.swarmServicesView.Refresh, "", "")
+	ui.viewRegistry.Register("swarmNodes", "Swarm Nodes", 'w', ui.swarmNodesView.GetView(), ui.swarmNodesView.Refresh, "", "")
 }
 
 // setDefaultView sets the default view for the application
 func (ui *UI) setDefaultView() {
 	ui.viewRegistry.SetCurrent(constants.DefaultView)
+
+	// Set the default service to container for initial navigation
+	if ui.services != nil {
+		ui.services.SetCurrentService("container")
+	}
 }
 
 // createViewContainer creates the main view container
@@ -552,17 +668,25 @@ func (ui *UI) handleShellViewKeyBindings(event *tcell.EventKey) *tcell.EventKey 
 
 // handleNormalModeKeyBindings handles key bindings in normal mode
 func (ui *UI) handleNormalModeKeyBindings(event *tcell.EventKey) *tcell.EventKey {
+	// Log what component is focused
+	if focused := ui.app.GetFocus(); focused != nil {
+		ui.log.Info("Normal mode key binding", "key", event.Key(), "focusedType", fmt.Sprintf("%T", focused))
+	}
+
 	switch event.Key() {
 	case tcell.KeyRune:
-		return ui.handleRuneKeyBindings(event)
+		// Only handle global rune keys, let others pass through to focused component
+		return ui.handleGlobalRuneKeyBindings(event)
 	case tcell.KeyCtrlC:
 		return ui.handleCtrlCKeyBinding(event)
 	}
 	return event
 }
 
-// handleRuneKeyBindings handles rune key bindings in normal mode
-func (ui *UI) handleRuneKeyBindings(event *tcell.EventKey) *tcell.EventKey {
+// handleGlobalRuneKeyBindings handles only global rune key bindings
+func (ui *UI) handleGlobalRuneKeyBindings(event *tcell.EventKey) *tcell.EventKey {
+	ui.log.Info("Global rune key handler called", "key", string(event.Rune()))
+
 	switch event.Rune() {
 	case 'q', 'Q':
 		ui.log.Info("Quitting application...")
@@ -573,9 +697,13 @@ func (ui *UI) handleRuneKeyBindings(event *tcell.EventKey) *tcell.EventKey {
 		}
 		return nil
 	case ':':
+		ui.log.Info("Entering command mode")
 		ui.commandHandler.Enter()
 		return nil
 	}
+
+	ui.log.Info("Global handler passing through key", "key", string(event.Rune()))
+	// Let all other keys pass through to the focused view (including action keys)
 	return event
 }
 
@@ -619,6 +747,11 @@ func (ui *UI) isShellInputFieldFocused() bool {
 
 // cleanup performs terminal cleanup operations
 func (ui *UI) cleanup() {
+	// Skip terminal cleanup operations when in TUI mode to prevent interference
+	if logger.IsTUIMode() {
+		return
+	}
+
 	ui.clearScreen()
 	ui.resetColors()
 	ui.showCursor()
@@ -713,6 +846,20 @@ func (ui *UI) validateViewExists(view string) bool {
 // performViewSwitch performs the actual view switching logic
 func (ui *UI) performViewSwitch(view string) {
 	ui.viewRegistry.SetCurrent(view)
+
+	// Set the current service based on the view to enable proper navigation
+	if ui.services != nil {
+		switch view {
+		case "containers":
+			ui.services.SetCurrentService("container")
+		case "images":
+			ui.services.SetCurrentService("image")
+		case "volumes":
+			ui.services.SetCurrentService("volume")
+		case "networks":
+			ui.services.SetCurrentService("network")
+		}
+	}
 }
 
 // updateViewDisplay updates the view container display
@@ -731,12 +878,29 @@ func (ui *UI) refreshViewAndFocus(_ string) {
 
 	// Only update headers if not in a refresh cycle
 	if !ui.isRefreshing {
-		ui.headerManager.UpdateAll()
+		ui.headerManager.UpdateDockerInfo()
+		ui.headerManager.UpdateNavigation()
+		ui.headerManager.UpdateActions()
 	}
 
 	if viewInfo.Refresh != nil {
 		viewInfo.Refresh()
 	}
+
+	// Set focus to the table within the view so action keys work
+	if view, ok := viewInfo.View.(*tview.Flex); ok {
+		// Find the table within the Flex container
+		for i := 0; i < view.GetItemCount(); i++ {
+			if item := view.GetItem(i); item != nil {
+				if table, isTable := item.(*tview.Table); isTable {
+					ui.app.SetFocus(table)
+					return
+				}
+			}
+		}
+	}
+
+	// Fallback to setting focus on the view if no table is found
 	ui.app.SetFocus(viewInfo.View)
 }
 
@@ -769,7 +933,9 @@ func (ui *UI) buildStatusBarText() string {
 // updateLegend updates the legend with view-specific shortcuts
 func (ui *UI) updateLegend() {
 	ui.log.Debug("updateLegend called", "isRefreshing", ui.isRefreshing)
-	ui.headerManager.UpdateAll()
+	ui.headerManager.UpdateDockerInfo()
+	ui.headerManager.UpdateNavigation()
+	ui.headerManager.UpdateActions()
 }
 
 // showHelp shows the help modal
@@ -783,6 +949,34 @@ func (ui *UI) showHelp() {
 func (ui *UI) showError(err error) {
 	if ui.modalManager != nil {
 		ui.modalManager.ShowError(err)
+	}
+}
+
+// showInfo shows an info modal
+func (ui *UI) showInfo(message string) {
+	if ui.modalManager != nil {
+		ui.modalManager.ShowInfo(message)
+	}
+}
+
+// showContextualHelp shows context-sensitive help modal
+func (ui *UI) showContextualHelp(context, operation string) {
+	if ui.modalManager != nil {
+		ui.modalManager.ShowContextualHelp(context, operation)
+	}
+}
+
+// showRetryDialog shows retry dialog with automatic retry logic
+func (ui *UI) showRetryDialog(operation string, err error, retryFunc func() error, onSuccess func()) {
+	if ui.modalManager != nil {
+		ui.modalManager.ShowRetryDialog(operation, err, retryFunc, onSuccess)
+	}
+}
+
+// showFallbackDialog shows fallback operations dialog
+func (ui *UI) showFallbackDialog(operation string, err error, fallbackOptions []string, onFallback func(string)) {
+	if ui.modalManager != nil {
+		ui.modalManager.ShowFallbackDialog(operation, err, fallbackOptions, onFallback)
 	}
 }
 
@@ -830,13 +1024,29 @@ func (ui *UI) restoreCurrentView(currentViewInfo *ViewInfo) {
 	ui.viewContainer.Clear()
 	ui.viewContainer.AddItem(currentViewInfo.View, 0, 1, true)
 	ui.viewContainer.SetTitle(fmt.Sprintf(" %s ", currentViewInfo.Title))
+
+	// Ensure the current service is set for proper navigation
+	if ui.services != nil {
+		switch currentViewInfo.Name {
+		case "containers":
+			ui.services.SetCurrentService("container")
+		case "images":
+			ui.services.SetCurrentService("image")
+		case "volumes":
+			ui.services.SetCurrentService("volume")
+		case "networks":
+			ui.services.SetCurrentService("network")
+		}
+	}
 }
 
 // updateUIAfterViewRestore updates the UI after restoring the view
 func (ui *UI) updateUIAfterViewRestore(currentViewInfo *ViewInfo) {
 	// Only update headers if not in a refresh cycle
 	if !ui.isRefreshing {
-		ui.headerManager.UpdateAll()
+		ui.headerManager.UpdateDockerInfo()
+		ui.headerManager.UpdateNavigation()
+		ui.headerManager.UpdateActions()
 	}
 
 	ui.app.SetFocus(currentViewInfo.View)
@@ -904,7 +1114,7 @@ func (ui *UI) createShellView(containerID, containerName string) {
 // displayShellView displays the shell view in the container
 func (ui *UI) displayShellView(containerID, containerName string) {
 	ui.viewContainer.Clear()
-	ui.viewContainer.SetTitle(fmt.Sprintf(" Shell - %s (%s) ", containerName, containerID[:12]))
+	ui.viewContainer.SetTitle(fmt.Sprintf(" Shell - %s (%s) ", containerName, shared.TruncName(containerID, 12)))
 	ui.viewContainer.AddItem(ui.shellView.GetView(), 0, 1, true)
 	ui.app.SetFocus(ui.shellView.GetView())
 }

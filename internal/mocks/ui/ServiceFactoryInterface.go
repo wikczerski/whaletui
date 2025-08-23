@@ -83,6 +83,52 @@ func (_c *MockServiceFactoryInterface_GetContainerService_Call) RunAndReturn(run
 	return _c
 }
 
+// GetCurrentService provides a mock function for the type MockServiceFactoryInterface
+func (_mock *MockServiceFactoryInterface) GetCurrentService() any {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetCurrentService")
+	}
+
+	var r0 any
+	if returnFunc, ok := ret.Get(0).(func() any); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(any)
+		}
+	}
+	return r0
+}
+
+// MockServiceFactoryInterface_GetCurrentService_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetCurrentService'
+type MockServiceFactoryInterface_GetCurrentService_Call struct {
+	*mock.Call
+}
+
+// GetCurrentService is a helper method to define mock.On call
+func (_e *MockServiceFactoryInterface_Expecter) GetCurrentService() *MockServiceFactoryInterface_GetCurrentService_Call {
+	return &MockServiceFactoryInterface_GetCurrentService_Call{Call: _e.mock.On("GetCurrentService")}
+}
+
+func (_c *MockServiceFactoryInterface_GetCurrentService_Call) Run(run func()) *MockServiceFactoryInterface_GetCurrentService_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockServiceFactoryInterface_GetCurrentService_Call) Return(v any) *MockServiceFactoryInterface_GetCurrentService_Call {
+	_c.Call.Return(v)
+	return _c
+}
+
+func (_c *MockServiceFactoryInterface_GetCurrentService_Call) RunAndReturn(run func() any) *MockServiceFactoryInterface_GetCurrentService_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetDockerInfoService provides a mock function for the type MockServiceFactoryInterface
 func (_mock *MockServiceFactoryInterface) GetDockerInfoService() interfaces.DockerInfoService {
 	ret := _mock.Called()
@@ -267,6 +313,98 @@ func (_c *MockServiceFactoryInterface_GetNetworkService_Call) RunAndReturn(run f
 	return _c
 }
 
+// GetSwarmNodeService provides a mock function for the type MockServiceFactoryInterface
+func (_mock *MockServiceFactoryInterface) GetSwarmNodeService() any {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetSwarmNodeService")
+	}
+
+	var r0 any
+	if returnFunc, ok := ret.Get(0).(func() any); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(any)
+		}
+	}
+	return r0
+}
+
+// MockServiceFactoryInterface_GetSwarmNodeService_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetSwarmNodeService'
+type MockServiceFactoryInterface_GetSwarmNodeService_Call struct {
+	*mock.Call
+}
+
+// GetSwarmNodeService is a helper method to define mock.On call
+func (_e *MockServiceFactoryInterface_Expecter) GetSwarmNodeService() *MockServiceFactoryInterface_GetSwarmNodeService_Call {
+	return &MockServiceFactoryInterface_GetSwarmNodeService_Call{Call: _e.mock.On("GetSwarmNodeService")}
+}
+
+func (_c *MockServiceFactoryInterface_GetSwarmNodeService_Call) Run(run func()) *MockServiceFactoryInterface_GetSwarmNodeService_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockServiceFactoryInterface_GetSwarmNodeService_Call) Return(v any) *MockServiceFactoryInterface_GetSwarmNodeService_Call {
+	_c.Call.Return(v)
+	return _c
+}
+
+func (_c *MockServiceFactoryInterface_GetSwarmNodeService_Call) RunAndReturn(run func() any) *MockServiceFactoryInterface_GetSwarmNodeService_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetSwarmServiceService provides a mock function for the type MockServiceFactoryInterface
+func (_mock *MockServiceFactoryInterface) GetSwarmServiceService() any {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetSwarmServiceService")
+	}
+
+	var r0 any
+	if returnFunc, ok := ret.Get(0).(func() any); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(any)
+		}
+	}
+	return r0
+}
+
+// MockServiceFactoryInterface_GetSwarmServiceService_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetSwarmServiceService'
+type MockServiceFactoryInterface_GetSwarmServiceService_Call struct {
+	*mock.Call
+}
+
+// GetSwarmServiceService is a helper method to define mock.On call
+func (_e *MockServiceFactoryInterface_Expecter) GetSwarmServiceService() *MockServiceFactoryInterface_GetSwarmServiceService_Call {
+	return &MockServiceFactoryInterface_GetSwarmServiceService_Call{Call: _e.mock.On("GetSwarmServiceService")}
+}
+
+func (_c *MockServiceFactoryInterface_GetSwarmServiceService_Call) Run(run func()) *MockServiceFactoryInterface_GetSwarmServiceService_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockServiceFactoryInterface_GetSwarmServiceService_Call) Return(v any) *MockServiceFactoryInterface_GetSwarmServiceService_Call {
+	_c.Call.Return(v)
+	return _c
+}
+
+func (_c *MockServiceFactoryInterface_GetSwarmServiceService_Call) RunAndReturn(run func() any) *MockServiceFactoryInterface_GetSwarmServiceService_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetVolumeService provides a mock function for the type MockServiceFactoryInterface
 func (_mock *MockServiceFactoryInterface) GetVolumeService() interfaces.VolumeService {
 	ret := _mock.Called()
@@ -405,5 +543,45 @@ func (_c *MockServiceFactoryInterface_IsServiceAvailable_Call) Return(b bool) *M
 
 func (_c *MockServiceFactoryInterface_IsServiceAvailable_Call) RunAndReturn(run func(serviceName string) bool) *MockServiceFactoryInterface_IsServiceAvailable_Call {
 	_c.Call.Return(run)
+	return _c
+}
+
+// SetCurrentService provides a mock function for the type MockServiceFactoryInterface
+func (_mock *MockServiceFactoryInterface) SetCurrentService(serviceName string) {
+	_mock.Called(serviceName)
+	return
+}
+
+// MockServiceFactoryInterface_SetCurrentService_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetCurrentService'
+type MockServiceFactoryInterface_SetCurrentService_Call struct {
+	*mock.Call
+}
+
+// SetCurrentService is a helper method to define mock.On call
+//   - serviceName string
+func (_e *MockServiceFactoryInterface_Expecter) SetCurrentService(serviceName interface{}) *MockServiceFactoryInterface_SetCurrentService_Call {
+	return &MockServiceFactoryInterface_SetCurrentService_Call{Call: _e.mock.On("SetCurrentService", serviceName)}
+}
+
+func (_c *MockServiceFactoryInterface_SetCurrentService_Call) Run(run func(serviceName string)) *MockServiceFactoryInterface_SetCurrentService_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockServiceFactoryInterface_SetCurrentService_Call) Return() *MockServiceFactoryInterface_SetCurrentService_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockServiceFactoryInterface_SetCurrentService_Call) RunAndReturn(run func(serviceName string)) *MockServiceFactoryInterface_SetCurrentService_Call {
+	_c.Run(run)
 	return _c
 }

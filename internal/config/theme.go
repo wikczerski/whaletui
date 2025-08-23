@@ -52,6 +52,14 @@ var DefaultTheme = ThemeConfig{
 		Placeholder: constants.CommandModeThemePlaceholderColor,
 		Title:       constants.CommandModeThemeTitleColor,
 	},
+	HeaderLayout: HeaderLayout{
+		DockerInfoWidth: constants.HeaderDockerInfoWidth,
+		SpacerWidth:     constants.HeaderSpacerWidth,
+		NavigationWidth: constants.HeaderNavigationWidth,
+		ActionsWidth:    constants.HeaderActionsWidth,
+		ContentWidth:    constants.HeaderContentWidth,
+		LogoWidth:       constants.HeaderLogoWidth,
+	},
 }
 
 // ThemeManager manages theme configuration
@@ -66,20 +74,27 @@ func NewThemeManager(configPath string) *ThemeManager {
 		config: &DefaultTheme,
 		path:   configPath,
 	}
-	tm.LoadTheme()
+
+	// Load theme if path is provided
+	if configPath != "" {
+		tm.LoadTheme()
+	}
+
 	return tm
 }
 
 // LoadTheme loads the theme configuration from file
 func (tm *ThemeManager) LoadTheme() {
-	// Try to load from the specified path
+	// Try to load from the specified path first
 	if tm.path != "" {
 		if err := tm.loadFromFile(tm.path); err == nil {
 			return
 		}
+		// If loading from specified path fails, log the error but continue
+		// This allows fallback to default locations
 	}
 
-	// Try common config locations
+	// Try common config locations as fallback
 	configDirs := []string{
 		"./config",
 		"./themes",
@@ -338,6 +353,36 @@ func (tm *ThemeManager) GetCommandModeTitleColor() tcell.Color {
 	return tm.GetColor(tm.config.CommandMode.Title)
 }
 
+// GetHeaderDockerInfoWidth returns the Docker info column width
+func (tm *ThemeManager) GetHeaderDockerInfoWidth() int {
+	return tm.config.HeaderLayout.DockerInfoWidth
+}
+
+// GetHeaderSpacerWidth returns the spacer column width
+func (tm *ThemeManager) GetHeaderSpacerWidth() int {
+	return tm.config.HeaderLayout.SpacerWidth
+}
+
+// GetHeaderNavigationWidth returns the navigation column width
+func (tm *ThemeManager) GetHeaderNavigationWidth() int {
+	return tm.config.HeaderLayout.NavigationWidth
+}
+
+// GetHeaderActionsWidth returns the actions column width
+func (tm *ThemeManager) GetHeaderActionsWidth() int {
+	return tm.config.HeaderLayout.ActionsWidth
+}
+
+// GetHeaderContentWidth returns the content column width
+func (tm *ThemeManager) GetHeaderContentWidth() int {
+	return tm.config.HeaderLayout.ContentWidth
+}
+
+// GetHeaderLogoWidth returns the logo column width
+func (tm *ThemeManager) GetHeaderLogoWidth() int {
+	return tm.config.HeaderLayout.LogoWidth
+}
+
 // SaveTheme saves the current theme configuration to file
 func (tm *ThemeManager) SaveTheme(path string) error {
 	if path == "" {
@@ -388,4 +433,19 @@ func (tm *ThemeManager) GetConfig() *ThemeConfig {
 // GetPath returns the current theme file path
 func (tm *ThemeManager) GetPath() string {
 	return tm.path
+}
+
+// GetCurrentThemeInfo returns debug information about the current theme
+func (tm *ThemeManager) GetCurrentThemeInfo() map[string]interface{} {
+	return map[string]interface{}{
+		"path":            tm.path,
+		"dockerInfoWidth": tm.config.HeaderLayout.DockerInfoWidth,
+		"spacerWidth":     tm.config.HeaderLayout.SpacerWidth,
+		"contentWidth":    tm.config.HeaderLayout.ContentWidth,
+		"logoWidth":       tm.config.HeaderLayout.LogoWidth,
+		"headerColor":     tm.config.Colors.Header,
+		"borderColor":     tm.config.Colors.Border,
+		"textColor":       tm.config.Colors.Text,
+		"backgroundColor": tm.config.Colors.Background,
+	}
 }

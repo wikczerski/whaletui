@@ -25,7 +25,7 @@ func newContainersUIMock(t *testing.T) *mocks.MockUIInterface {
 	mockSF.On("IsServiceAvailable", mock.AnythingOfType("string")).Return(false).Maybe()
 	mockSF.On("IsContainerServiceAvailable").Return(false).Maybe()
 
-	ui.On("GetServices").Return(mockSF).Maybe()
+	ui.On("GetServicesAny").Return(mockSF).Maybe()
 	return ui
 }
 

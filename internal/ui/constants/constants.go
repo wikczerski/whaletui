@@ -8,11 +8,13 @@ import (
 
 // View names
 const (
-	ViewContainers = "containers"
-	ViewImages     = "images"
-	ViewVolumes    = "volumes"
-	ViewNetworks   = "networks"
-	ViewLogs       = "logs"
+	ViewContainers    = "containers"
+	ViewImages        = "images"
+	ViewVolumes       = "volumes"
+	ViewNetworks      = "networks"
+	ViewLogs          = "logs"
+	ViewSwarmServices = "swarm-services"
+	ViewSwarmNodes    = "swarm-nodes"
 )
 
 // DefaultView is the default view to show when the application starts
@@ -20,7 +22,7 @@ const DefaultView = ViewContainers
 
 // UI layout constants
 const (
-	HeaderSectionHeight = 6
+	HeaderSectionHeight = 9 // Increased from 6 to 9 (3 extra rows)
 	StatusBarHeight     = 1
 	TitleViewHeight     = 3
 	BackButtonHeight    = 1
@@ -89,6 +91,14 @@ const (
 	ShellThemeCmdPlaceholderColor = ColorGray
 )
 
+// Logo ASCII art
+const WhaleTuiLogo = ` _    _ _           _      _______    _
+| |  | | |         | |    |__   __|  (_)
+| |  | | |__   __ _| | ___   | |_   _ _
+| |/\| | '_ \ / _` + "`" + ` | |/ _ \  | | | | | |
+\  /\  / | | | (_| | |  __/  |_| |_| | |
+ \/  \/|_| |_|\__,_|_|\___|  |_|\__,_|_|`
+
 // ContainerExec color constants
 const (
 	ContainerExecLabelColor       = tcell.ColorYellow
@@ -154,6 +164,11 @@ const (
 	KeyDeleteImage      = 'd'
 	KeyDeleteVolume     = 'd'
 	KeyDeleteNetwork    = 'd'
+	KeyScaleService     = 's'
+	KeyRemoveService    = 'd'
+	KeyRemoveNode       = 'd'
+	KeyDrainNode        = 'D'
+	KeyActivateNode     = 'a'
 )
 
 // Time formatting
@@ -165,16 +180,30 @@ const (
 
 // DockerInfoTemplate is the template for displaying Docker system information
 const DockerInfoTemplate = `🐳 Docker Info
-✅ Connected
-🐋 Version: %s
-📊 Containers: %d
-🖼️  Images: %d
-💾 Volumes: %d
-🌐 Networks: %d
+%s
+🐋 Docker: %s
 💻 OS: %s
-🏗️  Architecture: %s
-🔧 Driver: %s
-📝 Logging: %s`
+📝 Logging: %s
+🚀 WhaleTui: %s`
 
 // StatusBarTemplate is the template for the status bar display
 const StatusBarTemplate = "[%s] [Enter] Details [Q] Quit"
+
+// AppVersion holds the application version for display in UI
+// This will be set by the build process or defaults to "dev"
+var AppVersion = "dev"
+
+// SetAppVersion sets the application version from the cmd package
+func SetAppVersion(version string) {
+	AppVersion = version
+}
+
+// Header column width constants
+const (
+	HeaderDockerInfoWidth = 30 // Width for Docker info column
+	HeaderSpacerWidth     = 1  // Width for spacer column between sections (minimal spacing)
+	HeaderNavigationWidth = 25 // Width for navigation column
+	HeaderActionsWidth    = 25 // Width for actions column
+	HeaderContentWidth    = 25 // Width for general content columns (fallback)
+	HeaderLogoWidth       = 20 // Width for logo column
+)

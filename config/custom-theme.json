@@ -37,5 +37,8 @@
     "background": "#2F4F4F",
     "placeholder": "#B0C4DE",
     "title": "#FFD700"
+  },
+  "headerLayout": {
+    "spacerWidth": 3
   }
 }
