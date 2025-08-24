@@ -43,54 +43,6 @@ func NewServicesView(
 	return view
 }
 
-// setupCallbacks sets up the callbacks for the base view
-func (v *ServicesView) setupCallbacks() {
-	v.ListItems = v.listServices
-	v.FormatRow = func(s shared.SwarmService) []string { return v.formatServiceRow(&s) }
-	v.GetItemID = func(s shared.SwarmService) string { return v.getServiceID(&s) }
-	v.GetItemName = func(s shared.SwarmService) string { return v.getServiceName(&s) }
-	v.GetActions = v.getActions
-}
-
-// listServices lists all swarm services
-func (v *ServicesView) listServices(ctx context.Context) ([]shared.SwarmService, error) {
-	return v.serviceService.ListServices(ctx)
-}
-
-// formatServiceRow formats a service row for display
-func (v *ServicesView) formatServiceRow(service *shared.SwarmService) []string {
-	return []string{
-		shared.TruncName(service.ID, 12),
-		service.Name,
-		service.Image,
-		service.Mode,
-		service.Replicas,
-		service.Status,
-		service.CreatedAt.Format("2006-01-02 15:04:05"),
-	}
-}
-
-// getServiceID returns the service ID
-func (v *ServicesView) getServiceID(service *shared.SwarmService) string {
-	return service.ID
-}
-
-// getServiceName returns the service name
-func (v *ServicesView) getServiceName(service *shared.SwarmService) string {
-	return service.Name
-}
-
-// getActions returns the available actions for swarm services
-func (v *ServicesView) getActions() map[rune]string {
-	return map[rune]string{
-		'i': "Inspect",
-		's': "Scale",
-		'r': "Remove",
-		'l': "Logs",
-		'f': "Refresh",
-	}
-}
-
 // Render renders the swarm services view
 func (v *ServicesView) Render(_ context.Context) error {
 	// The base view handles rendering automatically through the callbacks
@@ -500,13 +452,50 @@ func (v *ServicesView) showOperationHelp(operation string) {
 	v.GetUI().ShowContextualHelp("swarm_services", operation)
 }
 
-// formatServiceInfo formats service information for display
-// This function is intentionally unused - it's a placeholder for future service info formatting
-// nolint:unused // Intentionally unused - placeholder for future service info formatting
-func formatServiceInfo(info map[string]any) string {
-	result := ""
-	for key, value := range info {
-		result += fmt.Sprintf("%s: %v\n", key, value)
+// setupCallbacks sets up the callbacks for the base view
+func (v *ServicesView) setupCallbacks() {
+	v.ListItems = v.listServices
+	v.FormatRow = func(s shared.SwarmService) []string { return v.formatServiceRow(&s) }
+	v.GetItemID = func(s shared.SwarmService) string { return v.getServiceID(&s) }
+	v.GetItemName = func(s shared.SwarmService) string { return v.getServiceName(&s) }
+	v.GetActions = v.getActions
+}
+
+// listServices lists all swarm services
+func (v *ServicesView) listServices(ctx context.Context) ([]shared.SwarmService, error) {
+	return v.serviceService.ListServices(ctx)
+}
+
+// formatServiceRow formats a service row for display
+func (v *ServicesView) formatServiceRow(service *shared.SwarmService) []string {
+	return []string{
+		shared.TruncName(service.ID, 12),
+		service.Name,
+		service.Image,
+		service.Mode,
+		service.Replicas,
+		service.Status,
+		service.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
-	return result
+}
+
+// getServiceID returns the service ID
+func (v *ServicesView) getServiceID(service *shared.SwarmService) string {
+	return service.ID
+}
+
+// getServiceName returns the service name
+func (v *ServicesView) getServiceName(service *shared.SwarmService) string {
+	return service.Name
+}
+
+// getActions returns the available actions for swarm services
+func (v *ServicesView) getActions() map[rune]string {
+	return map[rune]string{
+		'i': "Inspect",
+		's': "Scale",
+		'r': "Remove",
+		'l': "Logs",
+		'f': "Refresh",
+	}
 }

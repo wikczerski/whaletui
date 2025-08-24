@@ -1,3 +1,4 @@
+// Package swarm provides Swarm-related UI views for WhaleTUI.
 package swarm
 
 import (
@@ -42,6 +43,37 @@ func NewNodesView(
 	view.setupCallbacks()
 
 	return view
+}
+
+// Render renders the swarm nodes view
+func (v *NodesView) Render(_ context.Context) error {
+	// The base view handles rendering automatically through the callbacks
+	// Just refresh the data
+	v.Refresh()
+	return nil
+}
+
+// HandleInput handles user input for the nodes view
+func (v *NodesView) HandleInput(ctx context.Context, input rune) (interface{}, error) {
+	switch input {
+	case 'i':
+		return v.handleInspect(ctx)
+	case 'a':
+		return v.handleUpdateAvailability(ctx)
+	case 'r':
+		return v.handleRemove(ctx)
+	case 'f':
+		return v, nil // Refresh current view
+	case 's':
+		return v.handleNavigateToServices(ctx)
+	case 'q':
+		return v.handleBackToMain(ctx)
+	case 'h':
+		v.handleHelp()
+		return v, nil
+	default:
+		return v, nil
+	}
 }
 
 // setupCallbacks sets up the callbacks for the base view
@@ -89,37 +121,6 @@ func (v *NodesView) getActions() map[rune]string {
 		'a': "Update Availability",
 		'r': "Remove",
 		'f': "Refresh",
-	}
-}
-
-// Render renders the swarm nodes view
-func (v *NodesView) Render(_ context.Context) error {
-	// The base view handles rendering automatically through the callbacks
-	// Just refresh the data
-	v.Refresh()
-	return nil
-}
-
-// HandleInput handles user input for the nodes view
-func (v *NodesView) HandleInput(ctx context.Context, input rune) (interface{}, error) {
-	switch input {
-	case 'i':
-		return v.handleInspect(ctx)
-	case 'a':
-		return v.handleUpdateAvailability(ctx)
-	case 'r':
-		return v.handleRemove(ctx)
-	case 'f':
-		return v, nil // Refresh current view
-	case 's':
-		return v.handleNavigateToServices(ctx)
-	case 'q':
-		return v.handleBackToMain(ctx)
-	case 'h':
-		v.handleHelp()
-		return v, nil
-	default:
-		return v, nil
 	}
 }
 

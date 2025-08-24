@@ -1,3 +1,4 @@
+// Package constants provides UI constants and configuration values for the WhaleTUI application.
 package constants
 
 import (
@@ -91,7 +92,7 @@ const (
 	ShellThemeCmdPlaceholderColor = ColorGray
 )
 
-// Logo ASCII art
+// WhaleTuiLogo is the ASCII art logo for the WhaleTUI application
 const WhaleTuiLogo = ` _    _ _           _      _______    _
 | |  | | |         | |    |__   __|  (_)
 | |  | | |__   __ _| | ___   | |_   _ _

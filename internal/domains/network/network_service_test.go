@@ -22,7 +22,11 @@ func TestNewNetworkService_WithDockerClient(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Failed to close Docker client: %v", err)
+		}
+	}()
 
 	service := NewNetworkService(client)
 	assert.NotNil(t, service)
@@ -34,7 +38,11 @@ func TestNetworkService_ListNetworks_Integration(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Failed to close Docker client: %v", err)
+		}
+	}()
 
 	service := NewNetworkService(client)
 	ctx := context.Background()
@@ -103,7 +111,11 @@ func TestNetworkService_RemoveNetwork_EmptyID_WithClient(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Failed to close Docker client: %v", err)
+		}
+	}()
 
 	service := NewNetworkService(client)
 	ctx := context.Background()
@@ -119,7 +131,11 @@ func TestNetworkService_InspectNetwork_Integration(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Failed to close Docker client: %v", err)
+		}
+	}()
 
 	service := NewNetworkService(client)
 	ctx := context.Background()
@@ -147,7 +163,11 @@ func TestNetworkService_InspectNetwork_Integration_NetworkType(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Failed to close Docker client: %v", err)
+		}
+	}()
 
 	service := NewNetworkService(client)
 	ctx := context.Background()
@@ -321,7 +341,11 @@ func TestNetworkService_NetworkIDValidation_EmptyID_WithClient(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Failed to close Docker client: %v", err)
+		}
+	}()
 
 	service := NewNetworkService(client)
 	ctx := context.Background()

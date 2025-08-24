@@ -1,3 +1,4 @@
+// Package shared provides shared utilities and base types for WhaleTUI.
 package shared
 
 import (

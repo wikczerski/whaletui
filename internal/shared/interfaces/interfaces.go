@@ -1,3 +1,6 @@
+// Package interfaces provides shared interface definitions for WhaleTUI.
+//
+//nolint:revive // Package name "interfaces" is for interface-only package
 package interfaces
 
 import (

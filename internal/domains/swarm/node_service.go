@@ -1,3 +1,4 @@
+// Package swarm provides Docker Swarm functionality for WhaleTUI.
 package swarm
 
 import (

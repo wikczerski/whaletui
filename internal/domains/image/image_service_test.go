@@ -21,7 +21,11 @@ func TestNewImageService(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Failed to close Docker client: %v", err)
+		}
+	}()
 
 	service = NewImageService(client)
 	assert.NotNil(t, service)
@@ -33,7 +37,11 @@ func TestImageService_ListImages_Integration(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Failed to close Docker client: %v", err)
+		}
+	}()
 
 	service := NewImageService(client)
 	ctx := context.Background()
@@ -137,7 +145,11 @@ func TestImageService_InspectImage_EmptyID(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Failed to close Docker client: %v", err)
+		}
+	}()
 
 	service := NewImageService(client)
 	ctx := context.Background()
@@ -153,7 +165,11 @@ func TestImageService_ContextHandling(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Failed to close Docker client: %v", err)
+		}
+	}()
 
 	service := NewImageService(client)
 	ctx, cancel := context.WithCancel(context.Background())

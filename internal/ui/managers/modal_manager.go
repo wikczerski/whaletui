@@ -409,6 +409,137 @@ func (mm *ModalManager) ShowNodeAvailabilityModal(nodeName, currentAvailability 
 	app.SetFocus(modal)
 }
 
+// ShowRetryDialog displays a retry dialog with automatic retry logic
+func (mm *ModalManager) ShowRetryDialog(operation string, err error, retryFunc func() error, onSuccess func()) {
+	// Create retry dialog content
+	content := fmt.Sprintf("🔄 Operation Failed: %s\n\nError: %v\n\nThis may be a temporary issue. Would you like to retry?", operation, err)
+
+	// Create modal with retry options
+	modal := mm.createModal(content, []string{"Retry", "Retry (Auto)", "Cancel"})
+
+	// Add done function to handle button clicks
+	modal.SetDoneFunc(func(_ int, buttonLabel string) {
+		switch buttonLabel {
+		case "Retry":
+			// Manual retry - close dialog and let user retry
+			pages := mm.ui.GetPages().(*tview.Pages)
+			pages.RemovePage("retry_modal")
+			// Restore focus to the main view
+			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
+				if vc, ok := viewContainer.(*tview.Flex); ok {
+					app := mm.ui.GetApp().(*tview.Application)
+					app.SetFocus(vc)
+				}
+			}
+		case "Retry (Auto)":
+			// Automatic retry with progress indication
+			mm.performAutomaticRetry(operation, retryFunc, onSuccess)
+		case "Cancel":
+			// Close dialog without retry
+			pages := mm.ui.GetPages().(*tview.Pages)
+			pages.RemovePage("retry_modal")
+			// Restore focus to the main view
+			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
+				if vc, ok := viewContainer.(*tview.Flex); ok {
+					app := mm.ui.GetApp().(*tview.Application)
+					app.SetFocus(vc)
+				}
+			}
+		}
+	})
+
+	// Add keyboard handling for ESC key to close modal
+	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape {
+			pages := mm.ui.GetPages().(*tview.Pages)
+			pages.RemovePage("retry_modal")
+			// Restore focus to the main view
+			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
+				if vc, ok := viewContainer.(*tview.Flex); ok {
+					app := mm.ui.GetApp().(*tview.Application)
+					app.SetFocus(vc)
+				}
+			}
+			return nil // Consume the event
+		}
+		return event
+	})
+
+	// Add the modal to the pages
+	pages := mm.ui.GetPages().(*tview.Pages)
+	pages.AddPage("retry_modal", modal, true, true)
+
+	// Set focus to the modal so it can receive keyboard input
+	app := mm.ui.GetApp().(*tview.Application)
+	app.SetFocus(modal)
+}
+
+// ShowFallbackDialog displays a fallback operations dialog
+func (mm *ModalManager) ShowFallbackDialog(operation string, err error, fallbackOptions []string, onFallback func(string)) {
+	// Create fallback dialog content
+	content := fmt.Sprintf("⚠️  Operation Failed: %s\n\nError: %v\n\nAlternative operations are available:", operation, err)
+
+	// Create buttons for fallback options
+	buttons := make([]string, len(fallbackOptions)+1)
+	copy(buttons, fallbackOptions)
+	buttons[len(fallbackOptions)] = "Cancel"
+	modal := mm.createModal(content, buttons)
+
+	// Add done function to handle button clicks
+	modal.SetDoneFunc(func(_ int, buttonLabel string) {
+		if buttonLabel == "Cancel" {
+			// Close dialog without action
+			pages := mm.ui.GetPages().(*tview.Pages)
+			pages.RemovePage("fallback_modal")
+			// Restore focus to the main view
+			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
+				if vc, ok := viewContainer.(*tview.Flex); ok {
+					app := mm.ui.GetApp().(*tview.Application)
+					app.SetFocus(vc)
+				}
+			}
+		} else {
+			// Execute fallback operation
+			onFallback(buttonLabel)
+			// Close dialog
+			pages := mm.ui.GetPages().(*tview.Pages)
+			pages.RemovePage("fallback_modal")
+			// Restore focus to the main view
+			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
+				if vc, ok := viewContainer.(*tview.Flex); ok {
+					app := mm.ui.GetApp().(*tview.Application)
+					app.SetFocus(vc)
+				}
+			}
+		}
+	})
+
+	// Add keyboard handling for ESC key to close modal
+	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape {
+			pages := mm.ui.GetPages().(*tview.Pages)
+			pages.RemovePage("fallback_modal")
+			// Restore focus to the main view
+			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
+				if vc, ok := viewContainer.(*tview.Flex); ok {
+					app := mm.ui.GetApp().(*tview.Application)
+					app.SetFocus(vc)
+				}
+			}
+			return nil // Consume the event
+		}
+		return event
+	})
+
+	// Add the modal to the pages
+	pages := mm.ui.GetPages().(*tview.Pages)
+	pages.AddPage("fallback_modal", modal, true, true)
+
+	// Set focus to the modal so it can receive keyboard input
+	app := mm.ui.GetApp().(*tview.Application)
+	app.SetFocus(modal)
+}
+
 // createModal creates a standard modal with consistent styling
 func (mm *ModalManager) createModal(text string, buttons []string) *tview.Modal {
 	return tview.NewModal().
@@ -847,137 +978,6 @@ Navigation:
 • Press 'q' to return to previous view
 
 Need specific help? Navigate to a specific view first.`
-}
-
-// ShowRetryDialog displays a retry dialog with automatic retry logic
-func (mm *ModalManager) ShowRetryDialog(operation string, err error, retryFunc func() error, onSuccess func()) {
-	// Create retry dialog content
-	content := fmt.Sprintf("🔄 Operation Failed: %s\n\nError: %v\n\nThis may be a temporary issue. Would you like to retry?", operation, err)
-
-	// Create modal with retry options
-	modal := mm.createModal(content, []string{"Retry", "Retry (Auto)", "Cancel"})
-
-	// Add done function to handle button clicks
-	modal.SetDoneFunc(func(_ int, buttonLabel string) {
-		switch buttonLabel {
-		case "Retry":
-			// Manual retry - close dialog and let user retry
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("retry_modal")
-			// Restore focus to the main view
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app := mm.ui.GetApp().(*tview.Application)
-					app.SetFocus(vc)
-				}
-			}
-		case "Retry (Auto)":
-			// Automatic retry with progress indication
-			mm.performAutomaticRetry(operation, retryFunc, onSuccess)
-		case "Cancel":
-			// Close dialog without retry
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("retry_modal")
-			// Restore focus to the main view
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app := mm.ui.GetApp().(*tview.Application)
-					app.SetFocus(vc)
-				}
-			}
-		}
-	})
-
-	// Add keyboard handling for ESC key to close modal
-	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEscape {
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("retry_modal")
-			// Restore focus to the main view
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app := mm.ui.GetApp().(*tview.Application)
-					app.SetFocus(vc)
-				}
-			}
-			return nil // Consume the event
-		}
-		return event
-	})
-
-	// Add the modal to the pages
-	pages := mm.ui.GetPages().(*tview.Pages)
-	pages.AddPage("retry_modal", modal, true, true)
-
-	// Set focus to the modal so it can receive keyboard input
-	app := mm.ui.GetApp().(*tview.Application)
-	app.SetFocus(modal)
-}
-
-// ShowFallbackDialog displays a fallback operations dialog
-func (mm *ModalManager) ShowFallbackDialog(operation string, err error, fallbackOptions []string, onFallback func(string)) {
-	// Create fallback dialog content
-	content := fmt.Sprintf("⚠️  Operation Failed: %s\n\nError: %v\n\nAlternative operations are available:", operation, err)
-
-	// Create buttons for fallback options
-	buttons := make([]string, len(fallbackOptions)+1)
-	copy(buttons, fallbackOptions)
-	buttons[len(fallbackOptions)] = "Cancel"
-	modal := mm.createModal(content, buttons)
-
-	// Add done function to handle button clicks
-	modal.SetDoneFunc(func(_ int, buttonLabel string) {
-		if buttonLabel == "Cancel" {
-			// Close dialog without action
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("fallback_modal")
-			// Restore focus to the main view
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app := mm.ui.GetApp().(*tview.Application)
-					app.SetFocus(vc)
-				}
-			}
-		} else {
-			// Execute fallback operation
-			onFallback(buttonLabel)
-			// Close dialog
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("fallback_modal")
-			// Restore focus to the main view
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app := mm.ui.GetApp().(*tview.Application)
-					app.SetFocus(vc)
-				}
-			}
-		}
-	})
-
-	// Add keyboard handling for ESC key to close modal
-	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEscape {
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("fallback_modal")
-			// Restore focus to the main view
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app := mm.ui.GetApp().(*tview.Application)
-					app.SetFocus(vc)
-				}
-			}
-			return nil // Consume the event
-		}
-		return event
-	})
-
-	// Add the modal to the pages
-	pages := mm.ui.GetPages().(*tview.Pages)
-	pages.AddPage("fallback_modal", modal, true, true)
-
-	// Set focus to the modal so it can receive keyboard input
-	app := mm.ui.GetApp().(*tview.Application)
-	app.SetFocus(modal)
 }
 
 // performAutomaticRetry performs automatic retry with progress indication

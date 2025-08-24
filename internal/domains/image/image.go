@@ -1,3 +1,4 @@
+// Package image provides Docker image management functionality for WhaleTUI.
 package image
 
 import (
