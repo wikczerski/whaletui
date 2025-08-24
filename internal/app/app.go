@@ -1,7 +1,9 @@
+// Package app provides the main application logic and coordination for WhaleTUI.
 package app
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -86,7 +88,10 @@ func setupManagers(ui *core.UI) {
 func cleanupOnError(client *docker.Client, cancel context.CancelFunc) {
 	cancel()
 	if client != nil {
-		client.Close()
+		if err := client.Close(); err != nil {
+			// Log the error but continue since this is cleanup
+			fmt.Fprintf(os.Stderr, "Failed to close Docker client: %v\n", err)
+		}
 	}
 }
 
@@ -104,6 +109,20 @@ func (a *App) Run() error {
 	go func() { uiDone <- a.ui.Start() }()
 
 	return a.waitForShutdown(uiDone, sigChan)
+}
+
+// Shutdown gracefully shuts down the application
+func (a *App) Shutdown() {
+	a.log.Info("Application shutdown started")
+	a.cancel()
+	a.stopUI()
+	a.closeDockerClient()
+	a.log.Info("Application shutdown completed")
+}
+
+// GetUI returns the UI instance
+func (a *App) GetUI() *core.UI {
+	return a.ui
 }
 
 func (a *App) waitForShutdown(uiDone chan error, sigChan chan os.Signal) error {
@@ -136,15 +155,6 @@ func (a *App) refreshLoop(ticker *time.Ticker) {
 	}
 }
 
-// Shutdown gracefully shuts down the application
-func (a *App) Shutdown() {
-	a.log.Info("Application shutdown started")
-	a.cancel()
-	a.stopUI()
-	a.closeDockerClient()
-	a.log.Info("Application shutdown completed")
-}
-
 func (a *App) stopUI() {
 	a.log.Info("UI stopping")
 	a.ui.Stop()
@@ -163,9 +173,4 @@ func (a *App) closeDockerClient() {
 		return
 	}
 	a.log.Info("Docker client closed successfully")
-}
-
-// GetUI returns the UI instance
-func (a *App) GetUI() *core.UI {
-	return a.ui
 }

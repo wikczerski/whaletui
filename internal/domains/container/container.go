@@ -1,3 +1,4 @@
+// Package container provides container management functionality for WhaleTUI.
 package container
 
 import (

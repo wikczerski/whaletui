@@ -8,7 +8,11 @@ import (
 func TestMultistreamLogging(t *testing.T) {
 	// Clean up any existing log files
 	testLogPath := "./test_logs/test.log"
-	defer os.RemoveAll("./test_logs")
+	defer func() {
+		if err := os.RemoveAll("./test_logs"); err != nil {
+			t.Logf("Failed to remove test logs: %v", err)
+		}
+	}()
 
 	// Test that DEBUG level creates multistream handler
 	SetLevelWithPath("DEBUG", testLogPath)
@@ -76,7 +80,9 @@ func TestDefaultLogPath(t *testing.T) {
 
 	// Clean up
 	CloseLogFile()
-	os.RemoveAll("./logs")
+	if err := os.RemoveAll("./logs"); err != nil {
+		t.Logf("Failed to remove logs directory: %v", err)
+	}
 }
 
 func TestTUIModeToggle(t *testing.T) {
@@ -102,7 +108,11 @@ func TestTUIModeToggle(t *testing.T) {
 func TestTUIModeLogging(t *testing.T) {
 	// Clean up any existing log files
 	testLogPath := "./test_logs/tui_test.log"
-	defer os.RemoveAll("./test_logs")
+	defer func() {
+		if err := os.RemoveAll("./test_logs"); err != nil {
+			t.Logf("Failed to remove test logs: %v", err)
+		}
+	}()
 
 	// Test TUI mode uses file-only handler
 	SetTUIMode(true)

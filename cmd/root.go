@@ -12,7 +12,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/wikczerski/whaletui/internal/app"
 	"github.com/wikczerski/whaletui/internal/config"
-	"github.com/wikczerski/whaletui/internal/docker"
+
+	"github.com/wikczerski/whaletui/internal/docker/dockerssh"
 	"github.com/wikczerski/whaletui/internal/logger"
 	"github.com/wikczerski/whaletui/internal/ui/constants"
 )
@@ -244,7 +245,7 @@ func runDiagnosticsIfRequested(host, user string, port int, log *slog.Logger) {
 func runSSHDiagnostics(host, user string, _ int) error {
 	sshHost := extractSSHHost(host, user)
 
-	sshClient, err := docker.NewSSHClient(sshHost, 22)
+	sshClient, err := dockerssh.NewSSHClient(sshHost, 22)
 	if err != nil {
 		return fmt.Errorf("failed to create SSH client for diagnostics: %w", err)
 	}

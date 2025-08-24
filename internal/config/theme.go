@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/wikczerski/whaletui/internal/ui/constants"
@@ -115,40 +116,6 @@ func (tm *ThemeManager) LoadTheme() {
 			}
 		}
 	}
-}
-
-// loadFromFile loads theme from a specific file
-func (tm *ThemeManager) loadFromFile(path string) error {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return fmt.Errorf("failed to read theme file: %w", err)
-	}
-
-	var config ThemeConfig
-	ext := filepath.Ext(path)
-
-	switch ext {
-	case ".yaml", ".yml":
-		if err := yaml.Unmarshal(data, &config); err != nil {
-			return fmt.Errorf("failed to parse YAML theme file: %w", err)
-		}
-	case ".json":
-		if err := json.Unmarshal(data, &config); err != nil {
-			return fmt.Errorf("failed to parse JSON theme file: %w", err)
-		}
-	default:
-		return fmt.Errorf("unsupported theme file format: %s", ext)
-	}
-
-	tm.config = tm.mergeWithDefaults(&config)
-	return nil
-}
-
-// mergeWithDefaults merges loaded config with defaults using interface methods
-func (tm *ThemeManager) mergeWithDefaults(loaded *ThemeConfig) *ThemeConfig {
-	merged := DefaultTheme
-	merged.MergeWith(loaded)
-	return &merged
 }
 
 // GetColor converts a color name to tcell.Color
@@ -372,7 +339,7 @@ func (tm *ThemeManager) SaveTheme(path string) error {
 
 	// Ensure directory exists
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -426,6 +393,45 @@ func (tm *ThemeManager) GetCurrentThemeInfo() map[string]interface{} {
 		"textColor":       tm.config.Colors.Text,
 		"backgroundColor": tm.config.Colors.Background,
 	}
+}
+
+// loadFromFile loads theme from a specific file
+func (tm *ThemeManager) loadFromFile(path string) error {
+	// Validate path to prevent directory traversal
+	if !filepath.IsAbs(path) || !strings.HasPrefix(filepath.Clean(path), filepath.Clean(filepath.Dir(tm.path))) {
+		return fmt.Errorf("invalid theme file path")
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("failed to read theme file: %w", err)
+	}
+
+	var config ThemeConfig
+	ext := filepath.Ext(path)
+
+	switch ext {
+	case ".yaml", ".yml":
+		if err := yaml.Unmarshal(data, &config); err != nil {
+			return fmt.Errorf("failed to parse YAML theme file: %w", err)
+		}
+	case ".json":
+		if err := json.Unmarshal(data, &config); err != nil {
+			return fmt.Errorf("failed to parse JSON theme file: %w", err)
+		}
+	default:
+		return fmt.Errorf("unsupported theme file format: %s", ext)
+	}
+
+	tm.config = tm.mergeWithDefaults(&config)
+	return nil
+}
+
+// mergeWithDefaults merges loaded config with defaults using interface methods
+func (tm *ThemeManager) mergeWithDefaults(loaded *ThemeConfig) *ThemeConfig {
+	merged := DefaultTheme
+	merged.MergeWith(loaded)
+	return &merged
 }
 
 // parseHexColor parses a hex color string

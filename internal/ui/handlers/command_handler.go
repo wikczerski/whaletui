@@ -31,53 +31,6 @@ func (ch *CommandHandler) CreateCommandInput() *tview.InputField {
 	return ch.commandInput
 }
 
-// configureCommandInput sets up the command input styling and behavior
-func (ch *CommandHandler) configureCommandInput() {
-	// Get theme manager for styling
-	themeManager := ch.ui.GetThemeManager()
-
-	ch.commandInput.SetLabel(": ")
-	ch.commandInput.SetLabelColor(themeManager.GetCommandModeLabelColor())
-	ch.commandInput.SetFieldTextColor(themeManager.GetCommandModeTextColor())
-	ch.commandInput.SetBorder(true)
-	ch.commandInput.SetBorderColor(themeManager.GetCommandModeBorderColor())
-	ch.commandInput.SetTitle(" Command Mode ")
-	ch.commandInput.SetTitleColor(themeManager.GetCommandModeTitleColor())
-	ch.commandInput.SetBackgroundColor(themeManager.GetCommandModeBackgroundColor())
-	ch.commandInput.SetPlaceholder("Type view name (containers, images, volumes, networks, swarm services, swarm nodes)")
-	ch.commandInput.SetPlaceholderTextColor(themeManager.GetCommandModePlaceholderColor())
-	ch.commandInput.SetDoneFunc(ch.HandleInput)
-	ch.commandInput.SetAutocompleteFunc(ch.getAutocomplete)
-}
-
-// hideCommandInput makes the command input completely invisible
-func (ch *CommandHandler) hideCommandInput() {
-	if ch.commandInput == nil {
-		return
-	}
-
-	ch.commandInput.SetBorder(false)
-	ch.commandInput.SetBackgroundColor(constants.UIInvisibleColor)
-	ch.commandInput.SetFieldTextColor(constants.UIInvisibleColor)
-	ch.commandInput.SetLabelColor(constants.UIInvisibleColor)
-	ch.commandInput.SetPlaceholderTextColor(constants.UIInvisibleColor)
-}
-
-// showCommandInput makes the command input visible with proper styling
-func (ch *CommandHandler) showCommandInput() {
-	if ch.commandInput == nil {
-		return
-	}
-
-	// Get theme manager for styling
-	themeManager := ch.ui.GetThemeManager()
-
-	ch.commandInput.SetBorder(true)
-	ch.commandInput.SetLabelColor(themeManager.GetCommandModeLabelColor())
-	ch.commandInput.SetFieldTextColor(themeManager.GetCommandModeTextColor())
-	ch.commandInput.SetPlaceholderTextColor(themeManager.GetCommandModePlaceholderColor())
-}
-
 // Enter activates command mode
 func (ch *CommandHandler) Enter() {
 	ch.isActive = true
@@ -136,6 +89,53 @@ func (ch *CommandHandler) HandleInput(key tcell.Key) {
 		// User is typing - clear any error message
 		ch.clearError()
 	}
+}
+
+// configureCommandInput sets up the command input styling and behavior
+func (ch *CommandHandler) configureCommandInput() {
+	// Get theme manager for styling
+	themeManager := ch.ui.GetThemeManager()
+
+	ch.commandInput.SetLabel(": ")
+	ch.commandInput.SetLabelColor(themeManager.GetCommandModeLabelColor())
+	ch.commandInput.SetFieldTextColor(themeManager.GetCommandModeTextColor())
+	ch.commandInput.SetBorder(true)
+	ch.commandInput.SetBorderColor(themeManager.GetCommandModeBorderColor())
+	ch.commandInput.SetTitle(" Command Mode ")
+	ch.commandInput.SetTitleColor(themeManager.GetCommandModeTitleColor())
+	ch.commandInput.SetBackgroundColor(themeManager.GetCommandModeBackgroundColor())
+	ch.commandInput.SetPlaceholder("Type view name (containers, images, volumes, networks, swarm services, swarm nodes)")
+	ch.commandInput.SetPlaceholderTextColor(themeManager.GetCommandModePlaceholderColor())
+	ch.commandInput.SetDoneFunc(ch.HandleInput)
+	ch.commandInput.SetAutocompleteFunc(ch.getAutocomplete)
+}
+
+// hideCommandInput makes the command input completely invisible
+func (ch *CommandHandler) hideCommandInput() {
+	if ch.commandInput == nil {
+		return
+	}
+
+	ch.commandInput.SetBorder(false)
+	ch.commandInput.SetBackgroundColor(constants.UIInvisibleColor)
+	ch.commandInput.SetFieldTextColor(constants.UIInvisibleColor)
+	ch.commandInput.SetLabelColor(constants.UIInvisibleColor)
+	ch.commandInput.SetPlaceholderTextColor(constants.UIInvisibleColor)
+}
+
+// showCommandInput makes the command input visible with proper styling
+func (ch *CommandHandler) showCommandInput() {
+	if ch.commandInput == nil {
+		return
+	}
+
+	// Get theme manager for styling
+	themeManager := ch.ui.GetThemeManager()
+
+	ch.commandInput.SetBorder(true)
+	ch.commandInput.SetLabelColor(themeManager.GetCommandModeLabelColor())
+	ch.commandInput.SetFieldTextColor(themeManager.GetCommandModeTextColor())
+	ch.commandInput.SetPlaceholderTextColor(themeManager.GetCommandModePlaceholderColor())
 }
 
 // processCommand executes the given command

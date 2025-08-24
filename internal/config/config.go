@@ -1,3 +1,4 @@
+// Package config provides configuration management for the WhaleTUI application.
 package config
 
 import (
@@ -6,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 // Config represents the application configuration
@@ -47,7 +49,7 @@ func Load() (*Config, error) {
 	}
 
 	configDir := filepath.Join(homeDir, ".dockerk9s")
-	if err := os.MkdirAll(configDir, 0o755); err != nil {
+	if err := os.MkdirAll(configDir, 0o750); err != nil {
 		return nil, fmt.Errorf("config directory creation failed: %w", err)
 	}
 
@@ -62,6 +64,12 @@ func Load() (*Config, error) {
 	}
 
 	cfg := DefaultConfig()
+
+	// Validate config file path to prevent directory traversal
+	if !filepath.IsAbs(configFile) || !strings.HasPrefix(filepath.Clean(configFile), filepath.Clean(configDir)) {
+		return nil, fmt.Errorf("invalid config file path")
+	}
+
 	data, err := os.ReadFile(configFile)
 	if err != nil {
 		return nil, fmt.Errorf("config read failed: %w", err)

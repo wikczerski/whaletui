@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// UserInteraction handles user input and interaction for command-line operations
 type UserInteraction struct{}
 
 func (ui UserInteraction) askYesNo(prompt string) bool {

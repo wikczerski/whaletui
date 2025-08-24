@@ -22,7 +22,11 @@ func TestNewVolumeService_WithDockerClient(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Failed to close Docker client: %v", err)
+		}
+	}()
 
 	service := NewVolumeService(client)
 	assert.NotNil(t, service)
@@ -34,7 +38,11 @@ func TestVolumeService_ListVolumes_Integration(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Failed to close Docker client: %v", err)
+		}
+	}()
 
 	service := NewVolumeService(client)
 	ctx := context.Background()
@@ -119,7 +127,11 @@ func TestVolumeService_InspectVolume_Integration(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Failed to close Docker client: %v", err)
+		}
+	}()
 
 	service := NewVolumeService(client)
 	ctx := context.Background()
@@ -147,7 +159,11 @@ func TestVolumeService_InspectVolume_Integration_VolumeType(t *testing.T) {
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Failed to close Docker client: %v", err)
+		}
+	}()
 
 	service := NewVolumeService(client)
 	ctx := context.Background()

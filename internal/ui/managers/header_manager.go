@@ -1,3 +1,4 @@
+// Package managers provides UI management components for WhaleTUI.
 package managers
 
 import (
@@ -69,6 +70,95 @@ func (hm *HeaderManager) CreateHeaderSection() tview.Primitive {
 	hm.headerFlex = headerFlex
 
 	return headerFlex
+}
+
+// UpdateAll updates all header content
+func (hm *HeaderManager) UpdateAll() {
+	if hm.headerFlex == nil {
+		return
+	}
+
+	// Get updated content
+	dockerInfo := hm.getDockerInfoText()
+	dockerLines := strings.Split(dockerInfo, "\n")
+
+	navigationInfo := hm.getNavigationText()
+	navigationLines := strings.Split(navigationInfo, "\n")
+
+	actionsInfo := hm.getActionsText()
+	actionsLines := strings.Split(actionsInfo, "\n")
+
+	logoInfo := hm.getLogoText()
+	logoLines := strings.Split(logoInfo, "\n")
+
+	// Update each view - handle both TextView and Grid types
+	if hm.headerFlex.GetItemCount() >= 4 {
+		// Update Docker view
+		switch item := hm.headerFlex.GetItem(0).(type) {
+		case *tview.TextView:
+			item.SetText(strings.Join(dockerLines, "\n"))
+		case *tview.Grid:
+			// For now, just update text if it's a grid (simplified approach)
+			// TODO: Implement proper grid recreation
+		}
+
+		// Update Navigation view
+		switch item := hm.headerFlex.GetItem(1).(type) {
+		case *tview.TextView:
+			item.SetText(strings.Join(navigationLines, "\n"))
+		case *tview.Grid:
+			// For now, just update text if it's a grid (simplified approach)
+			// TODO: Implement proper grid recreation
+		}
+
+		// Update Actions view
+		switch item := hm.headerFlex.GetItem(2).(type) {
+		case *tview.TextView:
+			item.SetText(strings.Join(actionsLines, "\n"))
+		case *tview.Grid:
+			// For now, just update text if it's a grid (simplified approach)
+			// TODO: Implement proper grid recreation
+		}
+
+		// Update Logo view
+		switch item := hm.headerFlex.GetItem(3).(type) {
+		case *tview.TextView:
+			item.SetText(strings.Join(logoLines, "\n"))
+		case *tview.Grid:
+			// For now, just update text if it's a grid (simplified approach)
+			// TODO: Implement proper grid recreation
+		}
+	}
+}
+
+// UpdateDockerInfo updates the Docker info (kept for backward compatibility)
+func (hm *HeaderManager) UpdateDockerInfo() {
+	hm.UpdateAll()
+}
+
+// UpdateNavigation updates the navigation (kept for backward compatibility)
+func (hm *HeaderManager) UpdateNavigation() {
+	hm.UpdateAll()
+}
+
+// UpdateActions updates the actions (kept for backward compatibility)
+func (hm *HeaderManager) UpdateActions() {
+	hm.UpdateAll()
+}
+
+// GetDockerInfoCol returns nil (kept for backward compatibility)
+func (hm *HeaderManager) GetDockerInfoCol() *tview.TextView {
+	return nil
+}
+
+// GetNavCol returns nil (kept for backward compatibility)
+func (hm *HeaderManager) GetNavCol() *tview.TextView {
+	return nil
+}
+
+// GetActionsCol returns nil (kept for backward compatibility)
+func (hm *HeaderManager) GetActionsCol() *tview.TextView {
+	return nil
 }
 
 // createEnhancedTextView creates an enhanced text view with border and title
@@ -154,65 +244,6 @@ func (hm *HeaderManager) createTableLayout(lines []string, align int, title stri
 	}
 
 	return flex
-}
-
-// UpdateAll updates all header content
-func (hm *HeaderManager) UpdateAll() {
-	if hm.headerFlex == nil {
-		return
-	}
-
-	// Get updated content
-	dockerInfo := hm.getDockerInfoText()
-	dockerLines := strings.Split(dockerInfo, "\n")
-
-	navigationInfo := hm.getNavigationText()
-	navigationLines := strings.Split(navigationInfo, "\n")
-
-	actionsInfo := hm.getActionsText()
-	actionsLines := strings.Split(actionsInfo, "\n")
-
-	logoInfo := hm.getLogoText()
-	logoLines := strings.Split(logoInfo, "\n")
-
-	// Update each view - handle both TextView and Grid types
-	if hm.headerFlex.GetItemCount() >= 4 {
-		// Update Docker view
-		switch item := hm.headerFlex.GetItem(0).(type) {
-		case *tview.TextView:
-			item.SetText(strings.Join(dockerLines, "\n"))
-		case *tview.Grid:
-			// For now, just update text if it's a grid (simplified approach)
-			// TODO: Implement proper grid recreation
-		}
-
-		// Update Navigation view
-		switch item := hm.headerFlex.GetItem(1).(type) {
-		case *tview.TextView:
-			item.SetText(strings.Join(navigationLines, "\n"))
-		case *tview.Grid:
-			// For now, just update text if it's a grid (simplified approach)
-			// TODO: Implement proper grid recreation
-		}
-
-		// Update Actions view
-		switch item := hm.headerFlex.GetItem(2).(type) {
-		case *tview.TextView:
-			item.SetText(strings.Join(actionsLines, "\n"))
-		case *tview.Grid:
-			// For now, just update text if it's a grid (simplified approach)
-			// TODO: Implement proper grid recreation
-		}
-
-		// Update Logo view
-		switch item := hm.headerFlex.GetItem(3).(type) {
-		case *tview.TextView:
-			item.SetText(strings.Join(logoLines, "\n"))
-		case *tview.Grid:
-			// For now, just update text if it's a grid (simplified approach)
-			// TODO: Implement proper grid recreation
-		}
-	}
 }
 
 // getDockerInfoText returns the formatted Docker info text
@@ -390,34 +421,4 @@ func (hm *HeaderManager) getDynamicViewNavigation() string {
 // getLogoText returns the logo text
 func (hm *HeaderManager) getLogoText() string {
 	return constants.WhaleTuiLogo
-}
-
-// UpdateDockerInfo updates the Docker info (kept for backward compatibility)
-func (hm *HeaderManager) UpdateDockerInfo() {
-	hm.UpdateAll()
-}
-
-// UpdateNavigation updates the navigation (kept for backward compatibility)
-func (hm *HeaderManager) UpdateNavigation() {
-	hm.UpdateAll()
-}
-
-// UpdateActions updates the actions (kept for backward compatibility)
-func (hm *HeaderManager) UpdateActions() {
-	hm.UpdateAll()
-}
-
-// GetDockerInfoCol returns nil (kept for backward compatibility)
-func (hm *HeaderManager) GetDockerInfoCol() *tview.TextView {
-	return nil
-}
-
-// GetNavCol returns nil (kept for backward compatibility)
-func (hm *HeaderManager) GetNavCol() *tview.TextView {
-	return nil
-}
-
-// GetActionsCol returns nil (kept for backward compatibility)
-func (hm *HeaderManager) GetActionsCol() *tview.TextView {
-	return nil
 }

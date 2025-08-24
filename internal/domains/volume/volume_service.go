@@ -14,7 +14,7 @@ type volumeService struct {
 
 // NewVolumeService creates a new volume service
 func NewVolumeService(client *docker.Client) interfaces.VolumeService {
-	base := shared.NewBaseService[Volume](client, "volume")
+	base := shared.NewBaseService[shared.Volume](client, "volume")
 
 	// Set up Docker-specific functions
 	base.ListFunc = func(client *docker.Client, ctx context.Context) ([]shared.Volume, error) {

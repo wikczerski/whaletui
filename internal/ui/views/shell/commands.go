@@ -1,3 +1,4 @@
+// Package shell provides shell command functionality for WhaleTUI.
 package shell
 
 import (

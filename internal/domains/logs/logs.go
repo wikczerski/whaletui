@@ -1,3 +1,4 @@
+// Package logs provides log viewing and management functionality for WhaleTUI.
 package logs
 
 import (

@@ -383,6 +383,18 @@ func (ui *UI) Refresh() {
 	ui.refreshCurrentView()
 }
 
+// CompleteInitialization completes the UI initialization after managers are set
+func (ui *UI) CompleteInitialization() error {
+	if ui.headerManager == nil || ui.modalManager == nil {
+		return fmt.Errorf("managers must be set before completing initialization")
+	}
+
+	ui.initComponents()
+	ui.setupKeyBindings()
+
+	return nil
+}
+
 // initializeManagers initializes all the UI managers and builders
 func (ui *UI) initializeManagers(themePath string) error {
 	ui.themeManager = config.NewThemeManager(themePath)
@@ -1134,16 +1146,4 @@ func (ui *UI) hasModalPages() bool {
 		ui.pages.HasPage("error_modal") ||
 		ui.pages.HasPage("confirm_modal") ||
 		ui.pages.HasPage("exec_output_modal")
-}
-
-// CompleteInitialization completes the UI initialization after managers are set
-func (ui *UI) CompleteInitialization() error {
-	if ui.headerManager == nil || ui.modalManager == nil {
-		return fmt.Errorf("managers must be set before completing initialization")
-	}
-
-	ui.initComponents()
-	ui.setupKeyBindings()
-
-	return nil
 }

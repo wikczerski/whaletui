@@ -1,3 +1,4 @@
+// Package network provides Docker network management functionality for WhaleTUI.
 package network
 
 import "github.com/wikczerski/whaletui/internal/shared"

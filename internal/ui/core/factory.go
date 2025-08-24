@@ -1,3 +1,4 @@
+// Package core provides core UI components and functionality for WhaleTUI.
 package core
 
 import (

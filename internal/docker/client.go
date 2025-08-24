@@ -1,3 +1,4 @@
+// Package docker provides Docker client functionality for WhaleTUI.
 package docker
 
 import (
@@ -19,6 +20,7 @@ import (
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/wikczerski/whaletui/internal/config"
+	"github.com/wikczerski/whaletui/internal/docker/dockerssh"
 	"github.com/wikczerski/whaletui/internal/logger"
 )
 
@@ -27,58 +29,8 @@ type Client struct {
 	cli     *client.Client
 	cfg     *config.Config
 	log     *slog.Logger
-	sshConn *SSHConnection
-	sshCtx  *SSHContext
-}
-
-// detectWindowsDockerHost attempts to find the correct Docker host on Windows
-func detectWindowsDockerHost(log *slog.Logger) (string, error) {
-	if runtime.GOOS != "windows" {
-		return "", fmt.Errorf("not on Windows")
-	}
-
-	// Common Windows Docker Desktop pipe paths
-	possibleHosts := []string{
-		"npipe:////./pipe/dockerDesktopLinuxEngine", // Linux containers
-		"npipe:////./pipe/docker_engine",            // Windows containers
-		"npipe:////./pipe/dockerDesktopEngine",      // Legacy Docker Desktop
-	}
-
-	for _, host := range possibleHosts {
-		if isHostWorking(host, log) {
-			return host, nil
-		}
-	}
-
-	return "", fmt.Errorf("no working Docker host found")
-}
-
-// isHostWorking tests if a Docker host is working
-func isHostWorking(host string, log *slog.Logger) bool {
-	opts := []client.Opt{
-		client.WithHost(host),
-		client.WithAPIVersionNegotiation(),
-		client.WithTimeout(5 * time.Second),
-	}
-
-	cli, err := client.NewClientWithOpts(opts...)
-	if err != nil {
-		return false
-	}
-	defer closeClientSafely(cli, log)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	_, err = cli.Ping(ctx)
-	return err == nil
-}
-
-// closeClientSafely closes a Docker client and logs any errors
-func closeClientSafely(cli *client.Client, log *slog.Logger) {
-	if err := cli.Close(); err != nil {
-		log.Warn("Failed to close Docker client during host detection", "error", err)
-	}
+	sshConn *dockerssh.SSHConnection
+	sshCtx  *dockerssh.SSHContext
 }
 
 // New creates a new Docker client
@@ -97,26 +49,6 @@ func New(cfg *config.Config) (*Client, error) {
 	return client, nil
 }
 
-// createDockerClient creates a Docker client with the given configuration
-func createDockerClient(cfg *config.Config, log *slog.Logger) (*Client, error) {
-	// For SSH connections, try direct connection first
-	if cfg.RemoteHost != "" && strings.HasPrefix(cfg.RemoteHost, "ssh://") {
-		return createSSHDockerClient(cfg, log)
-	}
-
-	opts, err := buildClientOptions(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	cli, err := client.NewClientWithOpts(opts...)
-	if err != nil {
-		return handleClientCreationError(cfg, log, err)
-	}
-
-	return testAndCreateClient(cfg, log, cli)
-}
-
 // createSSHDockerClient creates a Docker client via SSH connection
 func createSSHDockerClient(cfg *config.Config, log *slog.Logger) (*Client, error) {
 	log.Info("Attempting SSH connection for Docker client", "host", cfg.RemoteHost)
@@ -127,153 +59,9 @@ func createSSHDockerClient(cfg *config.Config, log *slog.Logger) (*Client, error
 		return nil, fmt.Errorf("failed to extract host from SSH URL: %w", err)
 	}
 
-	// First try to connect via SSH without socat
-	sshCtx, err := establishSSHConnection(host, cfg.RemoteUser, log)
-	if err != nil {
-		log.Warn("SSH connection without socat failed, trying with socat as fallback", "error", err)
-		return trySSHFallbackWithSocat(cfg, log, host)
-	}
-
-	// Try to create Docker client directly via SSH
-	cli, err := createDockerClientViaSSH(sshCtx, log)
-	if err != nil {
-		log.Warn("Direct SSH connection failed, trying socat fallback", "error", err)
-		sshCtx.Close()
-		return trySSHFallbackWithSocat(cfg, log, host)
-	}
-
-	client := &Client{
-		cli:    cli,
-		cfg:    cfg,
-		log:    log,
-		sshCtx: sshCtx,
-	}
-
-	log.Info("Successfully connected to remote Docker via SSH (direct)", "host", cfg.RemoteHost)
-	return client, nil
-}
-
-// buildClientOptions builds the client options based on configuration
-func buildClientOptions(cfg *config.Config) ([]client.Opt, error) {
-	var opts []client.Opt
-
-	if cfg.RemoteHost != "" {
-		// Check if this is an SSH connection
-		if strings.HasPrefix(cfg.RemoteHost, "ssh://") {
-			// For SSH connections, we'll handle this specially
-			// The Docker client will handle ssh:// URLs natively
-			opts = append(opts, client.WithHost(cfg.RemoteHost), client.WithTimeout(30*time.Second))
-		} else {
-			dockerHost, err := formatRemoteHost(cfg.RemoteHost)
-			if err != nil {
-				return nil, fmt.Errorf("invalid remote host format: %w", err)
-			}
-			opts = append(opts, client.WithHost(dockerHost), client.WithTimeout(30*time.Second))
-		}
-	} else if cfg.DockerHost != "" {
-		opts = append(opts, client.WithHost(cfg.DockerHost))
-	}
-
-	opts = append(opts,
-		client.WithAPIVersionNegotiation(),
-		client.WithTimeout(10*time.Second),
-	)
-
-	return opts, nil
-}
-
-// formatRemoteHost formats and validates a remote host URL
-func formatRemoteHost(host string) (string, error) {
-	// Handle SSH URLs - they should be passed through as-is
-	if strings.HasPrefix(host, "ssh://") {
-		return host, nil
-	}
-
-	if err := validateRemoteHost(host); err != nil {
-		return "", err
-	}
-
-	// Automatically add tcp:// prefix if user didn't provide a scheme
-	if !strings.Contains(host, "://") {
-		host = "tcp://" + host
-	}
-
-	return host, nil
-}
-
-// handleClientCreationError handles errors during client creation, including Windows auto-detection
-func handleClientCreationError(cfg *config.Config, log *slog.Logger, err error) (*Client, error) {
-	if runtime.GOOS == "windows" && cfg.RemoteHost == "" {
-		return tryWindowsAutoDetection(cfg, log)
-	}
-	return nil, fmt.Errorf("failed to create Docker client: %w", err)
-}
-
-// tryWindowsAutoDetection attempts to auto-detect the correct Docker host on Windows
-func tryWindowsAutoDetection(cfg *config.Config, log *slog.Logger) (*Client, error) {
-	log.Warn("Docker client creation failed, attempting to auto-detect correct host...")
-
-	detectedHost, detectErr := detectWindowsDockerHost(log)
-	if detectErr != nil {
-		return nil, fmt.Errorf("failed to create Docker client: %w", detectErr)
-	}
-
-	log.Info("Detected working Docker host", "host", detectedHost)
-	return createClientWithHost(cfg, log, detectedHost)
-}
-
-// createClientWithHost creates a client with a specific host
-func createClientWithHost(cfg *config.Config, log *slog.Logger, host string) (*Client, error) {
-	detectedOpts := []client.Opt{
-		client.WithHost(host),
-		client.WithAPIVersionNegotiation(),
-		client.WithTimeout(10 * time.Second),
-	}
-
-	detectedCli, detectedErr := client.NewClientWithOpts(detectedOpts...)
-	if detectedErr != nil {
-		return nil, fmt.Errorf("failed to create Docker client with detected host: %w", detectedErr)
-	}
-
-	return testAndCreateClient(cfg, log, detectedCli)
-}
-
-// testAndCreateClient tests the connection and creates the client
-func testAndCreateClient(cfg *config.Config, log *slog.Logger, cli *client.Client) (*Client, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if _, err := cli.Ping(ctx); err != nil {
-		if closeErr := cli.Close(); closeErr != nil {
-			log.Warn("Failed to close Docker client", "error", closeErr)
-		}
-
-		// If this is a remote host and direct connection failed, try SSH fallback
-		// Only try SSH fallback if it's not already an SSH connection
-		if cfg.RemoteHost != "" && !strings.HasPrefix(cfg.RemoteHost, "ssh://") {
-			return trySSHFallback(cfg, log)
-		}
-
-		return nil, fmt.Errorf("failed to connect to Docker: %w", err)
-	}
-
-	client := &Client{
-		cli: cli,
-		cfg: cfg,
-		log: log,
-	}
-
-	logConnectionSuccess(cfg, log)
-	return client, nil
-}
-
-// logConnectionSuccess logs the successful connection
-func logConnectionSuccess(cfg *config.Config, log *slog.Logger) {
-	if cfg.RemoteHost != "" {
-		log.Info("Successfully connected to remote Docker host", "host", cfg.RemoteHost)
-	} else {
-		log.Info("Successfully connected to local Docker instance")
-	}
+	// Since direct SSH connection is not yet implemented, use socat fallback
+	log.Info("Direct SSH connection not yet implemented, using socat fallback")
+	return trySSHFallbackWithSocat(cfg, log, host)
 }
 
 // Close closes the Docker client and cleans up SSH connections
@@ -318,374 +106,125 @@ func (c *Client) Close() error {
 	return nil
 }
 
-// trySSHFallback attempts to connect via SSH when direct connection fails
-func trySSHFallback(cfg *config.Config, log *slog.Logger) (*Client, error) {
-	log.Info("Direct connection failed, attempting SSH fallback...")
-
-	host, err := extractHostFromURL(cfg.RemoteHost)
+// marshalToMap converts any value to a map[string]any using JSON marshaling
+func marshalToMap(v any) (map[string]any, error) {
+	data, err := json.Marshal(v)
 	if err != nil {
-		return nil, fmt.Errorf("SSH connection failed: %w", err)
+		return nil, fmt.Errorf("marshal failed: %w", err)
 	}
 
-	// First try to connect via SSH without socat
-	sshCtx, err := establishSSHConnection(host, cfg.RemoteUser, log)
-	if err != nil {
-		log.Warn("SSH connection without socat failed, trying with socat as fallback", "error", err)
-		return trySSHFallbackWithSocat(cfg, log, host)
+	var result map[string]any
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, fmt.Errorf("unmarshal failed: %w", err)
 	}
 
-	// Try to create Docker client directly via SSH
-	cli, err := createDockerClientViaSSH(sshCtx, log)
-	if err != nil {
-		log.Warn("Direct SSH connection failed, trying socat fallback", "error", err)
-		sshCtx.Close()
-		return trySSHFallbackWithSocat(cfg, log, host)
-	}
-
-	client := &Client{
-		cli:    cli,
-		cfg:    cfg,
-		log:    log,
-		sshCtx: sshCtx,
-	}
-
-	log.Info("Successfully connected to remote Docker via SSH (direct)", "host", cfg.RemoteHost)
-	return client, nil
+	return result, nil
 }
 
-// trySSHFallbackWithSocat attempts to connect via SSH with socat as a last resort
-func trySSHFallbackWithSocat(cfg *config.Config, log *slog.Logger, host string) (*Client, error) {
-	log.Info("Attempting SSH connection with socat fallback...")
+// formatSize formats a size in bytes to a human-readable string
+func formatSize(size int64) string {
+	const (
+		KB int64 = 1024
+		MB int64 = KB * 1024
+		GB int64 = MB * 1024
+		TB int64 = GB * 1024
+	)
 
-	sshConn, err := establishSSHConnectionWithSocat(host, cfg.RemoteUser, log)
-	if err != nil {
-		return nil, fmt.Errorf("SSH connection with socat failed: %w", err)
+	var (
+		unit  string
+		value float64
+	)
+
+	switch {
+	case size >= TB:
+		unit = "TB"
+		value = float64(size) / float64(TB)
+	case size >= GB:
+		unit = "GB"
+		value = float64(size) / float64(GB)
+	case size >= MB:
+		unit = "MB"
+		value = float64(size) / float64(MB)
+	case size >= KB:
+		unit = "KB"
+		value = float64(size) / float64(KB)
+	default:
+		unit = "B"
+		value = float64(size)
 	}
 
-	cli, err := createDockerClientViaSSHProxy(sshConn, log)
-	if err != nil {
-		sshConn.Close()
-		return nil, fmt.Errorf("SSH connection with socat failed: %w", err)
-	}
-
-	client := &Client{
-		cli:     cli,
-		cfg:     cfg,
-		log:     log,
-		sshConn: sshConn,
-	}
-
-	log.Info("Successfully connected to remote Docker via SSH (socat fallback)", "host", cfg.RemoteHost)
-	return client, nil
+	return fmt.Sprintf("%.2f %s", value, unit)
 }
 
-// establishSSHConnection establishes an SSH connection to the remote host without socat
-func establishSSHConnection(host, username string, log *slog.Logger) (*SSHContext, error) {
-	log.Info("Attempting SSH connection without socat", "host", host, "user", username)
-	log.Info("Note: SSH key-based authentication required (no password will be provided)")
-
-	// Format the host with username for SSH connection
-	var sshHost string
-	if username != "" {
-		sshHost = fmt.Sprintf("%s@%s", username, host)
-	} else {
-		sshHost = host
+// detectWindowsDockerHost attempts to find the correct Docker host on Windows
+func detectWindowsDockerHost(log *slog.Logger) (string, error) {
+	if runtime.GOOS != "windows" {
+		return "", fmt.Errorf("not on Windows")
 	}
 
-	sshClient, err := NewSSHClient(sshHost, 22) // Default SSH port
-	if err != nil {
-		return nil, fmt.Errorf("failed to create SSH client: %w", err)
+	possibleHosts := getWindowsDockerHosts()
+	for _, host := range possibleHosts {
+		if isHostWorking(host, log) {
+			return host, nil
+		}
 	}
 
-	// Connect without socat
-	sshCtx, err := sshClient.Connect()
-	if err != nil {
-		return nil, fmt.Errorf("failed to establish SSH connection: %w", err)
-	}
-
-	log.Info("SSH connection established without socat", "host", host)
-	return sshCtx, nil
+	return "", fmt.Errorf("no working Docker host found")
 }
 
-// establishSSHConnectionWithSocat establishes an SSH connection to the remote host with socat
-func establishSSHConnectionWithSocat(host, username string, log *slog.Logger) (*SSHConnection, error) {
-	log.Info("Attempting SSH connection with socat", "host", host, "user", username)
-	log.Info("Note: SSH key-based authentication required (no password will be provided)")
-
-	// Format the host with username for SSH connection
-	var sshHost string
-	if username != "" {
-		sshHost = fmt.Sprintf("%s@%s", username, host)
-	} else {
-		sshHost = host
+// getWindowsDockerHosts returns the list of possible Windows Docker host paths
+func getWindowsDockerHosts() []string {
+	return []string{
+		"npipe:////./pipe/dockerDesktopLinuxEngine", // Linux containers
+		"npipe:////./pipe/docker_engine",            // Windows containers
+		"npipe:////./pipe/dockerDesktopEngine",      // Legacy Docker Desktop
 	}
-
-	sshClient, err := NewSSHClient(sshHost, 22) // Default SSH port
-	if err != nil {
-		return nil, fmt.Errorf("failed to create SSH client: %w", err)
-	}
-
-	// Pass port 0 to trigger dynamic port finding in the SSH client
-	sshConn, err := sshClient.ConnectWithSocat(0)
-	if err != nil {
-		return nil, fmt.Errorf("failed to establish SSH connection: %w", err)
-	}
-
-	localProxyHost := sshConn.GetLocalProxyHost()
-	log.Info("SSH connection established with socat proxy", "host", localProxyHost)
-
-	return sshConn, nil
 }
 
-// createDockerClientViaSSH creates a Docker client using direct SSH connection
-func createDockerClientViaSSH(sshCtx *SSHContext, _ *slog.Logger) (*client.Client, error) {
-	// For direct SSH connection, we need to use the ssh:// URL format
-	// This requires the Docker client to have SSH support built-in
-	sshURL := fmt.Sprintf("ssh://%s", sshCtx.remoteHost)
+// isHostWorking tests if a Docker host is working
+func isHostWorking(host string, log *slog.Logger) bool {
+	cli, err := createTestClient(host)
+	if err != nil {
+		return false
+	}
+	defer closeClientSafely(cli, log)
 
+	return testClientConnection(cli)
+}
+
+// createTestClient creates a Docker client for testing host connectivity
+func createTestClient(host string) (*client.Client, error) {
 	opts := []client.Opt{
-		client.WithHost(sshURL),
+		client.WithHost(host),
 		client.WithAPIVersionNegotiation(),
-		client.WithTimeout(30 * time.Second),
+		client.WithTimeout(5 * time.Second),
 	}
 
-	cli, err := client.NewClientWithOpts(opts...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Docker client via SSH: %w", err)
-	}
+	return client.NewClientWithOpts(opts...)
+}
 
-	// Test the connection
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+// testClientConnection tests if the Docker client can connect successfully
+func testClientConnection(cli *client.Client) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if _, err := cli.Ping(ctx); err != nil {
-		cli.Close()
-		return nil, fmt.Errorf("failed to connect to Docker via SSH: %w", err)
-	}
-
-	return cli, nil
+	_, err := cli.Ping(ctx)
+	return err == nil
 }
 
-// createDockerClientViaSSHProxy creates a Docker client using the SSH proxy
-func createDockerClientViaSSHProxy(sshConn *SSHConnection, _ *slog.Logger) (*client.Client, error) {
-	localProxyHost := sshConn.GetLocalProxyHost()
-
-	opts := []client.Opt{
-		client.WithHost(localProxyHost),
-		client.WithAPIVersionNegotiation(),
-		client.WithTimeout(30 * time.Second),
+// closeClientSafely closes a Docker client and logs any errors
+func closeClientSafely(cli *client.Client, log *slog.Logger) {
+	if err := cli.Close(); err != nil {
+		log.Warn("Failed to close Docker client during host detection", "error", err)
 	}
-
-	cli, err := client.NewClientWithOpts(opts...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Docker client via SSH proxy: %w", err)
-	}
-
-	// Test the connection
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if _, err := cli.Ping(ctx); err != nil {
-		cli.Close()
-		return nil, fmt.Errorf("failed to connect to Docker via SSH proxy: %w", err)
-	}
-
-	return cli, nil
-}
-
-// extractHostFromURL extracts the hostname from a Docker host URL
-func extractHostFromURL(hostURL string) (string, error) {
-	// Handle SSH URLs specially
-	if strings.HasPrefix(hostURL, "ssh://") {
-		// For SSH URLs, extract the hostname from ssh://[user@]host[:port]
-		sshHost := hostURL[6:] // Remove "ssh://" prefix
-		return extractSSHHostname(sshHost)
-	}
-
-	if strings.Contains(hostURL, "://") {
-		parts := strings.Split(hostURL, "://")
-		if len(parts) != 2 {
-			return "", fmt.Errorf("invalid host URL format: %s", hostURL)
-		}
-		hostURL = parts[1]
-	}
-
-	// Extract hostname (remove port if present)
-	if strings.Contains(hostURL, ":") {
-		parts := strings.Split(hostURL, ":")
-		if len(parts) != 2 {
-			return "", fmt.Errorf("invalid host:port format: %s", hostURL)
-		}
-		hostURL = parts[0]
-	}
-
-	// Basic hostname validation
-	if hostURL == "" {
-		return "", fmt.Errorf("hostname cannot be empty")
-	}
-
-	// Check for common invalid hostname patterns
-	if strings.HasPrefix(hostURL, ".") || strings.HasSuffix(hostURL, ".") {
-		return "", fmt.Errorf("hostname '%s' cannot start or end with a dot", hostURL)
-	}
-
-	if strings.Contains(hostURL, "..") {
-		return "", fmt.Errorf("hostname '%s' cannot contain consecutive dots", hostURL)
-	}
-
-	return hostURL, nil
-}
-
-// extractSSHHostname extracts the hostname from an SSH host string
-func extractSSHHostname(sshHost string) (string, error) {
-	if sshHost == "" {
-		return "", fmt.Errorf("SSH host cannot be empty")
-	}
-
-	// SSH host format: [user@]host[:port]
-	hostname := sshHost
-
-	// Remove username part if present
-	if strings.Contains(hostname, "@") {
-		parts := strings.Split(hostname, "@")
-		if len(parts) != 2 {
-			return "", fmt.Errorf("invalid SSH host format: expected [user@]host[:port]")
-		}
-		if parts[0] == "" {
-			return "", fmt.Errorf("username cannot be empty in SSH host format")
-		}
-		hostname = parts[1]
-	}
-
-	// Remove port part if present
-	if strings.Contains(hostname, ":") {
-		parts := strings.Split(hostname, ":")
-		if len(parts) != 2 {
-			return "", fmt.Errorf("invalid SSH host format: expected [user@]host[:port]")
-		}
-		if parts[1] == "" {
-			return "", fmt.Errorf("port cannot be empty in SSH host format")
-		}
-		hostname = parts[0]
-	}
-
-	// Validate hostname
-	if hostname == "" {
-		return "", fmt.Errorf("hostname cannot be empty in SSH host format")
-	}
-
-	// Basic hostname validation
-	if strings.HasPrefix(hostname, ".") || strings.HasSuffix(hostname, ".") {
-		return "", fmt.Errorf("hostname '%s' cannot start or end with a dot", hostname)
-	}
-
-	if strings.Contains(hostname, "..") {
-		return "", fmt.Errorf("hostname '%s' cannot contain consecutive dots", hostname)
-	}
-
-	return hostname, nil
-}
-
-// validateRemoteHost validates the format of a remote Docker host
-func validateRemoteHost(host string) error {
-	if host == "" {
-		return fmt.Errorf("host cannot be empty")
-	}
-
-	// Check if user provided a scheme
-	if strings.Contains(host, "://") {
-		// Support both tcp:// and ssh:// schemes
-		switch {
-		case strings.HasPrefix(host, "ssh://"):
-			// SSH URLs are handled by the Docker client natively
-			// Format: ssh://[user@]host[:port]
-			return validateSSHHost(host[6:]) // Remove "ssh://" prefix
-		case strings.HasPrefix(host, "tcp://"):
-			// Remove scheme for further validation
-			host = host[6:] // "tcp://" is 6 characters
-		default:
-			return fmt.Errorf("only tcp:// and ssh:// schemes are supported (e.g., tcp://192.168.1.100 or ssh://user@host)")
-		}
-	}
-
-	// Validate hostname part
-	if host == "" {
-		return fmt.Errorf("hostname cannot be empty")
-	}
-
-	// If port is specified in host, validate it
-	if strings.Contains(host, ":") {
-		parts := strings.Split(host, ":")
-		if len(parts) != 2 {
-			return fmt.Errorf("invalid host:port format")
-		}
-
-		// Validate port is numeric
-		if parts[1] == "" {
-			return fmt.Errorf("port cannot be empty")
-		}
-	}
-
-	return nil
-}
-
-// validateSSHHost validates the format of an SSH host string
-func validateSSHHost(host string) error {
-	if host == "" {
-		return fmt.Errorf("SSH host cannot be empty")
-	}
-
-	// SSH host format: [user@]host[:port]
-	// Extract hostname part (remove user@ and :port)
-	hostname := host
-
-	// Remove username part if present
-	if strings.Contains(hostname, "@") {
-		parts := strings.Split(hostname, "@")
-		if len(parts) != 2 {
-			return fmt.Errorf("invalid SSH host format: expected [user@]host[:port]")
-		}
-		if parts[0] == "" {
-			return fmt.Errorf("username cannot be empty in SSH host format")
-		}
-		hostname = parts[1]
-	}
-
-	// Remove port part if present
-	if strings.Contains(hostname, ":") {
-		parts := strings.Split(hostname, ":")
-		if len(parts) != 2 {
-			return fmt.Errorf("invalid SSH host format: expected [user@]host[:port]")
-		}
-		hostname = parts[0]
-		if parts[1] == "" {
-			return fmt.Errorf("port cannot be empty in SSH host format")
-		}
-		// Validate port is numeric
-		if _, err := fmt.Sscanf(parts[1], "%d", new(int)); err != nil {
-			return fmt.Errorf("invalid port in SSH host format: port must be numeric")
-		}
-	}
-
-	// Validate hostname
-	if hostname == "" {
-		return fmt.Errorf("hostname cannot be empty in SSH host format")
-	}
-
-	// Basic hostname validation
-	if strings.HasPrefix(hostname, ".") || strings.HasSuffix(hostname, ".") {
-		return fmt.Errorf("hostname '%s' cannot start or end with a dot", hostname)
-	}
-
-	if strings.Contains(hostname, "..") {
-		return fmt.Errorf("hostname '%s' cannot contain consecutive dots", hostname)
-	}
-
-	return nil
 }
 
 // GetInfo retrieves Docker system information
 func (c *Client) GetInfo(ctx context.Context) (map[string]any, error) {
+	if c.cli == nil {
+		return nil, fmt.Errorf("Docker client not initialized")
+	}
+
 	info, err := c.cli.Info(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("docker info failed: %w", err)
@@ -695,6 +234,10 @@ func (c *Client) GetInfo(ctx context.Context) (map[string]any, error) {
 
 // InspectContainer inspects a container
 func (c *Client) InspectContainer(ctx context.Context, id string) (map[string]any, error) {
+	if c.cli == nil {
+		return nil, fmt.Errorf("Docker client not initialized")
+	}
+
 	container, err := c.cli.ContainerInspect(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("container inspect failed %s: %w", id, err)
@@ -705,6 +248,10 @@ func (c *Client) InspectContainer(ctx context.Context, id string) (map[string]an
 
 // GetContainerLogs retrieves container logs
 func (c *Client) GetContainerLogs(ctx context.Context, id string) (string, error) {
+	if c.cli == nil {
+		return "", fmt.Errorf("Docker client not initialized")
+	}
+
 	logs, err := c.cli.ContainerLogs(ctx, id, container.LogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
@@ -715,37 +262,13 @@ func (c *Client) GetContainerLogs(ctx context.Context, id string) (string, error
 	if err != nil {
 		return "", fmt.Errorf("container logs failed %s: %w", id, err)
 	}
-	defer logs.Close()
+	defer func() {
+		if err := logs.Close(); err != nil {
+			c.log.Warn("Failed to close logs", "error", err)
+		}
+	}()
 
 	return c.readAndFormatLogs(logs), nil
-}
-
-// readAndFormatLogs reads logs from the response and formats them
-func (c *Client) readAndFormatLogs(logs io.ReadCloser) string {
-	var logLines []string
-	buffer := make([]byte, 1024)
-
-	for {
-		n, err := logs.Read(buffer)
-		if n > 0 {
-			line := string(buffer[:n])
-			formattedLine := c.formatLogLine(line)
-			logLines = append(logLines, formattedLine)
-		}
-		if err != nil {
-			break
-		}
-	}
-
-	return strings.Join(logLines, "")
-}
-
-// formatLogLine formats a single log line by removing timestamp prefix if present
-func (c *Client) formatLogLine(line string) string {
-	if len(line) >= 8 {
-		return line[8:] // Remove timestamp prefix
-	}
-	return line
 }
 
 // InspectImage inspects an image
@@ -790,6 +313,10 @@ func (c *Client) InspectNetwork(ctx context.Context, id string) (map[string]any,
 
 // ListContainers lists all containers
 func (c *Client) ListContainers(ctx context.Context, all bool) ([]Container, error) {
+	if c.cli == nil {
+		return nil, fmt.Errorf("Docker client not initialized")
+	}
+
 	opts := container.ListOptions{
 		All: all,
 	}
@@ -851,18 +378,13 @@ func (c *Client) GetContainerStats(ctx context.Context, id string) (map[string]a
 	if err != nil {
 		return nil, fmt.Errorf("failed to get container stats: %w", err)
 	}
-	defer stats.Body.Close()
+	defer func() {
+		if err := stats.Body.Close(); err != nil {
+			c.log.Warn("Failed to close stats body", "error", err)
+		}
+	}()
 
 	return c.decodeStatsResponse(stats.Body)
-}
-
-// decodeStatsResponse decodes the stats response body into a map
-func (c *Client) decodeStatsResponse(body io.ReadCloser) (map[string]any, error) {
-	var statsJSON map[string]any
-	if err := json.NewDecoder(body).Decode(&statsJSON); err != nil {
-		return nil, fmt.Errorf("failed to decode container stats: %w", err)
-	}
-	return statsJSON, nil
 }
 
 // ListImages lists all images
@@ -929,22 +451,6 @@ func (c *Client) ListVolumes(ctx context.Context) ([]Volume, error) {
 
 	sortVolumesByName(result)
 	return result, nil
-}
-
-// createVolumeFromAPI creates a Volume from the API response
-func (c *Client) createVolumeFromAPI(vol *volume.Volume) Volume {
-	created := time.Time{}
-	if vol.CreatedAt != "" {
-		created, _ = time.Parse(time.RFC3339, vol.CreatedAt)
-	}
-
-	return Volume{
-		Name:       vol.Name,
-		Driver:     vol.Driver,
-		Mountpoint: vol.Mountpoint,
-		Created:    created,
-		Size:       "", // Size is not available in VolumeList
-	}
 }
 
 // sortVolumesByName sorts volumes by name
@@ -1034,62 +540,6 @@ func (c *Client) ExecContainer(ctx context.Context, id string, command []string,
 	}
 
 	return output, nil
-}
-
-// createExecInstance creates an exec instance in the container
-func (c *Client) createExecInstance(ctx context.Context, id string, command []string) (*container.ExecCreateResponse, error) {
-	execConfig := container.ExecOptions{
-		Cmd:          command,
-		Tty:          false, // Set to false to capture output
-		AttachStdin:  false, // We don't need stdin for command execution
-		AttachStdout: true,
-		AttachStderr: true,
-		Detach:       false,
-	}
-
-	execResp, err := c.cli.ContainerExecCreate(ctx, id, execConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create exec instance: %w", err)
-	}
-
-	return &execResp, nil
-}
-
-// executeAndCollectOutput executes the exec instance and collects the output
-func (c *Client) executeAndCollectOutput(ctx context.Context, execID string) (string, error) {
-	attachConfig := container.ExecStartOptions{
-		Tty: false,
-	}
-
-	hijackedResp, err := c.cli.ContainerExecAttach(ctx, execID, attachConfig)
-	if err != nil {
-		return "", fmt.Errorf("failed to attach to exec instance: %w", err)
-	}
-	defer hijackedResp.Close()
-
-	if err := c.cli.ContainerExecStart(ctx, execID, attachConfig); err != nil {
-		return "", fmt.Errorf("failed to start exec instance: %w", err)
-	}
-
-	return c.readExecOutput(hijackedResp), nil
-}
-
-// readExecOutput reads the output from the hijacked response
-func (c *Client) readExecOutput(hijackedResp types.HijackedResponse) string {
-	var output strings.Builder
-	buffer := make([]byte, 1024)
-
-	for {
-		n, err := hijackedResp.Reader.Read(buffer)
-		if n > 0 {
-			output.Write(buffer[:n])
-		}
-		if err != nil {
-			break
-		}
-	}
-
-	return output.String()
 }
 
 // AttachContainer attaches to a running container
@@ -1242,7 +692,11 @@ func (c *Client) GetSwarmServiceLogs(ctx context.Context, id string) (string, er
 	if err != nil {
 		return "", fmt.Errorf("failed to get logs for swarm service %s: %w", id, err)
 	}
-	defer response.Close()
+	defer func() {
+		if err := response.Close(); err != nil {
+			c.log.Warn("Failed to close response", "error", err)
+		}
+	}()
 
 	output := &strings.Builder{}
 	buffer := make([]byte, 1024)
@@ -1350,4 +804,113 @@ func (c *Client) validateClient() error {
 		return fmt.Errorf("docker client is not initialized")
 	}
 	return nil
+}
+
+// readAndFormatLogs reads logs from the response and formats them
+func (c *Client) readAndFormatLogs(logs io.ReadCloser) string {
+	var logLines []string
+	buffer := make([]byte, 1024)
+
+	for {
+		n, err := logs.Read(buffer)
+		if n > 0 {
+			line := string(buffer[:n])
+			formattedLine := c.formatLogLine(line)
+			logLines = append(logLines, formattedLine)
+		}
+		if err != nil {
+			break
+		}
+	}
+
+	return strings.Join(logLines, "")
+}
+
+// formatLogLine formats a single log line by removing timestamp prefix if present
+func (c *Client) formatLogLine(line string) string {
+	if len(line) >= 8 {
+		return line[8:] // Remove timestamp prefix
+	}
+	return line
+}
+
+// decodeStatsResponse decodes the stats response body into a map
+func (c *Client) decodeStatsResponse(body io.ReadCloser) (map[string]any, error) {
+	var statsJSON map[string]any
+	if err := json.NewDecoder(body).Decode(&statsJSON); err != nil {
+		return nil, fmt.Errorf("failed to decode container stats: %w", err)
+	}
+	return statsJSON, nil
+}
+
+// createVolumeFromAPI creates a Volume from the API response
+func (c *Client) createVolumeFromAPI(vol *volume.Volume) Volume {
+	created := time.Time{}
+	if vol.CreatedAt != "" {
+		created, _ = time.Parse(time.RFC3339, vol.CreatedAt)
+	}
+
+	return Volume{
+		Name:       vol.Name,
+		Driver:     vol.Driver,
+		Mountpoint: vol.Mountpoint,
+		Created:    created,
+		Size:       "", // Size is not available in VolumeList
+	}
+}
+
+// createExecInstance creates an exec instance in the container
+func (c *Client) createExecInstance(ctx context.Context, id string, command []string) (*container.ExecCreateResponse, error) {
+	execConfig := container.ExecOptions{
+		Cmd:          command,
+		Tty:          false, // Set to false to capture output
+		AttachStdin:  false, // We don't need stdin for command execution
+		AttachStdout: true,
+		AttachStderr: true,
+		Detach:       false,
+	}
+
+	execResp, err := c.cli.ContainerExecCreate(ctx, id, execConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create exec instance: %w", err)
+	}
+
+	return &execResp, nil
+}
+
+// executeAndCollectOutput executes the exec instance and collects the output
+func (c *Client) executeAndCollectOutput(ctx context.Context, execID string) (string, error) {
+	attachConfig := container.ExecStartOptions{
+		Tty: false,
+	}
+
+	hijackedResp, err := c.cli.ContainerExecAttach(ctx, execID, attachConfig)
+	if err != nil {
+		return "", fmt.Errorf("failed to attach to exec instance: %w", err)
+	}
+	defer hijackedResp.Close()
+
+	if err := c.cli.ContainerExecStart(ctx, execID, attachConfig); err != nil {
+		return "", fmt.Errorf("failed to start exec instance: %w", err)
+	}
+
+	return c.readExecOutput(hijackedResp), nil
+}
+
+// readExecOutput reads the output from the hijacked response
+func (c *Client) readExecOutput(hijackedResp types.HijackedResponse) string {
+	var output strings.Builder
+	buffer := make([]byte, 1024)
+
+	for {
+		n, err := hijackedResp.Reader.Read(buffer)
+		if n > 0 {
+			output.Write(buffer[:n])
+		}
+		if err != nil {
+			break
+		}
+	}
+
+	return output.String()
 }

@@ -16,7 +16,7 @@ type containerService struct {
 
 // NewContainerService creates a new container service
 func NewContainerService(client *docker.Client) interfaces.ContainerService {
-	base := shared.NewBaseService[Container](client, "container")
+	base := shared.NewBaseService[shared.Container](client, "container")
 	ops := shared.NewCommonOperations(client)
 
 	base.ListFunc = func(client *docker.Client, ctx context.Context) ([]shared.Container, error) {

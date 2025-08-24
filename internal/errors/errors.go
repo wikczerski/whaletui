@@ -1,3 +1,4 @@
+// Package errors provides error handling and custom error types for WhaleTUI.
 package errors
 
 import "fmt"
@@ -8,20 +9,20 @@ type DockerError struct {
 	Err       error
 }
 
-func (e *DockerError) Error() string {
-	return fmt.Sprintf("%s failed: %v", e.Operation, e.Err)
-}
-
-func (e *DockerError) Unwrap() error {
-	return e.Err
-}
-
 // NewDockerError creates a new Docker error
 func NewDockerError(operation string, err error) *DockerError {
 	return &DockerError{
 		Operation: operation,
 		Err:       err,
 	}
+}
+
+func (e *DockerError) Error() string {
+	return fmt.Sprintf("%s failed: %v", e.Operation, e.Err)
+}
+
+func (e *DockerError) Unwrap() error {
+	return e.Err
 }
 
 // ConnectionError creates a connection error
@@ -54,13 +55,13 @@ type ConfigError struct {
 	Message string
 }
 
-func (e *ConfigError) Error() string {
-	return e.Message
-}
-
 // NewConfigError creates a new configuration error
 func NewConfigError(message string) *ConfigError {
 	return &ConfigError{Message: message}
+}
+
+func (e *ConfigError) Error() string {
+	return e.Message
 }
 
 // UIError represents a UI-related error
@@ -69,18 +70,18 @@ type UIError struct {
 	Err       error
 }
 
-func (e *UIError) Error() string {
-	return fmt.Sprintf("%s failed: %v", e.Operation, e.Err)
-}
-
-func (e *UIError) Unwrap() error {
-	return e.Err
-}
-
 // NewUIError creates a new UI error
 func NewUIError(operation string, err error) *UIError {
 	return &UIError{
 		Operation: operation,
 		Err:       err,
 	}
+}
+
+func (e *UIError) Error() string {
+	return fmt.Sprintf("%s failed: %v", e.Operation, e.Err)
+}
+
+func (e *UIError) Unwrap() error {
+	return e.Err
 }

@@ -89,10 +89,12 @@ func NewBaseView[T any](ui UIInterface, viewName string, headers []string) *Base
 	return bv
 }
 
+// GetView returns the underlying tview.Primitive view component
 func (bv *BaseView[T]) GetView() tview.Primitive {
 	return bv.view
 }
 
+// GetUI returns the UI interface for this view
 func (bv *BaseView[T]) GetUI() UIInterface {
 	return bv.ui
 }
@@ -127,6 +129,7 @@ func (bv *BaseView[T]) GetSelectedItem() *T {
 	return &item
 }
 
+// Refresh updates the view by fetching and displaying the latest items
 func (bv *BaseView[T]) Refresh() {
 	if bv.ListItems == nil {
 		return
@@ -141,6 +144,7 @@ func (bv *BaseView[T]) Refresh() {
 	bv.updateItemsAndTable(items)
 }
 
+// ShowItemDetails displays detailed information about a selected item
 func (bv *BaseView[T]) ShowItemDetails(item T, inspectData map[string]any, err error) {
 	actions := bv.getActionsForItem()
 
@@ -152,6 +156,7 @@ func (bv *BaseView[T]) ShowItemDetails(item T, inspectData map[string]any, err e
 	bv.showSuccessDetails(item, inspectData, actions)
 }
 
+// ShowConfirmDialog displays a confirmation dialog with the given message and callback
 func (bv *BaseView[T]) ShowConfirmDialog(message string, onConfirm func()) {
 	bv.ui.ShowConfirm(message, func(confirmed bool) {
 		if confirmed {

@@ -1,11 +1,14 @@
+// Package logger provides structured logging functionality for the WhaleTUI application.
 package logger
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -75,7 +78,10 @@ func SetLevelWithPath(level, logFilePath string) {
 
 	// Close existing log file if any
 	if logFile != nil {
-		logFile.Close()
+		if err := logFile.Close(); err != nil {
+			// Log the error but continue since this is cleanup
+			fmt.Fprintf(os.Stderr, "Failed to close log file: %v\n", err)
+		}
 		logFile = nil
 	}
 
@@ -110,9 +116,17 @@ func createMultistreamHandler(level slog.Level, logFilePath string) slog.Handler
 		logFilePath = "./logs/whaletui.log"
 	}
 
+	// Validate logFilePath to prevent directory traversal
+	if !filepath.IsAbs(logFilePath) || !strings.HasPrefix(filepath.Clean(logFilePath), filepath.Clean(filepath.Dir(logFilePath))) {
+		// Fallback to discard if path is invalid
+		return slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
+			Level: level,
+		})
+	}
+
 	// Create logs directory if it doesn't exist
 	logsDir := filepath.Dir(logFilePath)
-	if err := os.MkdirAll(logsDir, 0o755); err != nil {
+	if err := os.MkdirAll(logsDir, 0o750); err != nil {
 		// Fallback to discard if directory creation fails
 		return slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
 			Level: level,
@@ -120,7 +134,7 @@ func createMultistreamHandler(level slog.Level, logFilePath string) slog.Handler
 	}
 
 	// Open log file
-	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err != nil {
 		// Fallback to discard if file creation fails
 		return slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
@@ -156,9 +170,17 @@ func createFileOnlyHandler(level slog.Level, logFilePath string) slog.Handler {
 		logFilePath = "./logs/whaletui.log"
 	}
 
+	// Validate logFilePath to prevent directory traversal
+	if !filepath.IsAbs(logFilePath) || !strings.HasPrefix(filepath.Clean(logFilePath), filepath.Clean(filepath.Dir(logFilePath))) {
+		// Fallback to discard if path is invalid
+		return slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
+			Level: level,
+		})
+	}
+
 	// Create logs directory if it doesn't exist
 	logsDir := filepath.Dir(logFilePath)
-	if err := os.MkdirAll(logsDir, 0o755); err != nil {
+	if err := os.MkdirAll(logsDir, 0o750); err != nil {
 		// Fallback to discard if directory creation fails
 		return slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
 			Level: level,
@@ -166,7 +188,7 @@ func createFileOnlyHandler(level slog.Level, logFilePath string) slog.Handler {
 	}
 
 	// Open log file
-	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err != nil {
 		// Fallback to discard if file creation fails
 		return slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
@@ -186,7 +208,10 @@ func createFileOnlyHandler(level slog.Level, logFilePath string) slog.Handler {
 // CloseLogFile closes the log file if it's open
 func CloseLogFile() {
 	if logFile != nil {
-		logFile.Close()
+		if err := logFile.Close(); err != nil {
+			// Log the error but continue since this is cleanup
+			fmt.Fprintf(os.Stderr, "Failed to close log file: %v\n", err)
+		}
 		logFile = nil
 	}
 }
@@ -206,22 +231,28 @@ func GetLogFilePath() string {
 }
 
 // Convenience functions that use the singleton logger
+
+// Debug logs a debug message using the singleton logger
 func Debug(msg string, args ...any) {
 	GetLogger().Debug(msg, args...)
 }
 
+// Info logs an info message using the singleton logger
 func Info(msg string, args ...any) {
 	GetLogger().Info(msg, args...)
 }
 
+// Warn logs a warning message using the singleton logger
 func Warn(msg string, args ...any) {
 	GetLogger().Warn(msg, args...)
 }
 
+// Error logs an error message using the singleton logger
 func Error(msg string, args ...any) {
 	GetLogger().Error(msg, args...)
 }
 
+// Fatal logs a fatal error message and exits the application
 func Fatal(msg string, args ...any) {
 	GetLogger().Error(msg, args...)
 	os.Exit(1)

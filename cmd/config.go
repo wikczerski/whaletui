@@ -1,3 +1,4 @@
+// Package cmd provides command-line interface functionality for WhaleTUI.
 package cmd
 
 import (

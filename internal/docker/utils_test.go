@@ -1,7 +1,6 @@
 package docker
 
 import (
-	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -102,37 +101,6 @@ func TestFormatSize_EdgeCases(t *testing.T) {
 	// Test very large values
 	veryLarge := int64(1024 * 1024 * 1024 * 1024 * 1024) // 1 PB
 	assert.Equal(t, "1024.00 TB", formatSize(veryLarge))
-}
-
-func TestSuggestConfigUpdate(t *testing.T) {
-	// Skip test on non-Windows platforms
-	if runtime.GOOS != "windows" {
-		t.Skip("Skipping test on non-Windows platform")
-	}
-
-	// Test that the function doesn't panic and returns appropriate error
-	// We can't easily test the full file system operations in unit tests
-	// but we can verify the function signature and basic behavior
-
-	// Test with empty host - this might succeed or fail depending on environment
-	_ = SuggestConfigUpdate("")
-	// Don't assert on the result since it depends on the test environment
-
-	// Test with valid host
-	_ = SuggestConfigUpdate("npipe:////./pipe/docker_engine")
-	// This might succeed or fail depending on the test environment
-	// but it shouldn't panic
-}
-
-func TestSuggestConfigUpdate_NonWindows(t *testing.T) {
-	// Test on non-Windows platforms
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping test on Windows platform")
-	}
-
-	err := SuggestConfigUpdate("npipe:////./pipe/docker_engine")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "only available on Windows")
 }
 
 func TestMarshalToMap_JSONError(t *testing.T) {

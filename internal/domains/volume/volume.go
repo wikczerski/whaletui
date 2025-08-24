@@ -1,3 +1,4 @@
+// Package volume provides Docker volume management functionality for WhaleTUI.
 package volume
 
 import "github.com/wikczerski/whaletui/internal/shared"

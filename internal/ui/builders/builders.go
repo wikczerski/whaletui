@@ -1,3 +1,4 @@
+// Package builders provides UI component builders for WhaleTUI.
 package builders
 
 import (

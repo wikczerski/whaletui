@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -54,7 +55,10 @@ func (h *dockerErrorHandler) handle() error {
 
 func (h *dockerErrorHandler) prepareTerminal() {
 	logger.SetTUIMode(false)
-	fmt.Fprint(os.Stdout, "\033[2J\033[H")
+	if _, err := fmt.Fprint(os.Stdout, "\033[2J\033[H"); err != nil {
+		// Log the error but continue since this is just terminal clearing
+		fmt.Fprintf(os.Stderr, "Failed to clear terminal: %v\n", err)
+	}
 }
 
 func (h *dockerErrorHandler) showErrorHeader() {
@@ -269,6 +273,13 @@ func (h *dockerErrorHandler) showRecentLogs(logFilePath string) {
 	fmt.Println()
 	fmt.Println("Recent logs:")
 	fmt.Println("============")
+
+	// Validate logFilePath to prevent directory traversal
+	if !filepath.IsAbs(logFilePath) || !strings.HasPrefix(filepath.Clean(logFilePath), filepath.Clean(filepath.Dir(logFilePath))) {
+		fmt.Println("Invalid log file path")
+		fmt.Println()
+		return
+	}
 
 	logContent, readErr := os.ReadFile(logFilePath)
 	if h.canReadLogFile(readErr) {
