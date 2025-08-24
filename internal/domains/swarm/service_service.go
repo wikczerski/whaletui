@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"time"
 
+	"github.com/docker/docker/api/types/swarm"
 	"github.com/wikczerski/whaletui/internal/docker"
 	"github.com/wikczerski/whaletui/internal/logger"
 	"github.com/wikczerski/whaletui/internal/shared"
@@ -136,39 +136,96 @@ func (s *ServiceService) GetActionsString() string {
 }
 
 // convertToSharedService converts a Docker swarm service to shared service
-func (s *ServiceService) convertToSharedService(_ interface{}) shared.SwarmService {
-	// This is a placeholder - you would need to properly convert the Docker service
-	// to the shared service type based on the actual Docker API types
+func (s *ServiceService) convertToSharedService(dockerService interface{}) shared.SwarmService {
+	service, ok := dockerService.(swarm.Service)
+	if !ok {
+		s.log.Error("Failed to convert docker service to swarm.Service type")
+		return shared.SwarmService{}
+	}
+
 	return shared.SwarmService{
-		ID:        "placeholder",
-		Name:      "placeholder",
-		Image:     "placeholder",
-		Mode:      "placeholder",
-		Replicas:  "placeholder",
-		Ports:     []string{},
-		CreatedAt: time.Time{},
-		UpdatedAt: time.Time{},
-		Status:    "placeholder",
+		ID:        service.ID,
+		Name:      service.Spec.Name,
+		Image:     service.Spec.TaskTemplate.ContainerSpec.Image,
+		Mode:      getServiceMode(service.Spec.Mode),
+		Replicas:  getServiceReplicas(service.Spec.Mode),
+		Ports:     getServicePorts(service.Spec.EndpointSpec),
+		CreatedAt: service.CreatedAt,
+		UpdatedAt: service.UpdatedAt,
+		Status:    getServiceStatus(service.UpdateStatus),
 	}
 }
 
 // Helper functions for service inspection
-func getServiceMode(_ interface{}) string {
-	// Placeholder implementation
-	return "replicated"
+func getServiceMode(mode interface{}) string {
+	if mode == nil {
+		return "unknown"
+	}
+
+	switch mode.(type) {
+	case *swarm.ReplicatedService:
+		return "replicated"
+	case *swarm.GlobalService:
+		return "global"
+	default:
+		return "unknown"
+	}
 }
 
-func getServiceReplicas(_ interface{}) string {
-	// Placeholder implementation
-	return "1/1"
+func getServiceReplicas(mode interface{}) string {
+	if mode == nil {
+		return "0/0"
+	}
+
+	switch m := mode.(type) {
+	case *swarm.ReplicatedService:
+		if m.Replicas != nil {
+			return fmt.Sprintf("%d", *m.Replicas)
+		}
+		return "0"
+	case *swarm.GlobalService:
+		return "global"
+	default:
+		return "0/0"
+	}
 }
 
-func getServicePorts(_ interface{}) []string {
-	// Placeholder implementation
-	return []string{}
+func getServicePorts(endpointSpec *swarm.EndpointSpec) []string {
+	if endpointSpec == nil || endpointSpec.Ports == nil {
+		return []string{}
+	}
+
+	ports := make([]string, len(endpointSpec.Ports))
+	for i, port := range endpointSpec.Ports {
+		if port.PublishedPort != 0 {
+			ports[i] = fmt.Sprintf("%d:%d/%s", port.PublishedPort, port.TargetPort, port.Protocol)
+		} else {
+			ports[i] = fmt.Sprintf("%d/%s", port.TargetPort, port.Protocol)
+		}
+	}
+
+	return ports
 }
 
-func getServiceStatus(_ interface{}) string {
-	// Placeholder implementation
-	return "running"
+func getServiceStatus(updateStatus *swarm.UpdateStatus) string {
+	if updateStatus == nil {
+		return "running"
+	}
+
+	switch updateStatus.State {
+	case swarm.UpdateStateUpdating:
+		return "updating"
+	case "paused":
+		return "paused"
+	case "completed":
+		return "completed"
+	case "rollback_completed":
+		return "rollback_completed"
+	case "rollback_paused":
+		return "rollback_paused"
+	case "rollback_in_progress":
+		return "rollback_in_progress"
+	default:
+		return "running"
+	}
 }

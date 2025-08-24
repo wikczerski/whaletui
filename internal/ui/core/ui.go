@@ -73,8 +73,7 @@ type UI struct {
 
 // New creates a new UI
 func New(serviceFactory interfaces.ServiceFactoryInterface, themePath string, headerManager interfaces.HeaderManagerInterface, modalManager interfaces.ModalManagerInterface, _ *config.Config) (*UI, error) {
-	// Enable TUI mode in logger immediately when creating UI to prevent stderr interference
-	logger.SetTUIMode(true)
+	// TUI mode is already set globally in init()
 
 	ui := &UI{
 		services:       serviceFactory,

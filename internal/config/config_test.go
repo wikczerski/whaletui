@@ -17,7 +17,7 @@ func TestDefaultConfig(t *testing.T) {
 	cfg := DefaultConfig()
 
 	assert.NotNil(t, cfg)
-	assert.Equal(t, 10, cfg.RefreshInterval)
+	assert.Equal(t, 5, cfg.RefreshInterval)
 	assert.Equal(t, "INFO", cfg.LogLevel)
 	assert.Equal(t, "default", cfg.Theme)
 
@@ -55,7 +55,7 @@ func TestLoad_NewConfig(t *testing.T) {
 	configFile := filepath.Join(tempHome, ".dockerk9s", "config.json")
 	assert.FileExists(t, configFile)
 
-	assert.Equal(t, 10, cfg.RefreshInterval)
+	assert.Equal(t, 5, cfg.RefreshInterval)
 	assert.Equal(t, "INFO", cfg.LogLevel)
 }
 

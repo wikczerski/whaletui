@@ -90,8 +90,6 @@ func (tm *ThemeManager) LoadTheme() {
 		if err := tm.loadFromFile(tm.path); err == nil {
 			return
 		}
-		// If loading from specified path fails, log the error but continue
-		// This allows fallback to default locations
 	}
 
 	// Try common config locations as fallback
@@ -142,7 +140,6 @@ func (tm *ThemeManager) loadFromFile(path string) error {
 		return fmt.Errorf("unsupported theme file format: %s", ext)
 	}
 
-	// Validate and merge with defaults
 	tm.config = tm.mergeWithDefaults(&config)
 	return nil
 }
@@ -150,10 +147,7 @@ func (tm *ThemeManager) loadFromFile(path string) error {
 // mergeWithDefaults merges loaded config with defaults using interface methods
 func (tm *ThemeManager) mergeWithDefaults(loaded *ThemeConfig) *ThemeConfig {
 	merged := DefaultTheme
-
-	// Use interface methods to merge all fields automatically
 	merged.MergeWith(loaded)
-
 	return &merged
 }
 
@@ -183,7 +177,6 @@ func (tm *ThemeManager) GetColor(colorName string) tcell.Color {
 	case "darkgray":
 		return tcell.ColorDarkGray
 	default:
-		// Try to parse as hex color
 		if len(colorName) == 7 && colorName[0] == '#' {
 			if color, err := parseHexColor(colorName); err == nil {
 				return color
@@ -191,21 +184,6 @@ func (tm *ThemeManager) GetColor(colorName string) tcell.Color {
 		}
 		return tcell.ColorDefault
 	}
-}
-
-// parseHexColor parses a hex color string
-func parseHexColor(hex string) (tcell.Color, error) {
-	if len(hex) != 7 || hex[0] != '#' {
-		return tcell.ColorDefault, fmt.Errorf("invalid hex color format")
-	}
-
-	var r, g, b uint8
-	_, err := fmt.Sscanf(hex, "#%02x%02x%02x", &r, &g, &b)
-	if err != nil {
-		return tcell.ColorDefault, err
-	}
-
-	return tcell.NewRGBColor(int32(r), int32(g), int32(b)), nil
 }
 
 // GetHeaderColor returns the header color
@@ -448,4 +426,19 @@ func (tm *ThemeManager) GetCurrentThemeInfo() map[string]interface{} {
 		"textColor":       tm.config.Colors.Text,
 		"backgroundColor": tm.config.Colors.Background,
 	}
+}
+
+// parseHexColor parses a hex color string
+func parseHexColor(hex string) (tcell.Color, error) {
+	if len(hex) != 7 || hex[0] != '#' {
+		return tcell.ColorDefault, fmt.Errorf("invalid hex color format")
+	}
+
+	var r, g, b uint8
+	_, err := fmt.Sscanf(hex, "#%02x%02x%02x", &r, &g, &b)
+	if err != nil {
+		return tcell.ColorDefault, err
+	}
+
+	return tcell.NewRGBColor(int32(r), int32(g), int32(b)), nil
 }

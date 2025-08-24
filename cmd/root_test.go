@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -13,10 +14,8 @@ func TestRootCmd(t *testing.T) {
 	assert.NotNil(t, rootCmd)
 	assert.Equal(t, "whaletui", rootCmd.Use)
 	assert.Equal(t, "whaletui - Docker CLI Dashboard", rootCmd.Short)
-	assert.Contains(t, rootCmd.Long, "Container Management")
-	assert.Contains(t, rootCmd.Long, "Image Management")
-	assert.Contains(t, rootCmd.Long, "Volume Management")
-	assert.Contains(t, rootCmd.Long, "Network Management")
+	assert.Contains(t, rootCmd.Long, "Docker containers")
+	assert.Contains(t, rootCmd.Long, "images, volumes, and networks")
 }
 
 func TestThemeCmd(t *testing.T) {
@@ -138,4 +137,51 @@ func TestRootCmdIntegration(t *testing.T) {
 	assert.NotNil(t, cmd.Commands())
 	assert.Len(t, cmd.Commands(), 1)
 	assert.Equal(t, "whaletui", cmd.Commands()[0].Use)
+}
+
+func TestIsDockerConnectionError(t *testing.T) {
+	// Test various Docker connection error patterns
+	tests := []struct {
+		name     string
+		err      error
+		expected bool
+	}{
+		{
+			name:     "docker client creation failed",
+			err:      assert.AnError,
+			expected: false, // assert.AnError doesn't contain our patterns
+		},
+		{
+			name:     "connection refused error",
+			err:      fmt.Errorf("connection refused"),
+			expected: true,
+		},
+		{
+			name:     "permission denied error",
+			err:      fmt.Errorf("permission denied"),
+			expected: true,
+		},
+		{
+			name:     "timeout error",
+			err:      fmt.Errorf("timeout"),
+			expected: true,
+		},
+		{
+			name:     "docker client creation failed error",
+			err:      fmt.Errorf("docker client creation failed"),
+			expected: true,
+		},
+		{
+			name:     "non-docker error",
+			err:      fmt.Errorf("some other error"),
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isDockerConnectionError(tt.err)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
 }
