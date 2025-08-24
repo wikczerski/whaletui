@@ -15,9 +15,9 @@ type Config struct {
 	LogFilePath     string `json:"log_file_path,omitempty"`
 	DockerHost      string `json:"docker_host"`
 	Theme           string `json:"theme"`
-	RemoteHost      string `json:"remote_host,omitempty"` // Command line specified remote host
-	RemoteUser      string `json:"remote_user,omitempty"` // Command line specified SSH username
-	RemotePort      int    `json:"remote_port,omitempty"` // Command line specified remote port for SSH fallback
+	RemoteHost      string `json:"remote_host,omitempty"`
+	RemoteUser      string `json:"remote_user,omitempty"`
+	RemotePort      int    `json:"remote_port,omitempty"`
 }
 
 // DefaultConfig returns the default configuration
@@ -30,12 +30,12 @@ func DefaultConfig() *Config {
 	}
 
 	return &Config{
-		RefreshInterval: 10, // Increased from 5 to reduce refresh frequency
+		RefreshInterval: 5,
 		LogLevel:        "INFO",
 		LogFilePath:     "./logs/whaletui.log",
 		DockerHost:      host,
 		Theme:           "default",
-		RemotePort:      2375, // Default port for SSH fallback
+		RemotePort:      2375,
 	}
 }
 
@@ -61,7 +61,7 @@ func Load() (*Config, error) {
 		return cfg, nil
 	}
 
-	cfg := &Config{}
+	cfg := DefaultConfig()
 	data, err := os.ReadFile(configFile)
 	if err != nil {
 		return nil, fmt.Errorf("config read failed: %w", err)

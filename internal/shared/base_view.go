@@ -107,6 +107,16 @@ func (bv *BaseView[T]) GetItems() []T {
 	return bv.items
 }
 
+// GetTitle returns the view title for testing purposes
+func (bv *BaseView[T]) GetTitle() string {
+	return bv.viewName
+}
+
+// GetHeaders returns the table headers for testing purposes
+func (bv *BaseView[T]) GetHeaders() []string {
+	return bv.headers
+}
+
 // GetSelectedItem returns the currently selected item from the table
 func (bv *BaseView[T]) GetSelectedItem() *T {
 	row, _ := bv.table.GetSelection()

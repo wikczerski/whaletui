@@ -34,10 +34,19 @@ func GetLogger() *slog.Logger {
 		return instance
 	}
 
-	// Initialize with default console handler
-	instance = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	}))
+	// Initialize with default handler based on TUI mode
+	var handler slog.Handler
+	if tuiMode {
+		// In TUI mode, use file-only handler to prevent stderr interference
+		handler = createFileOnlyHandler(slog.LevelInfo, "")
+	} else {
+		// Not in TUI mode, use stderr as usual
+		handler = slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		})
+	}
+
+	instance = slog.New(handler)
 	slog.SetDefault(instance)
 	return instance
 }
@@ -77,10 +86,16 @@ func SetLevelWithPath(level, logFilePath string) {
 		// In TUI mode, console output goes to a separate file to prevent interference
 		handler = createMultistreamHandler(slogLevel, logFilePath)
 	} else {
-		// For other levels, use console only
-		handler = slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-			Level: slogLevel,
-		})
+		// For other levels, check TUI mode
+		if tuiMode {
+			// In TUI mode, only log to file to prevent interference
+			handler = createFileOnlyHandler(slogLevel, logFilePath)
+		} else {
+			// Not in TUI mode, use console only
+			handler = slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+				Level: slogLevel,
+			})
+		}
 	}
 
 	// Update instance and default

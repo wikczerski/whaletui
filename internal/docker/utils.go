@@ -3,10 +3,11 @@ package docker
 import (
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
+
+	"github.com/wikczerski/whaletui/internal/logger"
 )
 
 func marshalToMap(v any) (map[string]any, error) {
@@ -89,7 +90,7 @@ func readExistingConfig() (map[string]any, error) {
 		data, err := os.ReadFile(configFile)
 		if err == nil {
 			if unmarshalErr := json.Unmarshal(data, &config); unmarshalErr != nil {
-				slog.Warn("Failed to parse config file", "error", unmarshalErr)
+				logger.Warn("Failed to parse config file", "error", unmarshalErr)
 			}
 		}
 	}

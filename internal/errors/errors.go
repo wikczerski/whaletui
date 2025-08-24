@@ -48,3 +48,39 @@ func VolumeError(operation, name string, err error) error {
 func NetworkError(operation, id string, err error) error {
 	return NewDockerError(fmt.Sprintf("%s network %s", operation, id), err)
 }
+
+// ConfigError represents a configuration-related error
+type ConfigError struct {
+	Message string
+}
+
+func (e *ConfigError) Error() string {
+	return e.Message
+}
+
+// NewConfigError creates a new configuration error
+func NewConfigError(message string) *ConfigError {
+	return &ConfigError{Message: message}
+}
+
+// UIError represents a UI-related error
+type UIError struct {
+	Operation string
+	Err       error
+}
+
+func (e *UIError) Error() string {
+	return fmt.Sprintf("%s failed: %v", e.Operation, e.Err)
+}
+
+func (e *UIError) Unwrap() error {
+	return e.Err
+}
+
+// NewUIError creates a new UI error
+func NewUIError(operation string, err error) *UIError {
+	return &UIError{
+		Operation: operation,
+		Err:       err,
+	}
+}
