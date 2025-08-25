@@ -2,7 +2,7 @@ package swarm
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"testing"
 	"time"
 
@@ -89,7 +89,7 @@ func TestServiceService_ListServices_Error(t *testing.T) {
 	mockService := mocksShared.NewMockSwarmServiceService(t)
 
 	ctx := context.Background()
-	expectedError := fmt.Errorf("failed to list services")
+	expectedError := errors.New("failed to list services")
 	mockService.EXPECT().ListServices(ctx).Return([]shared.SwarmService(nil), expectedError)
 
 	result, err := mockService.ListServices(ctx)
@@ -184,7 +184,7 @@ func TestServiceService_ScaleService_Error_ReturnsError(t *testing.T) {
 	ctx := context.Background()
 	serviceID := "service1"
 	newReplicas := uint64(5)
-	expectedError := fmt.Errorf("cannot scale global service")
+	expectedError := errors.New("cannot scale global service")
 
 	mockService.EXPECT().ScaleService(ctx, serviceID, newReplicas).Return(expectedError)
 
@@ -200,7 +200,7 @@ func TestServiceService_ScaleService_Error_ReturnsCorrectError(t *testing.T) {
 	ctx := context.Background()
 	serviceID := "service1"
 	newReplicas := uint64(5)
-	expectedError := fmt.Errorf("cannot scale global service")
+	expectedError := errors.New("cannot scale global service")
 
 	mockService.EXPECT().ScaleService(ctx, serviceID, newReplicas).Return(expectedError)
 

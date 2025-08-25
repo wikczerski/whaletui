@@ -477,7 +477,15 @@ func TestViewRegistry_MultipleRegistrations_Count(t *testing.T) {
 	navigations := []string{"Navigation 1", "Navigation 2", "Navigation 3", "Navigation 4"}
 
 	for i, name := range viewNames {
-		vr.Register(name, "View "+string(rune('1'+i)), shortcuts[i], mockViews[i], func() {}, actions[i], navigations[i])
+		vr.Register(
+			name,
+			"View "+string(rune('1'+i)),
+			shortcuts[i],
+			mockViews[i],
+			func() {},
+			actions[i],
+			navigations[i],
+		)
 	}
 
 	// Verify all views were registered
@@ -502,7 +510,15 @@ func TestViewRegistry_MultipleRegistrations_View1Name(t *testing.T) {
 	navigations := []string{"Navigation 1", "Navigation 2", "Navigation 3", "Navigation 4"}
 
 	for i, name := range viewNames {
-		vr.Register(name, "View "+string(rune('1'+i)), shortcuts[i], mockViews[i], func() {}, actions[i], navigations[i])
+		vr.Register(
+			name,
+			"View "+string(rune('1'+i)),
+			shortcuts[i],
+			mockViews[i],
+			func() {},
+			actions[i],
+			navigations[i],
+		)
 	}
 
 	// Verify each view
@@ -529,7 +545,15 @@ func TestViewRegistry_MultipleRegistrations_View1Shortcut(t *testing.T) {
 	navigations := []string{"Navigation 1", "Navigation 2", "Navigation 3", "Navigation 4"}
 
 	for i, name := range viewNames {
-		vr.Register(name, "View "+string(rune('1'+i)), shortcuts[i], mockViews[i], func() {}, actions[i], navigations[i])
+		vr.Register(
+			name,
+			"View "+string(rune('1'+i)),
+			shortcuts[i],
+			mockViews[i],
+			func() {},
+			actions[i],
+			navigations[i],
+		)
 	}
 
 	// Verify each view
@@ -555,7 +579,15 @@ func TestViewRegistry_MultipleRegistrations_View1Actions(t *testing.T) {
 	navigations := []string{"Navigation 1", "Navigation 2", "Navigation 3", "Navigation 4"}
 
 	for i, name := range viewNames {
-		vr.Register(name, "View "+string(rune('1'+i)), shortcuts[i], mockViews[i], func() {}, actions[i], navigations[i])
+		vr.Register(
+			name,
+			"View "+string(rune('1'+i)),
+			shortcuts[i],
+			mockViews[i],
+			func() {},
+			actions[i],
+			navigations[i],
+		)
 	}
 
 	// Verify each view
@@ -665,7 +697,15 @@ func TestViewRegistry_EdgeCases_EmptyName(t *testing.T) {
 	vr := NewViewRegistry()
 
 	// Test registering view with empty name
-	vr.Register("", "Empty Name", ' ', tview.NewTextView(), func() {}, "Empty Actions", "Empty Navigation")
+	vr.Register(
+		"",
+		"Empty Name",
+		' ',
+		tview.NewTextView(),
+		func() {},
+		"Empty Actions",
+		"Empty Navigation",
+	)
 
 	assert.True(t, vr.Exists(""))
 }
@@ -675,7 +715,15 @@ func TestViewRegistry_EdgeCases_EmptyTitle(t *testing.T) {
 	vr := NewViewRegistry()
 
 	// Test registering view with empty title
-	vr.Register("empty_title", "", 'e', tview.NewTextView(), func() {}, "Empty Title Actions", "Empty Title Navigation")
+	vr.Register(
+		"empty_title",
+		"",
+		'e',
+		tview.NewTextView(),
+		func() {},
+		"Empty Title Actions",
+		"Empty Title Navigation",
+	)
 
 	viewInfo := vr.Get("empty_title")
 	assert.NotNil(t, viewInfo)
@@ -687,7 +735,15 @@ func TestViewRegistry_EdgeCases_EmptyActions(t *testing.T) {
 	vr := NewViewRegistry()
 
 	// Test registering view with empty actions
-	vr.Register("empty_actions", "Empty Actions", 'a', tview.NewTextView(), func() {}, "", "Empty Actions Navigation")
+	vr.Register(
+		"empty_actions",
+		"Empty Actions",
+		'a',
+		tview.NewTextView(),
+		func() {},
+		"",
+		"Empty Actions Navigation",
+	)
 
 	viewInfo := vr.Get("empty_actions")
 	assert.NotNil(t, viewInfo)
@@ -699,7 +755,15 @@ func TestViewRegistry_EdgeCases_NilRefresh(t *testing.T) {
 	vr := NewViewRegistry()
 
 	// Test registering view with nil refresh function
-	vr.Register("nil_refresh", "Nil Refresh", 'n', tview.NewTextView(), nil, "Nil Refresh Actions", "Nil Refresh Navigation")
+	vr.Register(
+		"nil_refresh",
+		"Nil Refresh",
+		'n',
+		tview.NewTextView(),
+		nil,
+		"Nil Refresh Actions",
+		"Nil Refresh Navigation",
+	)
 
 	viewInfo := vr.Get("nil_refresh")
 	assert.NotNil(t, viewInfo)

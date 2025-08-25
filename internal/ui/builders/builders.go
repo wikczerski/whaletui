@@ -27,7 +27,11 @@ func NewComponentBuilderWithTheme(themeManager *config.ThemeManager) *ComponentB
 }
 
 // CreateTextView creates a text view with consistent styling
-func (cb *ComponentBuilder) CreateTextView(text string, align int, color tcell.Color) *tview.TextView {
+func (cb *ComponentBuilder) CreateTextView(
+	text string,
+	align int,
+	color tcell.Color,
+) *tview.TextView {
 	tv := tview.NewTextView()
 	tv.SetText(text)
 	tv.SetTextAlign(align)
@@ -40,7 +44,10 @@ func (cb *ComponentBuilder) CreateTextView(text string, align int, color tcell.C
 }
 
 // CreateBorderedTextView creates a bordered text view with consistent styling
-func (cb *ComponentBuilder) CreateBorderedTextView(text, title string, color tcell.Color) *tview.TextView {
+func (cb *ComponentBuilder) CreateBorderedTextView(
+	text, title string,
+	color tcell.Color,
+) *tview.TextView {
 	tv := tview.NewTextView()
 	tv.SetText(text)
 	tv.SetTitle(fmt.Sprintf(" %s ", title))

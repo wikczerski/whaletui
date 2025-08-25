@@ -2,7 +2,7 @@ package network
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"github.com/wikczerski/whaletui/internal/shared"
 	"github.com/wikczerski/whaletui/internal/ui/builders"
@@ -26,16 +26,29 @@ func NewNetworksView(ui interfaces.UIInterface) *NetworksView {
 		handlers: handlers.NewActionHandlers(ui),
 	}
 
-	// Set up callbacks
+	setupNetworkViewCallbacks(nv)
+	return nv
+}
+
+// setupNetworkViewCallbacks sets up the callbacks for the networks view
+func setupNetworkViewCallbacks(nv *NetworksView) {
+	nv.setupBasicCallbacks()
+	nv.setupActionCallbacks()
+}
+
+// setupBasicCallbacks sets up the basic view callbacks
+func (nv *NetworksView) setupBasicCallbacks() {
 	nv.ListItems = nv.listNetworks
 	nv.FormatRow = func(n shared.Network) []string { return nv.formatNetworkRow(&n) }
 	nv.GetItemID = func(n shared.Network) string { return n.ID }
 	nv.GetItemName = func(n shared.Network) string { return n.Name }
+}
+
+// setupActionCallbacks sets up the action-related callbacks
+func (nv *NetworksView) setupActionCallbacks() {
 	nv.HandleKeyPress = func(key rune, n shared.Network) { nv.handleAction(key, &n) }
 	nv.ShowDetails = func(n shared.Network) { nv.showNetworkDetails(&n) }
 	nv.GetActions = nv.getNetworkActions
-
-	return nv
 }
 
 func (nv *NetworksView) listNetworks(ctx context.Context) ([]shared.Network, error) {
@@ -44,21 +57,55 @@ func (nv *NetworksView) listNetworks(ctx context.Context) ([]shared.Network, err
 		return []shared.Network{}, nil
 	}
 
-	// Type assertion to get the service factory
-	if serviceFactory, ok := services.(interfaces.ServiceFactoryInterface); ok {
-		if networkService := serviceFactory.GetNetworkService(); networkService != nil {
-			// Type assertion to get the ListNetworks method
-			if networkService != nil {
-				networks, err := networkService.ListNetworks(ctx)
-				if err != nil {
-					return nil, err
-				}
-				return networks, nil
-			}
-		}
+	networkService := nv.getNetworkService(services)
+	if networkService == nil {
+		return []shared.Network{}, nil
 	}
 
-	return []shared.Network{}, nil
+	networks, err := networkService.ListNetworks(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return networks, nil
+}
+
+// getNetworkService extracts the network service from the services interface
+func (nv *NetworksView) getNetworkService(services any) interfaces.NetworkService {
+	serviceFactory, ok := services.(interfaces.ServiceFactoryInterface)
+	if !ok {
+		return nil
+	}
+
+	networkService := serviceFactory.GetNetworkService()
+	if networkService == nil {
+		return nil
+	}
+
+	return networkService
+}
+
+// getNetworkInspectService extracts the network inspect service from the services interface
+func (nv *NetworksView) getNetworkInspectService(services any) interface {
+	InspectNetwork(context.Context, string) (map[string]any, error)
+} {
+	serviceFactory, ok := services.(interface{ GetNetworkService() any })
+	if !ok {
+		return nil
+	}
+
+	networkService := serviceFactory.GetNetworkService()
+	if networkService == nil {
+		return nil
+	}
+
+	inspectService, ok := networkService.(interface {
+		InspectNetwork(context.Context, string) (map[string]any, error)
+	})
+	if !ok {
+		return nil
+	}
+
+	return inspectService
 }
 
 func (nv *NetworksView) formatNetworkRow(network *shared.Network) []string {
@@ -101,25 +148,29 @@ func (nv *NetworksView) showNetworkDetails(network *shared.Network) {
 	ctx := context.Background()
 	services := nv.GetUI().GetServicesAny()
 	if services == nil {
-		nv.ShowItemDetails(*network, nil, fmt.Errorf("network service not available"))
+		nv.ShowItemDetails(*network, nil, errors.New("network service not available"))
 		return
 	}
 
-	// Type assertion to get the service factory
-	if serviceFactory, ok := services.(interface{ GetNetworkService() any }); ok {
-		if networkService := serviceFactory.GetNetworkService(); networkService != nil {
-			// Type assertion to get the InspectNetwork method
-			if inspectService, ok := networkService.(interface {
-				InspectNetwork(context.Context, string) (map[string]any, error)
-			}); ok {
-				inspectData, err := inspectService.InspectNetwork(ctx, network.ID)
-				nv.ShowItemDetails(*network, inspectData, err)
-				return
-			}
-		}
+	inspectService := nv.getNetworkInspectService(services)
+	if inspectService == nil {
+		nv.ShowItemDetails(*network, nil, errors.New("network service not available"))
+		return
 	}
 
-	nv.ShowItemDetails(*network, nil, fmt.Errorf("network service not available"))
+	nv.executeNetworkInspection(ctx, network, inspectService)
+}
+
+// executeNetworkInspection performs the actual network inspection
+func (nv *NetworksView) executeNetworkInspection(
+	ctx context.Context,
+	network *shared.Network,
+	inspectService interface {
+		InspectNetwork(context.Context, string) (map[string]any, error)
+	},
+) {
+	inspectData, err := inspectService.InspectNetwork(ctx, network.ID)
+	nv.ShowItemDetails(*network, inspectData, err)
 }
 
 func (nv *NetworksView) deleteNetwork(id string) {
@@ -128,18 +179,13 @@ func (nv *NetworksView) deleteNetwork(id string) {
 		return
 	}
 
-	// Type assertion to get the service factory
-	if serviceFactory, ok := services.(interface{ GetNetworkService() any }); ok {
-		if networkService := serviceFactory.GetNetworkService(); networkService != nil {
-			// Type assertion to get the InspectNetwork method
-			if inspectService, ok := networkService.(interface {
-				InspectNetwork(context.Context, string) (map[string]any, error)
-			}); ok {
-				nv.handlers.HandleResourceAction('d', "network", id, "",
-					inspectService.InspectNetwork, nil, func() { nv.Refresh() })
-			}
-		}
+	inspectService := nv.getNetworkInspectService(services)
+	if inspectService == nil {
+		return
 	}
+
+	nv.handlers.HandleResourceAction('d', "network", id, "",
+		inspectService.InspectNetwork, nil, func() { nv.Refresh() })
 }
 
 func (nv *NetworksView) inspectNetwork(id string) {
@@ -148,16 +194,11 @@ func (nv *NetworksView) inspectNetwork(id string) {
 		return
 	}
 
-	// Type assertion to get the service factory
-	if serviceFactory, ok := services.(interface{ GetNetworkService() any }); ok {
-		if networkService := serviceFactory.GetNetworkService(); networkService != nil {
-			// Type assertion to get the InspectNetwork method
-			if inspectService, ok := networkService.(interface {
-				InspectNetwork(context.Context, string) (map[string]any, error)
-			}); ok {
-				nv.handlers.HandleResourceAction('i', "network", id, "",
-					inspectService.InspectNetwork, nil, func() { nv.Refresh() })
-			}
-		}
+	inspectService := nv.getNetworkInspectService(services)
+	if inspectService == nil {
+		return
 	}
+
+	nv.handlers.HandleResourceAction('i', "network", id, "",
+		inspectService.InspectNetwork, nil, func() { nv.Refresh() })
 }

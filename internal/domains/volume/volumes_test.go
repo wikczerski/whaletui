@@ -14,7 +14,10 @@ import (
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 )
 
-func newUIMockWithServices(t *testing.T, sf interfaces.ServiceFactoryInterface) *uimocks.MockUIInterface {
+func newUIMockWithServices(
+	t *testing.T,
+	sf interfaces.ServiceFactoryInterface,
+) *uimocks.MockUIInterface {
 	ui := uimocks.NewMockUIInterface(t)
 	ui.On("GetApp").Return(tview.NewApplication()).Maybe()
 	ui.On("GetPages").Return(tview.NewPages()).Maybe()

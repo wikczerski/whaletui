@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"fmt"
+	"errors"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -153,27 +153,27 @@ func TestIsDockerConnectionError(t *testing.T) {
 		},
 		{
 			name:     "connection refused error",
-			err:      fmt.Errorf("connection refused"),
+			err:      errors.New("connection refused"),
 			expected: true,
 		},
 		{
 			name:     "permission denied error",
-			err:      fmt.Errorf("permission denied"),
+			err:      errors.New("permission denied"),
 			expected: true,
 		},
 		{
 			name:     "timeout error",
-			err:      fmt.Errorf("timeout"),
+			err:      errors.New("timeout"),
 			expected: true,
 		},
 		{
 			name:     "docker client creation failed error",
-			err:      fmt.Errorf("docker client creation failed"),
+			err:      errors.New("docker client creation failed"),
 			expected: true,
 		},
 		{
 			name:     "non-docker error",
-			err:      fmt.Errorf("some other error"),
+			err:      errors.New("some other error"),
 			expected: false,
 		},
 	}

@@ -507,7 +507,12 @@ func TestCommonOperations_CommandHandling_ComplexCommand(t *testing.T) {
 	ctx := context.Background()
 	containerID := "test-container"
 
-	_, err := co.ExecContainer(ctx, containerID, []string{"docker", "exec", "container", "ls"}, false)
+	_, err := co.ExecContainer(
+		ctx,
+		containerID,
+		[]string{"docker", "exec", "container", "ls"},
+		false,
+	)
 	assert.Error(t, err)
 }
 
@@ -543,7 +548,12 @@ func TestCommonOperations_CommandHandling_ComplexCommand_EmptyResult(t *testing.
 	ctx := context.Background()
 	containerID := "test-container"
 
-	output, _ := co.ExecContainer(ctx, containerID, []string{"docker", "exec", "container", "ls"}, false)
+	output, _ := co.ExecContainer(
+		ctx,
+		containerID,
+		[]string{"docker", "exec", "container", "ls"},
+		false,
+	)
 	assert.Empty(t, output)
 }
 
@@ -579,7 +589,12 @@ func TestCommonOperations_CommandHandling_ComplexCommand_ErrorMessage(t *testing
 	ctx := context.Background()
 	containerID := "test-container"
 
-	_, err := co.ExecContainer(ctx, containerID, []string{"docker", "exec", "container", "ls"}, false)
+	_, err := co.ExecContainer(
+		ctx,
+		containerID,
+		[]string{"docker", "exec", "container", "ls"},
+		false,
+	)
 	assert.Contains(t, err.Error(), "docker client is not initialized")
 }
 

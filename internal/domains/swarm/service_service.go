@@ -2,6 +2,7 @@ package swarm
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -76,15 +77,13 @@ func (s *ServiceService) ScaleService(ctx context.Context, id string, replicas u
 		return fmt.Errorf("failed to inspect service for scaling: %w", err)
 	}
 
-	// Update the service spec with new replicas
-	if service.Spec.Mode.Replicated != nil {
-		service.Spec.Mode.Replicated.Replicas = &replicas
-	} else {
-		return fmt.Errorf("cannot scale global service")
+	if err := s.validateServiceForScaling(service); err != nil {
+		return err
 	}
 
-	err = s.client.UpdateSwarmService(ctx, id, service.Version, service.Spec)
-	if err != nil {
+	s.updateServiceReplicas(service, replicas)
+
+	if err := s.client.UpdateSwarmService(ctx, id, service.Version, service.Spec); err != nil {
 		return fmt.Errorf("failed to scale service: %w", err)
 	}
 
@@ -96,7 +95,7 @@ func (s *ServiceService) ScaleService(ctx context.Context, id string, replicas u
 func (s *ServiceService) UpdateService(_ context.Context, _ string, _ any) error {
 	// This is a placeholder - in a real implementation, you would need to
 	// properly handle the spec conversion and validation
-	return fmt.Errorf("update service not implemented yet")
+	return errors.New("update service not implemented yet")
 }
 
 // RemoveService removes a swarm service
@@ -136,7 +135,7 @@ func (s *ServiceService) GetActionsString() string {
 }
 
 // convertToSharedService converts a Docker swarm service to shared service
-func (s *ServiceService) convertToSharedService(dockerService interface{}) shared.SwarmService {
+func (s *ServiceService) convertToSharedService(dockerService any) shared.SwarmService {
 	service, ok := dockerService.(swarm.Service)
 	if !ok {
 		s.log.Error("Failed to convert docker service to swarm.Service type")
@@ -156,8 +155,21 @@ func (s *ServiceService) convertToSharedService(dockerService interface{}) share
 	}
 }
 
+// validateServiceForScaling validates that the service can be scaled
+func (s *ServiceService) validateServiceForScaling(service swarm.Service) error {
+	if service.Spec.Mode.Replicated == nil {
+		return errors.New("cannot scale global service")
+	}
+	return nil
+}
+
+// updateServiceReplicas updates the service replicas count
+func (s *ServiceService) updateServiceReplicas(service swarm.Service, replicas uint64) {
+	service.Spec.Mode.Replicated.Replicas = &replicas
+}
+
 // Helper functions for service inspection
-func getServiceMode(mode interface{}) string {
+func getServiceMode(mode any) string {
 	if mode == nil {
 		return "unknown"
 	}
@@ -172,7 +184,7 @@ func getServiceMode(mode interface{}) string {
 	}
 }
 
-func getServiceReplicas(mode interface{}) string {
+func getServiceReplicas(mode any) string {
 	if mode == nil {
 		return "0/0"
 	}

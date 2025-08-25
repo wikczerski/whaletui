@@ -17,7 +17,11 @@ import (
 // setupMocksForUIInitialization sets up all the required mock expectations for UI initialization
 // This function is intentionally unused - it's a helper for future test setup
 // nolint:unused // Intentionally unused - helper for future test setup
-func setupMocksForUIInitialization(t *testing.T, headerManager *mocks.MockHeaderManagerInterface, serviceFactory *mocks.MockServiceFactoryInterface) {
+func setupMocksForUIInitialization(
+	t *testing.T,
+	headerManager *mocks.MockHeaderManagerInterface,
+	serviceFactory *mocks.MockServiceFactoryInterface,
+) {
 	// Header manager expectations
 	headerManager.On("CreateHeaderSection").Return(tview.NewTextView()).Maybe()
 	headerManager.On("UpdateDockerInfo").Return().Maybe()
@@ -32,8 +36,12 @@ func setupMocksForUIInitialization(t *testing.T, headerManager *mocks.MockHeader
 		serviceFactory.On("GetNetworkService").Return(nil).Maybe()
 		serviceFactory.On("GetDockerInfoService").Return(nil).Maybe()
 		serviceFactory.On("GetLogsService").Return(nil).Maybe()
-		serviceFactory.On("GetSwarmServiceService").Return(sharedMocks.NewMockSwarmServiceService(t)).Maybe()
-		serviceFactory.On("GetSwarmNodeService").Return(sharedMocks.NewMockSwarmNodeService(t)).Maybe()
+		serviceFactory.On("GetSwarmServiceService").
+			Return(sharedMocks.NewMockSwarmServiceService(t)).
+			Maybe()
+		serviceFactory.On("GetSwarmNodeService").
+			Return(sharedMocks.NewMockSwarmNodeService(t)).
+			Maybe()
 		serviceFactory.On("IsServiceAvailable", "container").Return(false).Maybe()
 		serviceFactory.On("IsContainerServiceAvailable").Return(false).Maybe()
 	}
@@ -76,13 +84,23 @@ func TestNew(t *testing.T) {
 				tt.serviceFactory.On("GetNetworkService").Return(nil).Maybe()
 				tt.serviceFactory.On("GetDockerInfoService").Return(nil).Maybe()
 				tt.serviceFactory.On("GetLogsService").Return(nil).Maybe()
-				tt.serviceFactory.On("GetSwarmServiceService").Return(sharedMocks.NewMockSwarmServiceService(t)).Maybe()
-				tt.serviceFactory.On("GetSwarmNodeService").Return(sharedMocks.NewMockSwarmNodeService(t)).Maybe()
+				tt.serviceFactory.On("GetSwarmServiceService").
+					Return(sharedMocks.NewMockSwarmServiceService(t)).
+					Maybe()
+				tt.serviceFactory.On("GetSwarmNodeService").
+					Return(sharedMocks.NewMockSwarmNodeService(t)).
+					Maybe()
 				tt.serviceFactory.On("IsServiceAvailable", "container").Return(false).Maybe()
 				tt.serviceFactory.On("IsContainerServiceAvailable").Return(false).Maybe()
 			}
 
-			ui, err := New(tt.serviceFactory, "", tt.headerManager, tt.modalManager, &config.Config{})
+			ui, err := New(
+				tt.serviceFactory,
+				"",
+				tt.headerManager,
+				tt.modalManager,
+				&config.Config{},
+			)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -111,7 +129,9 @@ func TestUI_InitialState(t *testing.T) {
 	serviceFactory.On("GetNetworkService").Return(nil).Maybe()
 	serviceFactory.On("GetDockerInfoService").Return(nil).Maybe()
 	serviceFactory.On("GetLogsService").Return(nil).Maybe()
-	serviceFactory.On("GetSwarmServiceService").Return(sharedMocks.NewMockSwarmServiceService(t)).Maybe()
+	serviceFactory.On("GetSwarmServiceService").
+		Return(sharedMocks.NewMockSwarmServiceService(t)).
+		Maybe()
 	serviceFactory.On("GetSwarmNodeService").Return(sharedMocks.NewMockSwarmNodeService(t)).Maybe()
 	serviceFactory.On("IsServiceAvailable", "container").Return(false).Maybe()
 	serviceFactory.On("IsContainerServiceAvailable").Return(false).Maybe()
@@ -143,7 +163,9 @@ func TestUI_ViewManagement(t *testing.T) {
 	serviceFactory.On("GetNetworkService").Return(nil).Maybe()
 	serviceFactory.On("GetDockerInfoService").Return(nil).Maybe()
 	serviceFactory.On("GetLogsService").Return(nil).Maybe()
-	serviceFactory.On("GetSwarmServiceService").Return(sharedMocks.NewMockSwarmServiceService(t)).Maybe()
+	serviceFactory.On("GetSwarmServiceService").
+		Return(sharedMocks.NewMockSwarmServiceService(t)).
+		Maybe()
 	serviceFactory.On("GetSwarmNodeService").Return(sharedMocks.NewMockSwarmNodeService(t)).Maybe()
 	serviceFactory.On("IsServiceAvailable", "container").Return(false).Maybe()
 	serviceFactory.On("IsContainerServiceAvailable").Return(false).Maybe()
@@ -506,8 +528,12 @@ func TestUI_ViewReferences_NetworksPrimitive(t *testing.T) {
 
 func TestUI_ServiceFactoryIntegration(t *testing.T) {
 	serviceFactory := mocks.NewMockServiceFactoryInterface(t)
-	headerManager := interfaces.HeaderManagerInterface(nil) // Changed: set to nil to avoid problematic initialization
-	modalManager := interfaces.ModalManagerInterface(nil)   // Changed: set to nil to avoid problematic initialization
+	headerManager := interfaces.HeaderManagerInterface(
+		nil,
+	) // Changed: set to nil to avoid problematic initialization
+	modalManager := interfaces.ModalManagerInterface(
+		nil,
+	) // Changed: set to nil to avoid problematic initialization
 
 	// Set up mock expectations only for service factory
 	serviceFactory.On("GetContainerService").Return(nil).Maybe()
@@ -516,7 +542,9 @@ func TestUI_ServiceFactoryIntegration(t *testing.T) {
 	serviceFactory.On("GetNetworkService").Return(nil).Maybe()
 	serviceFactory.On("GetDockerInfoService").Return(nil).Maybe()
 	serviceFactory.On("GetLogsService").Return(nil).Maybe()
-	serviceFactory.On("GetSwarmServiceService").Return(sharedMocks.NewMockSwarmServiceService(t)).Maybe()
+	serviceFactory.On("GetSwarmServiceService").
+		Return(sharedMocks.NewMockSwarmServiceService(t)).
+		Maybe()
 	serviceFactory.On("GetSwarmNodeService").Return(sharedMocks.NewMockSwarmNodeService(t)).Maybe()
 	serviceFactory.On("IsServiceAvailable", "container").Return(false).Maybe()
 	serviceFactory.On("IsContainerServiceAvailable").Return(false).Maybe()

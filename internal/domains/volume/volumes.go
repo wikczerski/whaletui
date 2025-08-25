@@ -2,6 +2,7 @@ package volume
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/wikczerski/whaletui/internal/shared"
@@ -26,16 +27,29 @@ func NewVolumesView(ui interfaces.UIInterface) *VolumesView {
 		executor: handlers.NewOperationExecutor(ui),
 	}
 
-	// Set up callbacks
+	setupVolumeViewCallbacks(vv)
+	return vv
+}
+
+// setupVolumeViewCallbacks sets up the callbacks for the volumes view
+func setupVolumeViewCallbacks(vv *VolumesView) {
+	vv.setupBasicCallbacks()
+	vv.setupActionCallbacks()
+}
+
+// setupBasicCallbacks sets up the basic view callbacks
+func (vv *VolumesView) setupBasicCallbacks() {
 	vv.ListItems = vv.listVolumes
 	vv.FormatRow = func(v shared.Volume) []string { return vv.formatVolumeRow(&v) }
 	vv.GetItemID = func(v shared.Volume) string { return v.Name }
 	vv.GetItemName = func(v shared.Volume) string { return v.Name }
+}
+
+// setupActionCallbacks sets up the action-related callbacks
+func (vv *VolumesView) setupActionCallbacks() {
 	vv.HandleKeyPress = func(key rune, v shared.Volume) { vv.handleAction(key, &v) }
 	vv.ShowDetails = func(v shared.Volume) { vv.showVolumeDetails(&v) }
 	vv.GetActions = vv.getVolumeActions
-
-	return vv
 }
 
 // createDeleteVolumeFunction creates a function to delete a volume
@@ -43,7 +57,7 @@ func (vv *VolumesView) createDeleteVolumeFunction(name string) func() error {
 	return func() error {
 		services := vv.GetUI().GetServicesAny()
 		if services == nil {
-			return fmt.Errorf("volume service not available")
+			return errors.New("volume service not available")
 		}
 
 		// Type assertion to get the service factory
@@ -60,7 +74,7 @@ func (vv *VolumesView) createDeleteVolumeFunction(name string) func() error {
 			}
 		}
 
-		return fmt.Errorf("volume service not available")
+		return errors.New("volume service not available")
 	}
 }
 
@@ -70,21 +84,44 @@ func (vv *VolumesView) listVolumes(ctx context.Context) ([]shared.Volume, error)
 		return []shared.Volume{}, nil
 	}
 
-	// Type assertion to get the service factory
-	if serviceFactory, ok := services.(interfaces.ServiceFactoryInterface); ok {
-		if volumeService := serviceFactory.GetVolumeService(); volumeService != nil {
-			// Type assertion to get the ListVolumes method
-			if volumeService != nil {
-				volumes, err := volumeService.ListVolumes(ctx)
-				if err != nil {
-					return nil, err
-				}
-				return volumes, nil
-			}
-		}
+	return vv.getVolumesFromService(ctx, services)
+}
+
+// getVolumesFromService retrieves volumes from the service factory
+func (vv *VolumesView) getVolumesFromService(
+	ctx context.Context,
+	services any,
+) ([]shared.Volume, error) {
+	serviceFactory, ok := services.(interfaces.ServiceFactoryInterface)
+	if !ok {
+		return []shared.Volume{}, nil
 	}
 
-	return []shared.Volume{}, nil
+	volumeService := serviceFactory.GetVolumeService()
+	if volumeService == nil {
+		return []shared.Volume{}, nil
+	}
+
+	return vv.executeVolumeList(ctx, volumeService)
+}
+
+// executeVolumeList executes the volume list operation
+func (vv *VolumesView) executeVolumeList(
+	ctx context.Context,
+	volumeService any,
+) ([]shared.Volume, error) {
+	if volumeService == nil {
+		return []shared.Volume{}, nil
+	}
+
+	volumes, err := volumeService.(interface {
+		ListVolumes(context.Context) ([]shared.Volume, error)
+	}).ListVolumes(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return volumes, nil
 }
 
 func (vv *VolumesView) formatVolumeRow(volume *shared.Volume) []string {
@@ -127,25 +164,53 @@ func (vv *VolumesView) showVolumeDetails(volume *shared.Volume) {
 	ctx := context.Background()
 	services := vv.GetUI().GetServicesAny()
 	if services == nil {
-		vv.ShowItemDetails(*volume, nil, fmt.Errorf("volume service not available"))
+		vv.ShowItemDetails(*volume, nil, errors.New("volume service not available"))
 		return
 	}
 
-	// Type assertion to get the service factory
-	if serviceFactory, ok := services.(interface{ GetVolumeService() any }); ok {
-		if volumeService := serviceFactory.GetVolumeService(); volumeService != nil {
-			// Type assertion to get the InspectVolume method
-			if inspectService, ok := volumeService.(interface {
-				InspectVolume(context.Context, string) (map[string]any, error)
-			}); ok {
-				inspectData, err := inspectService.InspectVolume(ctx, volume.Name)
-				vv.ShowItemDetails(*volume, inspectData, err)
-				return
-			}
-		}
+	inspectService := vv.getVolumeInspectService(services)
+	if inspectService == nil {
+		vv.ShowItemDetails(*volume, nil, errors.New("volume service not available"))
+		return
 	}
 
-	vv.ShowItemDetails(*volume, nil, fmt.Errorf("volume service not available"))
+	vv.executeVolumeInspection(ctx, volume, inspectService)
+}
+
+// executeVolumeInspection performs the actual volume inspection
+func (vv *VolumesView) executeVolumeInspection(
+	ctx context.Context,
+	volume *shared.Volume,
+	inspectService interface {
+		InspectVolume(context.Context, string) (map[string]any, error)
+	},
+) {
+	inspectData, err := inspectService.InspectVolume(ctx, volume.Name)
+	vv.ShowItemDetails(*volume, inspectData, err)
+}
+
+// getVolumeInspectService extracts the volume inspect service from the services interface
+func (vv *VolumesView) getVolumeInspectService(services any) interface {
+	InspectVolume(context.Context, string) (map[string]any, error)
+} {
+	serviceFactory, ok := services.(interface{ GetVolumeService() any })
+	if !ok {
+		return nil
+	}
+
+	volumeService := serviceFactory.GetVolumeService()
+	if volumeService == nil {
+		return nil
+	}
+
+	inspectService, ok := volumeService.(interface {
+		InspectVolume(context.Context, string) (map[string]any, error)
+	})
+	if !ok {
+		return nil
+	}
+
+	return inspectService
 }
 
 func (vv *VolumesView) deleteVolume(name string) {
@@ -162,23 +227,25 @@ func (vv *VolumesView) inspectVolume(name string) {
 		return
 	}
 
-	// Type assertion to get the service factory
-	if serviceFactory, ok := services.(interface{ GetVolumeService() any }); ok {
-		if volumeService := serviceFactory.GetVolumeService(); volumeService != nil {
-			// Type assertion to get the InspectVolume method
-			if inspectService, ok := volumeService.(interface {
-				InspectVolume(context.Context, string) (map[string]any, error)
-			}); ok {
-				ctx := context.Background()
-				inspectData, err := inspectService.InspectVolume(ctx, name)
-				if err != nil {
-					vv.GetUI().ShowError(err)
-					return
-				}
-
-				vv.ShowItemDetails(shared.Volume{Name: name}, inspectData, err)
-				return
-			}
-		}
+	inspectService := vv.getVolumeInspectService(services)
+	if inspectService == nil {
+		return
 	}
+
+	vv.performVolumeInspection(name, inspectService)
+}
+
+// performVolumeInspection performs the actual volume inspection
+func (vv *VolumesView) performVolumeInspection(name string, inspectService interface {
+	InspectVolume(context.Context, string) (map[string]any, error)
+},
+) {
+	ctx := context.Background()
+	inspectData, err := inspectService.InspectVolume(ctx, name)
+	if err != nil {
+		vv.GetUI().ShowError(err)
+		return
+	}
+
+	vv.ShowItemDetails(shared.Volume{Name: name}, inspectData, err)
 }

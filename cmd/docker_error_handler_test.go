@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"fmt"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,7 +11,7 @@ import (
 func TestDockerErrorHandlerCreation(t *testing.T) {
 	// Test that dockerErrorHandler can be created
 	cfg := &config.Config{}
-	err := fmt.Errorf("test error")
+	err := errors.New("test error")
 
 	handler := newDockerErrorHandler(err, cfg)
 	assert.NotNil(t, handler)
@@ -22,7 +22,7 @@ func TestDockerErrorHandlerCreation(t *testing.T) {
 func TestDockerErrorHandlerHelperFunctions(t *testing.T) {
 	// Test helper functions that don't require user interaction
 	handler := &dockerErrorHandler{
-		err:         fmt.Errorf("test error"),
+		err:         errors.New("test error"),
 		cfg:         &config.Config{},
 		interaction: UserInteraction{},
 	}
@@ -33,7 +33,7 @@ func TestDockerErrorHandlerHelperFunctions(t *testing.T) {
 
 	// Test canReadLogFile
 	assert.True(t, handler.canReadLogFile(nil))
-	assert.False(t, handler.canReadLogFile(fmt.Errorf("read error")))
+	assert.False(t, handler.canReadLogFile(errors.New("read error")))
 
 	// Test isValidStartIndex
 	assert.True(t, handler.isValidStartIndex(5))
@@ -63,7 +63,7 @@ func TestDockerErrorHandlerConnectionTypeDetection(t *testing.T) {
 func TestHandleDockerConnectionError(t *testing.T) {
 	// Test the main error handling function
 	cfg := &config.Config{}
-	err := fmt.Errorf("docker client creation failed")
+	err := errors.New("docker client creation failed")
 
 	// This function would normally interact with the user, so we just test it doesn't panic
 	// In a real scenario, this would be tested with integration tests

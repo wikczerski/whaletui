@@ -17,7 +17,9 @@ func TestNewLogsService(t *testing.T) {
 
 func TestLogsService_GetLogs_Container(t *testing.T) {
 	mockContainerService := sharedmocks.NewMockContainerService(t)
-	mockContainerService.EXPECT().GetContainerLogs(context.Background(), "test-container-id").Return("test logs", nil)
+	mockContainerService.EXPECT().
+		GetContainerLogs(context.Background(), "test-container-id").
+		Return("test logs", nil)
 
 	logsService := NewLogsService(mockContainerService)
 

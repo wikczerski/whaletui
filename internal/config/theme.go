@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -86,71 +87,20 @@ func NewThemeManager(configPath string) *ThemeManager {
 
 // LoadTheme loads the theme configuration from file
 func (tm *ThemeManager) LoadTheme() {
-	// Try to load from the specified path first
-	if tm.path != "" {
-		if err := tm.loadFromFile(tm.path); err == nil {
-			return
-		}
+	if tm.tryLoadFromSpecifiedPath() {
+		return
 	}
 
-	// Try common config locations as fallback
-	configDirs := []string{
-		"./config",
-		"./themes",
-		"$HOME/.config/whaletui",
-		"$HOME/.whaletui",
-	}
-
-	for _, dir := range configDirs {
-		expandedDir := os.ExpandEnv(dir)
-		paths := []string{
-			filepath.Join(expandedDir, "theme.yaml"),
-			filepath.Join(expandedDir, "theme.yml"),
-			filepath.Join(expandedDir, "theme.json"),
-		}
-
-		for _, path := range paths {
-			if err := tm.loadFromFile(path); err == nil {
-				tm.path = path
-				return
-			}
-		}
-	}
+	tm.tryLoadFromFallbackLocations()
 }
 
 // GetColor converts a color name to tcell.Color
 func (tm *ThemeManager) GetColor(colorName string) tcell.Color {
-	switch colorName {
-	case "black":
-		return tcell.ColorBlack
-	case "red":
-		return tcell.ColorRed
-	case "green":
-		return tcell.ColorGreen
-	case "yellow":
-		return tcell.ColorYellow
-	case "blue":
-		return tcell.ColorBlue
-	case "magenta":
-		return tcell.ColorPurple
-	case "cyan":
-		return tcell.ColorTeal
-	case "white":
-		return tcell.ColorWhite
-	case "default":
-		return tcell.ColorDefault
-	case "gray":
-		return tcell.ColorGray
-	case "darkgray":
-		return tcell.ColorDarkGray
-	default:
-		if len(colorName) == 7 && colorName[0] == '#' {
-			if color, err := parseHexColor(colorName); err == nil {
-				return color
-			}
-		}
-		return tcell.ColorDefault
+	if color := getNamedColor(colorName); color != tcell.ColorDefault {
+		return color
 	}
+
+	return getHexColorOrDefault(colorName)
 }
 
 // GetHeaderColor returns the header color
@@ -330,40 +280,19 @@ func (tm *ThemeManager) GetHeaderLogoWidth() int {
 
 // SaveTheme saves the current theme configuration to file
 func (tm *ThemeManager) SaveTheme(path string) error {
-	if path == "" {
-		path = tm.path
-	}
-	if path == "" {
-		path = "./config/theme.yaml"
-	}
+	path = getSavePath(path, tm.path)
 
-	// Ensure directory exists
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0o750); err != nil {
-		return fmt.Errorf("failed to create config directory: %w", err)
+	if err := ensureSaveDirectory(path); err != nil {
+		return err
 	}
 
-	ext := filepath.Ext(path)
-	var data []byte
-	var err error
-
-	switch ext {
-	case ".yaml", ".yml":
-		data, err = yaml.Marshal(tm.config)
-		if err != nil {
-			return fmt.Errorf("failed to marshal YAML: %w", err)
-		}
-	case ".json":
-		data, err = json.MarshalIndent(tm.config, "", "  ")
-		if err != nil {
-			return fmt.Errorf("failed to marshal JSON: %w", err)
-		}
-	default:
-		return fmt.Errorf("unsupported file format: %s", ext)
+	data, err := marshalThemeData(path, tm.config)
+	if err != nil {
+		return err
 	}
 
-	if err := os.WriteFile(path, data, 0o600); err != nil {
-		return fmt.Errorf("failed to write theme file: %w", err)
+	if err := writeThemeFile(path, data); err != nil {
+		return err
 	}
 
 	tm.path = path
@@ -381,8 +310,8 @@ func (tm *ThemeManager) GetPath() string {
 }
 
 // GetCurrentThemeInfo returns debug information about the current theme
-func (tm *ThemeManager) GetCurrentThemeInfo() map[string]interface{} {
-	return map[string]interface{}{
+func (tm *ThemeManager) GetCurrentThemeInfo() map[string]any {
+	return map[string]any{
 		"path":            tm.path,
 		"dockerInfoWidth": tm.config.HeaderLayout.DockerInfoWidth,
 		"spacerWidth":     tm.config.HeaderLayout.SpacerWidth,
@@ -395,36 +324,194 @@ func (tm *ThemeManager) GetCurrentThemeInfo() map[string]interface{} {
 	}
 }
 
+// tryLoadFromSpecifiedPath tries to load from the specified path first
+func (tm *ThemeManager) tryLoadFromSpecifiedPath() bool {
+	if tm.path != "" {
+		return tm.loadFromFile(tm.path) == nil
+	}
+	return false
+}
+
+// tryLoadFromFallbackLocations tries to load from common config locations
+func (tm *ThemeManager) tryLoadFromFallbackLocations() {
+	configDirs := getFallbackConfigDirs()
+
+	for _, dir := range configDirs {
+		expandedDir := os.ExpandEnv(dir)
+		if tm.tryLoadFromDirectory(expandedDir) {
+			return
+		}
+	}
+}
+
+// getFallbackConfigDirs returns the list of fallback configuration directories
+func getFallbackConfigDirs() []string {
+	return []string{
+		"./config",
+		"./themes",
+		"$HOME/.config/whaletui",
+		"$HOME/.whaletui",
+	}
+}
+
+// tryLoadFromDirectory tries to load a theme from a specific directory
+func (tm *ThemeManager) tryLoadFromDirectory(dir string) bool {
+	paths := getThemeFilePaths(dir)
+
+	for _, path := range paths {
+		if err := tm.loadFromFile(path); err == nil {
+			tm.path = path
+			return true
+		}
+	}
+	return false
+}
+
+// getThemeFilePaths returns the list of possible theme file paths in a directory
+func getThemeFilePaths(dir string) []string {
+	return []string{
+		filepath.Join(dir, "theme.yaml"),
+		filepath.Join(dir, "theme.yml"),
+		filepath.Join(dir, "theme.json"),
+	}
+}
+
+// getNamedColor returns a named color or ColorDefault if not found
+func getNamedColor(colorName string) tcell.Color {
+	colorMap := getColorMap()
+	if color, exists := colorMap[colorName]; exists {
+		return color
+	}
+	return tcell.ColorDefault
+}
+
+// getColorMap returns the mapping of color names to tcell colors
+func getColorMap() map[string]tcell.Color {
+	return map[string]tcell.Color{
+		"black":    tcell.ColorBlack,
+		"red":      tcell.ColorRed,
+		"green":    tcell.ColorGreen,
+		"yellow":   tcell.ColorYellow,
+		"blue":     tcell.ColorBlue,
+		"magenta":  tcell.ColorPurple,
+		"cyan":     tcell.ColorTeal,
+		"white":    tcell.ColorWhite,
+		"default":  tcell.ColorDefault,
+		"gray":     tcell.ColorGray,
+		"darkgray": tcell.ColorDarkGray,
+	}
+}
+
+// getHexColorOrDefault tries to parse a hex color or returns default
+func getHexColorOrDefault(colorName string) tcell.Color {
+	if len(colorName) == 7 && colorName[0] == '#' {
+		if color, err := parseHexColor(colorName); err == nil {
+			return color
+		}
+	}
+	return tcell.ColorDefault
+}
+
+// getSavePath determines the path to save the theme to
+func getSavePath(path, defaultPath string) string {
+	if path == "" {
+		path = defaultPath
+	}
+	if path == "" {
+		path = "./config/theme.yaml"
+	}
+	return path
+}
+
+// ensureSaveDirectory ensures the directory for saving exists
+func ensureSaveDirectory(path string) error {
+	dir := filepath.Dir(path)
+	return os.MkdirAll(dir, 0o750)
+}
+
+// marshalThemeData marshals the theme data based on file extension
+func marshalThemeData(path string, config *ThemeConfig) ([]byte, error) {
+	ext := filepath.Ext(path)
+
+	switch ext {
+	case ".yaml", ".yml":
+		return yaml.Marshal(config)
+	case ".json":
+		return json.MarshalIndent(config, "", "  ")
+	default:
+		return nil, fmt.Errorf("unsupported file format: %s", ext)
+	}
+}
+
+// writeThemeFile writes the theme data to the specified path
+func writeThemeFile(path string, data []byte) error {
+	return os.WriteFile(path, data, 0o600)
+}
+
 // loadFromFile loads theme from a specific file
 func (tm *ThemeManager) loadFromFile(path string) error {
-	// Validate path to prevent directory traversal
-	if !filepath.IsAbs(path) || !strings.HasPrefix(filepath.Clean(path), filepath.Clean(filepath.Dir(tm.path))) {
-		return fmt.Errorf("invalid theme file path")
+	if err := tm.validateThemePath(path); err != nil {
+		return err
 	}
 
+	// nolint:gosec // Path is validated by validateThemePath before this function is called
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("failed to read theme file: %w", err)
 	}
 
+	config, err := tm.parseThemeData(path, data)
+	if err != nil {
+		return err
+	}
+
+	tm.config = tm.mergeWithDefaults(config)
+	return nil
+}
+
+// validateThemePath validates the theme file path to prevent directory traversal
+func (tm *ThemeManager) validateThemePath(path string) error {
+	// Clean the path to remove any directory traversal attempts
+	cleanPath := filepath.Clean(path)
+	cleanThemeDir := filepath.Clean(filepath.Dir(tm.path))
+
+	// Ensure the path is absolute
+	if !filepath.IsAbs(cleanPath) {
+		return errors.New("theme file path must be absolute")
+	}
+
+	// Additional security: check for suspicious patterns
+	if strings.Contains(cleanPath, "..") || strings.Contains(cleanPath, "~") {
+		return errors.New("theme file path contains invalid patterns")
+	}
+
+	// Ensure the theme file is within the theme directory
+	if !strings.HasPrefix(cleanPath, cleanThemeDir) {
+		return errors.New("theme file path is outside the theme directory")
+	}
+
+	return nil
+}
+
+// parseThemeData parses theme data based on file extension
+func (tm *ThemeManager) parseThemeData(path string, data []byte) (*ThemeConfig, error) {
 	var config ThemeConfig
 	ext := filepath.Ext(path)
 
 	switch ext {
 	case ".yaml", ".yml":
 		if err := yaml.Unmarshal(data, &config); err != nil {
-			return fmt.Errorf("failed to parse YAML theme file: %w", err)
+			return nil, fmt.Errorf("failed to parse YAML theme file: %w", err)
 		}
 	case ".json":
 		if err := json.Unmarshal(data, &config); err != nil {
-			return fmt.Errorf("failed to parse JSON theme file: %w", err)
+			return nil, fmt.Errorf("failed to parse JSON theme file: %w", err)
 		}
 	default:
-		return fmt.Errorf("unsupported theme file format: %s", ext)
+		return nil, fmt.Errorf("unsupported theme file format: %s", ext)
 	}
 
-	tm.config = tm.mergeWithDefaults(&config)
-	return nil
+	return &config, nil
 }
 
 // mergeWithDefaults merges loaded config with defaults using interface methods
@@ -437,7 +524,7 @@ func (tm *ThemeManager) mergeWithDefaults(loaded *ThemeConfig) *ThemeConfig {
 // parseHexColor parses a hex color string
 func parseHexColor(hex string) (tcell.Color, error) {
 	if len(hex) != 7 || hex[0] != '#' {
-		return tcell.ColorDefault, fmt.Errorf("invalid hex color format")
+		return tcell.ColorDefault, errors.New("invalid hex color format")
 	}
 
 	var r, g, b uint8

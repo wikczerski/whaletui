@@ -1,7 +1,7 @@
 package docker
 
 import (
-	"fmt"
+	"errors"
 	"strings"
 )
 
@@ -27,12 +27,12 @@ func formatRemoteHost(host string) (string, error) {
 // validateRemoteHost validates a remote host string
 func validateRemoteHost(host string) error {
 	if host == "" {
-		return fmt.Errorf("remote host cannot be empty")
+		return errors.New("remote host cannot be empty")
 	}
 
 	// Basic validation - could be expanded based on your needs
 	if strings.Contains(host, " ") {
-		return fmt.Errorf("remote host cannot contain spaces")
+		return errors.New("remote host cannot contain spaces")
 	}
 
 	return nil

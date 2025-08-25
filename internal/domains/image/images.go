@@ -2,7 +2,7 @@ package image
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"strings"
 
 	"github.com/wikczerski/whaletui/internal/shared"
@@ -27,16 +27,29 @@ func NewImagesView(ui interfaces.UIInterface) *ImagesView {
 		handlers: handlers.NewActionHandlers(ui),
 	}
 
-	// Set up callbacks
+	iv.setupCallbacks()
+	return iv
+}
+
+// setupCallbacks sets up all the callback functions for the images view
+func (iv *ImagesView) setupCallbacks() {
+	iv.setupBasicCallbacks()
+	iv.setupActionCallbacks()
+}
+
+// setupBasicCallbacks sets up the basic view callbacks
+func (iv *ImagesView) setupBasicCallbacks() {
 	iv.ListItems = iv.listImages
 	iv.FormatRow = func(i shared.Image) []string { return iv.formatImageRow(&i) }
 	iv.GetItemID = func(i shared.Image) string { return i.ID }
 	iv.GetItemName = func(i shared.Image) string { return i.RepoTags[0] }
+}
+
+// setupActionCallbacks sets up the action-related callbacks
+func (iv *ImagesView) setupActionCallbacks() {
 	iv.HandleKeyPress = func(key rune, i shared.Image) { iv.handleImageKey(key, &i) }
 	iv.ShowDetails = func(i shared.Image) { iv.showImageDetails(&i) }
 	iv.GetActions = iv.getImageActions
-
-	return iv
 }
 
 func (iv *ImagesView) listImages(ctx context.Context) ([]shared.Image, error) {
@@ -45,21 +58,31 @@ func (iv *ImagesView) listImages(ctx context.Context) ([]shared.Image, error) {
 		return []shared.Image{}, nil
 	}
 
-	// Type assertion to get the service factory
-	if serviceFactory, ok := services.(interfaces.ServiceFactoryInterface); ok {
-		if imageService := serviceFactory.GetImageService(); imageService != nil {
-			// Type assertion to get the ListImages method
-			if imageService != nil {
-				images, err := imageService.ListImages(ctx)
-				if err != nil {
-					return nil, err
-				}
-				return images, nil
-			}
-		}
+	imageService := iv.getImageService(services)
+	if imageService == nil {
+		return []shared.Image{}, nil
 	}
 
-	return []shared.Image{}, nil
+	images, err := imageService.ListImages(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return images, nil
+}
+
+// getImageService extracts the image service from the services interface
+func (iv *ImagesView) getImageService(services any) interfaces.ImageService {
+	serviceFactory, ok := services.(interfaces.ServiceFactoryInterface)
+	if !ok {
+		return nil
+	}
+
+	imageService := serviceFactory.GetImageService()
+	if imageService == nil {
+		return nil
+	}
+
+	return imageService
 }
 
 func (iv *ImagesView) formatImageRow(image *shared.Image) []string {
@@ -100,10 +123,19 @@ func (iv *ImagesView) showImageDetails(image *shared.Image) {
 	ctx := context.Background()
 	services := iv.GetUI().GetServicesAny()
 	if services == nil {
-		iv.ShowItemDetails(*image, nil, fmt.Errorf("image service not available"))
+		iv.ShowItemDetails(*image, nil, errors.New("image service not available"))
 		return
 	}
 
+	iv.performImageInspection(ctx, image, services)
+}
+
+// performImageInspection performs the actual image inspection
+func (iv *ImagesView) performImageInspection(
+	ctx context.Context,
+	image *shared.Image,
+	services any,
+) {
 	// Type assertion to get the service factory
 	if serviceFactory, ok := services.(interface{ GetImageService() any }); ok {
 		if imageService := serviceFactory.GetImageService(); imageService != nil {
@@ -118,7 +150,7 @@ func (iv *ImagesView) showImageDetails(image *shared.Image) {
 		}
 	}
 
-	iv.ShowItemDetails(*image, nil, fmt.Errorf("image service not available"))
+	iv.ShowItemDetails(*image, nil, errors.New("image service not available"))
 }
 
 func (iv *ImagesView) handleAction(key rune, image *shared.Image) {

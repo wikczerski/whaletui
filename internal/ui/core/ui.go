@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -69,10 +70,20 @@ type UI struct {
 
 	// Flags for refresh cycles
 	isRefreshing bool
+
+	// UI components
+	headerSection *tview.Flex
+	commandInput  *tview.InputField
 }
 
 // New creates a new UI
-func New(serviceFactory interfaces.ServiceFactoryInterface, themePath string, headerManager interfaces.HeaderManagerInterface, modalManager interfaces.ModalManagerInterface, _ *config.Config) (*UI, error) {
+func New(
+	serviceFactory interfaces.ServiceFactoryInterface,
+	themePath string,
+	headerManager interfaces.HeaderManagerInterface,
+	modalManager interfaces.ModalManagerInterface,
+	_ *config.Config,
+) (*UI, error) {
 	// TUI mode is already set globally in init()
 
 	ui := &UI{
@@ -181,12 +192,22 @@ func (ui *UI) ShowContextualHelp(context, operation string) {
 }
 
 // ShowRetryDialog displays a retry dialog with automatic retry logic
-func (ui *UI) ShowRetryDialog(operation string, err error, retryFunc func() error, onSuccess func()) {
+func (ui *UI) ShowRetryDialog(
+	operation string,
+	err error,
+	retryFunc func() error,
+	onSuccess func(),
+) {
 	ui.showRetryDialog(operation, err, retryFunc, onSuccess)
 }
 
 // ShowFallbackDialog displays a fallback operations dialog
-func (ui *UI) ShowFallbackDialog(operation string, err error, fallbackOptions []string, onFallback func(string)) {
+func (ui *UI) ShowFallbackDialog(
+	operation string,
+	err error,
+	fallbackOptions []string,
+	onFallback func(string),
+) {
 	ui.showFallbackDialog(operation, err, fallbackOptions, onFallback)
 }
 
@@ -210,12 +231,19 @@ func (ui *UI) ShowConfirm(message string, onConfirm func(bool)) {
 }
 
 // ShowServiceScaleModal shows a modal for scaling swarm services
-func (ui *UI) ShowServiceScaleModal(serviceName string, currentReplicas uint64, callback func(int)) {
+func (ui *UI) ShowServiceScaleModal(
+	serviceName string,
+	currentReplicas uint64,
+	callback func(int),
+) {
 	ui.modalManager.ShowServiceScaleModal(serviceName, currentReplicas, callback)
 }
 
 // ShowNodeAvailabilityModal shows a modal for updating node availability
-func (ui *UI) ShowNodeAvailabilityModal(nodeName, currentAvailability string, callback func(string)) {
+func (ui *UI) ShowNodeAvailabilityModal(
+	nodeName, currentAvailability string,
+	callback func(string),
+) {
 	ui.modalManager.ShowNodeAvailabilityModal(nodeName, currentAvailability, callback)
 }
 
@@ -307,7 +335,8 @@ func (ui *UI) ShowShell(containerID, containerName string) {
 
 // GetLogsView returns the logs view for any resource type
 func (ui *UI) GetLogsView(resourceType, resourceID, resourceName string) *logs.View {
-	if ui.logsView == nil || ui.logsView.ResourceID != resourceID || ui.logsView.ResourceType != resourceType {
+	if ui.logsView == nil || ui.logsView.ResourceID != resourceID ||
+		ui.logsView.ResourceType != resourceType {
 		ui.logsView = logs.NewView(ui, resourceType, resourceID, resourceName)
 	}
 	return ui.logsView
@@ -386,7 +415,7 @@ func (ui *UI) Refresh() {
 // CompleteInitialization completes the UI initialization after managers are set
 func (ui *UI) CompleteInitialization() error {
 	if ui.headerManager == nil || ui.modalManager == nil {
-		return fmt.Errorf("managers must be set before completing initialization")
+		return errors.New("managers must be set before completing initialization")
 	}
 
 	ui.initComponents()
@@ -413,30 +442,39 @@ func (ui *UI) initializeManagers(themePath string) error {
 // initComponents initializes UI components
 func (ui *UI) initComponents() {
 	ui.mainFlex = ui.viewBuilder.CreateView()
+	ui.setupHeaderAndCommandInput()
+	ui.createAndRegisterViews()
+	ui.createViewContainer()
+	ui.createStatusBar()
+	ui.setupMainLayout()
+	ui.setupMainPages(ui.commandInput)
+	ui.initializeUIState()
+	ui.log.Info("UI components initialized")
+}
 
-	headerSection := ui.headerManager.CreateHeaderSection()
+// setupHeaderAndCommandInput sets up the header section and command input
+func (ui *UI) setupHeaderAndCommandInput() {
+	headerSection, ok := ui.headerManager.CreateHeaderSection().(*tview.Flex)
+	if !ok {
+		ui.log.Error("failed to create header section")
+		return
+	}
+	ui.headerSection = headerSection
 	// Force initial header update to populate content
 	ui.headerManager.UpdateDockerInfo()
 	ui.headerManager.UpdateNavigation()
 	ui.headerManager.UpdateActions()
-	commandInput := ui.commandHandler.CreateCommandInput()
+	ui.commandInput = ui.commandHandler.CreateCommandInput()
+}
 
-	ui.createAndRegisterViews()
-	ui.createViewContainer()
-	ui.createStatusBar()
-
+// setupMainLayout sets up the main layout with proper heights and direction
+func (ui *UI) setupMainLayout() {
 	// Ensure proper layout with fixed heights to prevent shifting
-	ui.mainFlex.AddItem(headerSection, constants.HeaderSectionHeight, 1, false)
+	ui.mainFlex.AddItem(ui.headerSection, constants.HeaderSectionHeight, 1, false)
 	ui.mainFlex.AddItem(ui.viewContainer, 0, 1, true)
 	ui.mainFlex.AddItem(ui.statusBar, constants.StatusBarHeight, 1, false)
-
 	// Ensure layout stability
 	ui.mainFlex.SetDirection(tview.FlexRow)
-
-	ui.setupMainPages(commandInput)
-	ui.initializeUIState()
-
-	ui.log.Info("UI components initialized")
 }
 
 // setupMainPages sets up the main pages in the UI
@@ -481,8 +519,18 @@ func (ui *UI) createResourceViews() {
 	ui.networksView = network.NewNetworksView(ui)
 
 	// Create swarm views
-	ui.swarmServicesView = swarm.NewServicesView(ui, ui.services.GetSwarmServiceService().(*swarmDomain.ServiceService), ui.modalManager.(*managers.ModalManager), ui.headerManager.(*managers.HeaderManager))
-	ui.swarmNodesView = swarm.NewNodesView(ui, ui.services.GetSwarmNodeService().(*swarmDomain.NodeService), ui.modalManager.(*managers.ModalManager), ui.headerManager.(*managers.HeaderManager))
+	ui.swarmServicesView = swarm.NewServicesView(
+		ui,
+		ui.services.GetSwarmServiceService().(*swarmDomain.ServiceService),
+		ui.modalManager.(*managers.ModalManager),
+		ui.headerManager.(*managers.HeaderManager),
+	)
+	ui.swarmNodesView = swarm.NewNodesView(
+		ui,
+		ui.services.GetSwarmNodeService().(*swarmDomain.NodeService),
+		ui.modalManager.(*managers.ModalManager),
+		ui.headerManager.(*managers.HeaderManager),
+	)
 }
 
 // registerViewsWithActions registers views with their metadata and actions
@@ -508,60 +556,245 @@ func (ui *UI) registerContainerView() {
 			containerNavigation = navigationService.GetNavigationString()
 		}
 	}
-	ui.viewRegistry.Register("containers", "Containers", 'c', ui.containersView.GetView(), ui.containersView.Refresh, containerActions, containerNavigation)
+	ui.viewRegistry.Register(
+		"containers",
+		"Containers",
+		'c',
+		ui.containersView.GetView(),
+		ui.containersView.Refresh,
+		containerActions,
+		containerNavigation,
+	)
 }
 
 // registerResourceViews registers the resource views with their actions
 func (ui *UI) registerResourceViews() {
-	imageActions := ""
-	volumeActions := ""
-	networkActions := ""
-	swarmServiceActions := ""
-	swarmNodeActions := ""
+	actions := ui.collectServiceActions()
+	ui.registerResourceViewsWithActions(actions)
+}
 
-	if ui.services != nil {
-		if imageService := ui.services.GetImageService(); imageService != nil {
-			if actionService, ok := imageService.(interfaces.ServiceWithActions); ok {
-				imageActions = actionService.GetActionsString()
-			}
-		}
-		if volumeService := ui.services.GetVolumeService(); volumeService != nil {
-			if actionService, ok := volumeService.(interfaces.ServiceWithActions); ok {
-				volumeActions = actionService.GetActionsString()
-			}
-		}
-		if networkService := ui.services.GetNetworkService(); networkService != nil {
-			if actionService, ok := networkService.(interfaces.ServiceWithActions); ok {
-				networkActions = actionService.GetActionsString()
-			}
-		}
-		if swarmServiceService := ui.services.GetSwarmServiceService(); swarmServiceService != nil {
-			if actionService, ok := swarmServiceService.(interfaces.ServiceWithActions); ok {
-				swarmServiceActions = actionService.GetActionsString()
-			}
-		}
-		if swarmNodeService := ui.services.GetSwarmNodeService(); swarmNodeService != nil {
-			if actionService, ok := swarmNodeService.(interfaces.ServiceWithActions); ok {
-				swarmNodeActions = actionService.GetActionsString()
-			}
-		}
+// collectServiceActions collects actions from all available services
+func (ui *UI) collectServiceActions() map[string]string {
+	actions := make(map[string]string)
+
+	if ui.services == nil {
+		return actions
 	}
 
-	ui.viewRegistry.Register("images", "Images", 'i', ui.imagesView.GetView(), ui.imagesView.Refresh, imageActions, "")
-	ui.viewRegistry.Register("volumes", "Volumes", 'v', ui.volumesView.GetView(), ui.volumesView.Refresh, volumeActions, "")
-	ui.viewRegistry.Register("networks", "Networks", 'n', ui.networksView.GetView(), ui.networksView.Refresh, networkActions, "")
-	ui.viewRegistry.Register("swarmServices", "Swarm Services", 's', ui.swarmServicesView.GetView(), ui.swarmServicesView.Refresh, swarmServiceActions, "")
-	ui.viewRegistry.Register("swarmNodes", "Swarm Nodes", 'w', ui.swarmNodesView.GetView(), ui.swarmNodesView.Refresh, swarmNodeActions, "")
+	ui.collectImageActions(actions)
+	ui.collectVolumeActions(actions)
+	ui.collectNetworkActions(actions)
+	ui.collectSwarmServiceActions(actions)
+	ui.collectSwarmNodeActions(actions)
+
+	return actions
+}
+
+// collectImageActions collects actions from the image service
+func (ui *UI) collectImageActions(actions map[string]string) {
+	if imageService := ui.services.GetImageService(); imageService != nil {
+		if actionService, ok := imageService.(interfaces.ServiceWithActions); ok {
+			actions["images"] = actionService.GetActionsString()
+		}
+	}
+}
+
+// collectVolumeActions collects actions from the volume service
+func (ui *UI) collectVolumeActions(actions map[string]string) {
+	if volumeService := ui.services.GetVolumeService(); volumeService != nil {
+		if actionService, ok := volumeService.(interfaces.ServiceWithActions); ok {
+			actions["volumes"] = actionService.GetActionsString()
+		}
+	}
+}
+
+// collectNetworkActions collects actions from the network service
+func (ui *UI) collectNetworkActions(actions map[string]string) {
+	if networkService := ui.services.GetNetworkService(); networkService != nil {
+		if actionService, ok := networkService.(interfaces.ServiceWithActions); ok {
+			actions["networks"] = actionService.GetActionsString()
+		}
+	}
+}
+
+// collectSwarmServiceActions collects actions from the swarm service service
+func (ui *UI) collectSwarmServiceActions(actions map[string]string) {
+	if swarmServiceService := ui.services.GetSwarmServiceService(); swarmServiceService != nil {
+		if actionService, ok := swarmServiceService.(interfaces.ServiceWithActions); ok {
+			actions["swarmServices"] = actionService.GetActionsString()
+		}
+	}
+}
+
+// collectSwarmNodeActions collects actions from the swarm node service
+func (ui *UI) collectSwarmNodeActions(actions map[string]string) {
+	if swarmNodeService := ui.services.GetSwarmNodeService(); swarmNodeService != nil {
+		if actionService, ok := swarmNodeService.(interfaces.ServiceWithActions); ok {
+			actions["swarmNodes"] = actionService.GetActionsString()
+		}
+	}
+}
+
+// registerResourceViewsWithActions registers resource views with their collected actions
+func (ui *UI) registerResourceViewsWithActions(actions map[string]string) {
+	ui.registerImagesView(actions)
+	ui.registerVolumesView(actions)
+	ui.registerNetworksView(actions)
+	ui.registerSwarmServicesView(actions)
+	ui.registerSwarmNodesView(actions)
+}
+
+// registerImagesView registers the images view
+func (ui *UI) registerImagesView(actions map[string]string) {
+	ui.viewRegistry.Register(
+		"images",
+		"Images",
+		'i',
+		ui.imagesView.GetView(),
+		ui.imagesView.Refresh,
+		actions["images"],
+		"",
+	)
+}
+
+// registerVolumesView registers the volumes view
+func (ui *UI) registerVolumesView(actions map[string]string) {
+	ui.viewRegistry.Register(
+		"volumes",
+		"Volumes",
+		'v',
+		ui.volumesView.GetView(),
+		ui.volumesView.Refresh,
+		actions["volumes"],
+		"",
+	)
+}
+
+// registerNetworksView registers the networks view
+func (ui *UI) registerNetworksView(actions map[string]string) {
+	ui.viewRegistry.Register(
+		"networks",
+		"Networks",
+		'n',
+		ui.networksView.GetView(),
+		ui.networksView.Refresh,
+		actions["networks"],
+		"",
+	)
+}
+
+// registerSwarmServicesView registers the swarm services view
+func (ui *UI) registerSwarmServicesView(actions map[string]string) {
+	ui.viewRegistry.Register(
+		"swarmServices",
+		"Swarm Services",
+		's',
+		ui.swarmServicesView.GetView(),
+		ui.swarmServicesView.Refresh,
+		actions["swarmServices"],
+		"",
+	)
+}
+
+// registerSwarmNodesView registers the swarm nodes view
+func (ui *UI) registerSwarmNodesView(actions map[string]string) {
+	ui.viewRegistry.Register(
+		"swarmNodes",
+		"Swarm Nodes",
+		'w',
+		ui.swarmNodesView.GetView(),
+		ui.swarmNodesView.Refresh,
+		actions["swarmNodes"],
+		"",
+	)
 }
 
 // registerViewsWithoutServices registers views without service actions
 func (ui *UI) registerViewsWithoutServices() {
-	ui.viewRegistry.Register("containers", "Containers", 'c', ui.containersView.GetView(), ui.containersView.Refresh, "", "")
-	ui.viewRegistry.Register("images", "Images", 'i', ui.imagesView.GetView(), ui.imagesView.Refresh, "", "")
-	ui.viewRegistry.Register("volumes", "Volumes", 'v', ui.volumesView.GetView(), ui.volumesView.Refresh, "", "")
-	ui.viewRegistry.Register("networks", "Networks", 'n', ui.networksView.GetView(), ui.networksView.Refresh, "", "")
-	ui.viewRegistry.Register("swarmServices", "Swarm Services", 's', ui.swarmServicesView.GetView(), ui.swarmServicesView.Refresh, "", "")
-	ui.viewRegistry.Register("swarmNodes", "Swarm Nodes", 'w', ui.swarmNodesView.GetView(), ui.swarmNodesView.Refresh, "", "")
+	ui.registerContainersViewWithoutActions()
+	ui.registerImagesViewWithoutActions()
+	ui.registerVolumesViewWithoutActions()
+	ui.registerNetworksViewWithoutActions()
+	ui.registerSwarmServicesViewWithoutActions()
+	ui.registerSwarmNodesViewWithoutActions()
+}
+
+// registerContainersViewWithoutActions registers the containers view without actions
+func (ui *UI) registerContainersViewWithoutActions() {
+	ui.viewRegistry.Register(
+		"containers",
+		"Containers",
+		'c',
+		ui.containersView.GetView(),
+		ui.containersView.Refresh,
+		"",
+		"",
+	)
+}
+
+// registerImagesViewWithoutActions registers the images view without actions
+func (ui *UI) registerImagesViewWithoutActions() {
+	ui.viewRegistry.Register(
+		"images",
+		"Images",
+		'i',
+		ui.imagesView.GetView(),
+		ui.imagesView.Refresh,
+		"",
+		"",
+	)
+}
+
+// registerVolumesViewWithoutActions registers the volumes view without actions
+func (ui *UI) registerVolumesViewWithoutActions() {
+	ui.viewRegistry.Register(
+		"volumes",
+		"Volumes",
+		'v',
+		ui.volumesView.GetView(),
+		ui.volumesView.Refresh,
+		"",
+		"",
+	)
+}
+
+// registerNetworksViewWithoutActions registers the networks view without actions
+func (ui *UI) registerNetworksViewWithoutActions() {
+	ui.viewRegistry.Register(
+		"networks",
+		"Networks",
+		'n',
+		ui.networksView.GetView(),
+		ui.networksView.Refresh,
+		"",
+		"",
+	)
+}
+
+// registerSwarmServicesViewWithoutActions registers the swarm services view without actions
+func (ui *UI) registerSwarmServicesViewWithoutActions() {
+	ui.viewRegistry.Register(
+		"swarmServices",
+		"Swarm Services",
+		's',
+		ui.swarmServicesView.GetView(),
+		ui.swarmServicesView.Refresh,
+		"",
+		"",
+	)
+}
+
+// registerSwarmNodesViewWithoutActions registers the swarm nodes view without actions
+func (ui *UI) registerSwarmNodesViewWithoutActions() {
+	ui.viewRegistry.Register(
+		"swarmNodes",
+		"Swarm Nodes",
+		'w',
+		ui.swarmNodesView.GetView(),
+		ui.swarmNodesView.Refresh,
+		"",
+		"",
+	)
 }
 
 // setDefaultView sets the default view for the application
@@ -590,7 +823,11 @@ func (ui *UI) createViewContainer() {
 
 // createStatusBar creates the status bar
 func (ui *UI) createStatusBar() {
-	ui.statusBar = ui.componentBuilder.CreateTextView("", tview.AlignLeft, ui.themeManager.GetTextColor())
+	ui.statusBar = ui.componentBuilder.CreateTextView(
+		"",
+		tview.AlignLeft,
+		ui.themeManager.GetTextColor(),
+	)
 	ui.statusBar.SetBackgroundColor(ui.themeManager.GetBackgroundColor())
 
 	// Ensure status bar has consistent height and doesn't expand
@@ -608,32 +845,32 @@ func (ui *UI) setupKeyBindings() {
 
 // handleGlobalKeyBindings handles all global key bindings
 func (ui *UI) handleGlobalKeyBindings(event *tcell.EventKey) *tcell.EventKey {
-	// Check if a modal is currently active - don't interfere with modal key handling
-	if ui.IsModalActive() {
-		return event // Let the modal handle its own key events
+	if ui.shouldSkipGlobalKeyBindings(event) {
+		return event
 	}
 
-	// Check if command mode is active
+	return ui.routeKeyBinding(event)
+}
+
+// shouldSkipGlobalKeyBindings checks if global key bindings should be skipped
+func (ui *UI) shouldSkipGlobalKeyBindings(event *tcell.EventKey) bool {
+	return ui.IsModalActive() || ui.isShellInputFieldFocused()
+}
+
+// routeKeyBinding routes the key binding to the appropriate handler
+func (ui *UI) routeKeyBinding(event *tcell.EventKey) *tcell.EventKey {
 	if ui.app.GetFocus() == ui.commandHandler.GetInput() {
 		return ui.handleCommandModeKeyBindings(event)
 	}
 
-	// Check if exec command input is active
 	if ui.isExecCommandInputActive() {
 		return ui.handleExecCommandKeyBindings(event)
 	}
 
-	// Check if shell view is active
 	if ui.isShellViewActive() {
 		return ui.handleShellViewKeyBindings(event)
 	}
 
-	// Check if shell input field is focused
-	if ui.isShellInputFieldFocused() {
-		return event // Block global key bindings in shell input mode
-	}
-
-	// Normal mode key bindings
 	return ui.handleNormalModeKeyBindings(event)
 }
 
@@ -650,21 +887,40 @@ func (ui *UI) handleCommandModeKeyBindings(event *tcell.EventKey) *tcell.EventKe
 // handleExecCommandKeyBindings handles key bindings when exec command input is active
 func (ui *UI) handleExecCommandKeyBindings(event *tcell.EventKey) *tcell.EventKey {
 	// In exec command mode, only allow ESC to exit
-	if event.Key() == tcell.KeyEscape {
-		// Remove the exec input and return focus to view
-		if mainFlex := ui.mainFlex; mainFlex != nil {
-			if focused := ui.app.GetFocus(); focused != nil {
-				if inputField, ok := focused.(*tview.InputField); ok {
-					mainFlex.RemoveItem(inputField)
-					if viewContainer := ui.viewContainer; viewContainer != nil {
-						ui.app.SetFocus(viewContainer)
-					}
-				}
-			}
-		}
-		return nil
+	if event.Key() != tcell.KeyEscape {
+		return event
 	}
-	return event
+
+	// Remove the exec input and return focus to view
+	ui.removeExecInputAndRestoreFocus()
+	return nil
+}
+
+// removeExecInputAndRestoreFocus removes the exec input and restores focus to the view container
+func (ui *UI) removeExecInputAndRestoreFocus() {
+	if ui.mainFlex == nil {
+		return
+	}
+
+	focused := ui.app.GetFocus()
+	if focused == nil {
+		return
+	}
+
+	ui.removeInputFieldAndRestoreFocus(focused)
+}
+
+// removeInputFieldAndRestoreFocus removes the input field and restores focus
+func (ui *UI) removeInputFieldAndRestoreFocus(focused tview.Primitive) {
+	inputField, ok := focused.(*tview.InputField)
+	if !ok {
+		return
+	}
+
+	ui.mainFlex.RemoveItem(inputField)
+	if ui.viewContainer != nil {
+		ui.app.SetFocus(ui.viewContainer)
+	}
 }
 
 // handleShellViewKeyBindings handles key bindings when shell view is active
@@ -681,7 +937,13 @@ func (ui *UI) handleShellViewKeyBindings(event *tcell.EventKey) *tcell.EventKey 
 func (ui *UI) handleNormalModeKeyBindings(event *tcell.EventKey) *tcell.EventKey {
 	// Log what component is focused
 	if focused := ui.app.GetFocus(); focused != nil {
-		ui.log.Info("Normal mode key binding", "key", event.Key(), "focusedType", fmt.Sprintf("%T", focused))
+		ui.log.Info(
+			"Normal mode key binding",
+			"key",
+			event.Key(),
+			"focusedType",
+			fmt.Sprintf("%T", focused),
+		)
 	}
 
 	switch event.Key() {
@@ -698,24 +960,37 @@ func (ui *UI) handleNormalModeKeyBindings(event *tcell.EventKey) *tcell.EventKey
 func (ui *UI) handleGlobalRuneKeyBindings(event *tcell.EventKey) *tcell.EventKey {
 	ui.log.Info("Global rune key handler called", "key", string(event.Rune()))
 
-	switch event.Rune() {
-	case 'q', 'Q':
-		ui.log.Info("Quitting application...")
-		// Send shutdown signal instead of direct exit to ensure cleanup
-		select {
-		case ui.shutdownChan <- struct{}{}:
-		default:
-		}
-		return nil
-	case ':':
-		ui.log.Info("Entering command mode")
-		ui.commandHandler.Enter()
+	if ui.handleQuitKey(event) || ui.handleCommandModeKey(event) {
 		return nil
 	}
 
 	ui.log.Info("Global handler passing through key", "key", string(event.Rune()))
 	// Let all other keys pass through to the focused view (including action keys)
 	return event
+}
+
+// handleQuitKey handles quit key presses
+func (ui *UI) handleQuitKey(event *tcell.EventKey) bool {
+	if event.Rune() == 'q' || event.Rune() == 'Q' {
+		ui.log.Info("Quitting application...")
+		// Send shutdown signal instead of direct exit to ensure cleanup
+		select {
+		case ui.shutdownChan <- struct{}{}:
+		default:
+		}
+		return true
+	}
+	return false
+}
+
+// handleCommandModeKey handles command mode key presses
+func (ui *UI) handleCommandModeKey(event *tcell.EventKey) bool {
+	if event.Rune() == ':' {
+		ui.log.Info("Entering command mode")
+		ui.commandHandler.Enter()
+		return true
+	}
+	return false
 }
 
 // handleCtrlCKeyBinding handles Ctrl+C key binding
@@ -822,7 +1097,8 @@ func (ui *UI) ensureStableLayout() {
 
 // refreshCurrentView refreshes the currently active view
 func (ui *UI) refreshCurrentView() {
-	if currentView := ui.viewRegistry.GetCurrent(); currentView != nil && currentView.Refresh != nil {
+	if currentView := ui.viewRegistry.GetCurrent(); currentView != nil &&
+		currentView.Refresh != nil {
 		ui.log.Debug("Refreshing current view", "view", currentView.Title)
 		currentView.Refresh()
 	} else {
@@ -886,33 +1162,50 @@ func (ui *UI) refreshViewAndFocus(_ string) {
 	viewInfo := ui.viewRegistry.GetCurrent()
 
 	ui.updateStatusBar()
+	ui.updateHeadersIfNeeded()
+	ui.refreshViewInfo(viewInfo)
+	ui.setFocusToTable(viewInfo)
+}
 
-	// Only update headers if not in a refresh cycle
+// updateHeadersIfNeeded updates headers only if not in a refresh cycle
+func (ui *UI) updateHeadersIfNeeded() {
 	if !ui.isRefreshing {
 		ui.headerManager.UpdateDockerInfo()
 		ui.headerManager.UpdateNavigation()
 		ui.headerManager.UpdateActions()
 	}
+}
 
+// refreshViewInfo refreshes the current view if it has a refresh function
+func (ui *UI) refreshViewInfo(viewInfo *ViewInfo) {
 	if viewInfo.Refresh != nil {
 		viewInfo.Refresh()
 	}
+}
 
-	// Set focus to the table within the view so action keys work
+// setFocusToTable sets focus to the table within the view
+func (ui *UI) setFocusToTable(viewInfo *ViewInfo) {
 	if view, ok := viewInfo.View.(*tview.Flex); ok {
-		// Find the table within the Flex container
-		for i := 0; i < view.GetItemCount(); i++ {
-			if item := view.GetItem(i); item != nil {
-				if table, isTable := item.(*tview.Table); isTable {
-					ui.app.SetFocus(table)
-					return
-				}
-			}
+		if table := ui.findTableInFlex(view); table != nil {
+			ui.app.SetFocus(table)
+			return
 		}
 	}
 
 	// Fallback to setting focus on the view if no table is found
 	ui.app.SetFocus(viewInfo.View)
+}
+
+// findTableInFlex finds a table within a Flex container
+func (ui *UI) findTableInFlex(view *tview.Flex) *tview.Table {
+	for i := 0; i < view.GetItemCount(); i++ {
+		if item := view.GetItem(i); item != nil {
+			if table, isTable := item.(*tview.Table); isTable {
+				return table
+			}
+		}
+	}
+	return nil
 }
 
 // updateStatusBar updates the status bar with current information
@@ -978,14 +1271,24 @@ func (ui *UI) showContextualHelp(context, operation string) {
 }
 
 // showRetryDialog shows retry dialog with automatic retry logic
-func (ui *UI) showRetryDialog(operation string, err error, retryFunc func() error, onSuccess func()) {
+func (ui *UI) showRetryDialog(
+	operation string,
+	err error,
+	retryFunc func() error,
+	onSuccess func(),
+) {
 	if ui.modalManager != nil {
 		ui.modalManager.ShowRetryDialog(operation, err, retryFunc, onSuccess)
 	}
 }
 
 // showFallbackDialog shows fallback operations dialog
-func (ui *UI) showFallbackDialog(operation string, err error, fallbackOptions []string, onFallback func(string)) {
+func (ui *UI) showFallbackDialog(
+	operation string,
+	err error,
+	fallbackOptions []string,
+	onFallback func(string),
+) {
 	if ui.modalManager != nil {
 		ui.modalManager.ShowFallbackDialog(operation, err, fallbackOptions, onFallback)
 	}
@@ -1069,7 +1372,15 @@ func (ui *UI) updateUIAfterViewRestore(currentViewInfo *ViewInfo) {
 
 // showLogs displays logs for any resource type in a dedicated view
 func (ui *UI) showLogs(resourceType, resourceID, resourceName string) {
-	ui.log.Debug("Showing logs for resource", "type", resourceType, "id", resourceID, "name", resourceName)
+	ui.log.Debug(
+		"Showing logs for resource",
+		"type",
+		resourceType,
+		"id",
+		resourceID,
+		"name",
+		resourceName,
+	)
 
 	ui.setLogsMode()
 	ui.setupLogsActions()
@@ -1118,14 +1429,22 @@ func (ui *UI) setLogsFocus() {
 func (ui *UI) createShellView(containerID, containerName string) {
 	containerService := ui.services.GetContainerService()
 	if containerService != nil {
-		ui.shellView = shell.NewView(ui, containerID, containerName, ui.handleShellExit, containerService.ExecContainer)
+		ui.shellView = shell.NewView(
+			ui,
+			containerID,
+			containerName,
+			ui.handleShellExit,
+			containerService.ExecContainer,
+		)
 	}
 }
 
 // displayShellView displays the shell view in the container
 func (ui *UI) displayShellView(containerID, containerName string) {
 	ui.viewContainer.Clear()
-	ui.viewContainer.SetTitle(fmt.Sprintf(" Shell - %s (%s) ", containerName, shared.TruncName(containerID, 12)))
+	ui.viewContainer.SetTitle(
+		fmt.Sprintf(" Shell - %s (%s) ", containerName, shared.TruncName(containerID, 12)),
+	)
 	ui.viewContainer.AddItem(ui.shellView.GetView(), 0, 1, true)
 	ui.app.SetFocus(ui.shellView.GetView())
 }

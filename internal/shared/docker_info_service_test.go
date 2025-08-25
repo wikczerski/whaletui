@@ -14,19 +14,32 @@ func TestNewDockerInfoService(t *testing.T) {
 	service := NewDockerInfoService(nil)
 	assert.Nil(t, service)
 
+	client := setupTestDockerClient(t)
+	if client == nil {
+		return
+	}
+	defer cleanupTestDockerClient(t, client)
+
+	service = NewDockerInfoService(client)
+	assert.NotNil(t, service)
+}
+
+// setupTestDockerClient creates a test Docker client
+func setupTestDockerClient(t *testing.T) *docker.Client {
 	cfg := &config.Config{DockerHost: "unix:///var/run/docker/sock"}
 	client, err := docker.New(cfg)
 	if err != nil {
 		t.Skipf("Docker not available: %v", err)
+		return nil
 	}
-	defer func() {
-		if err := client.Close(); err != nil {
-			t.Logf("Warning: failed to close client: %v", err)
-		}
-	}()
+	return client
+}
 
-	service = NewDockerInfoService(client)
-	assert.NotNil(t, service)
+// cleanupTestDockerClient closes the test Docker client
+func cleanupTestDockerClient(t *testing.T, client *docker.Client) {
+	if err := client.Close(); err != nil {
+		t.Logf("Warning: failed to close client: %v", err)
+	}
 }
 
 func TestDockerInfoService_GetDockerInfo_Integration(t *testing.T) {

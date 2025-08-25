@@ -2,6 +2,7 @@ package logs
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/wikczerski/whaletui/internal/shared/interfaces"
@@ -20,16 +21,19 @@ func NewLogsService(containerService interfaces.ContainerService) interfaces.Log
 }
 
 // GetLogs retrieves logs for a specific resource type and ID
-func (s *logsService) GetLogs(ctx context.Context, resourceType, resourceID string) (string, error) {
+func (s *logsService) GetLogs(
+	ctx context.Context,
+	resourceType, resourceID string,
+) (string, error) {
 	switch resourceType {
 	case "container":
 		if s.containerService == nil {
-			return "", fmt.Errorf("container service not available")
+			return "", errors.New("container service not available")
 		}
 		return s.containerService.GetContainerLogs(ctx, resourceID)
 	case "service":
 		// TODO: Implement service logs when Docker service support is added
-		return "", fmt.Errorf("service logs not yet implemented")
+		return "", errors.New("service logs not yet implemented")
 	default:
 		return "", fmt.Errorf("unsupported resource type: %s", resourceType)
 	}

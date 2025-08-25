@@ -7,42 +7,73 @@ import (
 )
 
 func TestMarshalToMap(t *testing.T) {
-	// Test with a simple struct
-	type testStruct struct {
-		Name  string `json:"name"`
-		Value int    `json:"value"`
-		Flag  bool   `json:"flag"`
-	}
+	testSimpleStruct(t)
+	testNilInput(t)
+}
 
-	testData := testStruct{
-		Name:  "test",
-		Value: 42,
-		Flag:  true,
-	}
-
+// testSimpleStruct tests marshaling of a simple struct
+func testSimpleStruct(t *testing.T) {
+	testData := createSimpleTestStruct()
 	result, err := marshalToMap(testData)
+
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, "test", result["name"])
-	assert.Equal(t, float64(42), result["value"]) // JSON numbers are unmarshaled as float64
-	assert.Equal(t, true, result["flag"])
+	verifySimpleStructResult(t, result)
+}
 
-	// Test with nil input
-	result, err = marshalToMap(nil)
+// testNilInput tests marshaling of nil input
+func testNilInput(t *testing.T) {
+	result, err := marshalToMap(nil)
 	assert.NoError(t, err)
 	assert.Nil(t, result) // nil input should result in nil output
 }
 
+// createSimpleTestStruct creates a simple test struct
+func createSimpleTestStruct() struct {
+	Name  string `json:"name"`
+	Value int    `json:"value"`
+	Flag  bool   `json:"flag"`
+} {
+	return struct {
+		Name  string `json:"name"`
+		Value int    `json:"value"`
+		Flag  bool   `json:"flag"`
+	}{
+		Name:  "test",
+		Value: 42,
+		Flag:  true,
+	}
+}
+
+// verifySimpleStructResult verifies the marshaled result
+func verifySimpleStructResult(t *testing.T, result map[string]any) {
+	assert.Equal(t, "test", result["name"])
+	assert.Equal(t, float64(42), result["value"]) // JSON numbers are unmarshaled as float64
+	assert.Equal(t, true, result["flag"])
+}
+
 func TestMarshalToMap_ComplexData(t *testing.T) {
-	// Test with nested structures
-	type nestedStruct struct {
+	testData := createNestedTestStruct()
+	result, err := marshalToMap(testData)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	verifyNestedStructResult(t, result)
+}
+
+// createNestedTestStruct creates a nested test struct
+func createNestedTestStruct() struct {
+	Items []string `json:"items"`
+	Meta  struct {
+		Count int `json:"count"`
+	} `json:"meta"`
+} {
+	return struct {
 		Items []string `json:"items"`
 		Meta  struct {
 			Count int `json:"count"`
 		} `json:"meta"`
-	}
-
-	testData := nestedStruct{
+	}{
 		Items: []string{"item1", "item2", "item3"},
 		Meta: struct {
 			Count int `json:"count"`
@@ -50,45 +81,73 @@ func TestMarshalToMap_ComplexData(t *testing.T) {
 			Count: 3,
 		},
 	}
+}
 
-	result, err := marshalToMap(testData)
-	assert.NoError(t, err)
-	assert.NotNil(t, result)
+// verifyNestedStructResult verifies the marshaled nested struct result
+func verifyNestedStructResult(t *testing.T, result map[string]any) {
+	verifyItemsArray(t, result)
+	verifyMetaObject(t, result)
+}
 
-	items, ok := result["items"].([]interface{})
+// verifyItemsArray verifies the items array in the result
+func verifyItemsArray(t *testing.T, result map[string]any) {
+	items, ok := result["items"].([]any)
 	assert.True(t, ok)
 	assert.Len(t, items, 3)
 	assert.Equal(t, "item1", items[0])
 	assert.Equal(t, "item2", items[1])
 	assert.Equal(t, "item3", items[2])
+}
 
-	meta, ok := result["meta"].(map[string]interface{})
+// verifyMetaObject verifies the meta object in the result
+func verifyMetaObject(t *testing.T, result map[string]any) {
+	meta, ok := result["meta"].(map[string]any)
 	assert.True(t, ok)
 	assert.Equal(t, float64(3), meta["count"])
 }
 
 func TestFormatSizeUtils(t *testing.T) {
-	// Test bytes
+	testBytes(t)
+	testKilobytes(t)
+	testMegabytes(t)
+	testGigabytes(t)
+	testTerabytes(t)
+}
+
+// testBytes tests byte formatting
+func testBytes(t *testing.T) {
 	assert.Equal(t, "0.00 B", formatSize(0))
 	assert.Equal(t, "100.00 B", formatSize(100))
 	assert.Equal(t, "1023.00 B", formatSize(1023))
+}
 
-	// Test kilobytes
+// testKilobytes tests kilobyte formatting
+func testKilobytes(t *testing.T) {
 	assert.Equal(t, "1.00 KB", formatSize(1024))
 	assert.Equal(t, "1.50 KB", formatSize(1536))
 	assert.Equal(t, "1024.00 KB", formatSize(1024*1024-1)) // Adjusted to match actual behavior
+}
 
-	// Test megabytes
+// testMegabytes tests megabyte formatting
+func testMegabytes(t *testing.T) {
 	assert.Equal(t, "1.00 MB", formatSize(1024*1024))
 	assert.Equal(t, "1.50 MB", formatSize(1024*1024*3/2))
 	assert.Equal(t, "1024.00 MB", formatSize(1024*1024*1024-1)) // Adjusted to match actual behavior
+}
 
-	// Test gigabytes
+// testGigabytes tests gigabyte formatting
+func testGigabytes(t *testing.T) {
 	assert.Equal(t, "1.00 GB", formatSize(1024*1024*1024))
 	assert.Equal(t, "1.50 GB", formatSize(1024*1024*1024*3/2))
-	assert.Equal(t, "1024.00 GB", formatSize(1024*1024*1024*1024-1)) // Adjusted to match actual behavior
+	assert.Equal(
+		t,
+		"1024.00 GB",
+		formatSize(1024*1024*1024*1024-1),
+	) // Adjusted to match actual behavior
+}
 
-	// Test terabytes
+// testTerabytes tests terabyte formatting
+func testTerabytes(t *testing.T) {
 	assert.Equal(t, "1.00 TB", formatSize(1024*1024*1024*1024))
 	assert.Equal(t, "1.50 TB", formatSize(1024*1024*1024*1024*3/2))
 }

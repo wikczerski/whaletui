@@ -71,19 +71,39 @@ func TestContainerDetails_JSON(t *testing.T) {
 		t.Errorf("Command mismatch: got %s, want %s", unmarshaled.Command, containerDetails.Command)
 	}
 	if len(unmarshaled.Args) != len(containerDetails.Args) {
-		t.Errorf("Args length mismatch: got %d, want %d", len(unmarshaled.Args), len(containerDetails.Args))
+		t.Errorf(
+			"Args length mismatch: got %d, want %d",
+			len(unmarshaled.Args),
+			len(containerDetails.Args),
+		)
 	}
 	if unmarshaled.WorkingDir != containerDetails.WorkingDir {
-		t.Errorf("WorkingDir mismatch: got %s, want %s", unmarshaled.WorkingDir, containerDetails.WorkingDir)
+		t.Errorf(
+			"WorkingDir mismatch: got %s, want %s",
+			unmarshaled.WorkingDir,
+			containerDetails.WorkingDir,
+		)
 	}
 	if len(unmarshaled.Environment) != len(containerDetails.Environment) {
-		t.Errorf("Environment length mismatch: got %d, want %d", len(unmarshaled.Environment), len(containerDetails.Environment))
+		t.Errorf(
+			"Environment length mismatch: got %d, want %d",
+			len(unmarshaled.Environment),
+			len(containerDetails.Environment),
+		)
 	}
 	if len(unmarshaled.Labels) != len(containerDetails.Labels) {
-		t.Errorf("Labels length mismatch: got %d, want %d", len(unmarshaled.Labels), len(containerDetails.Labels))
+		t.Errorf(
+			"Labels length mismatch: got %d, want %d",
+			len(unmarshaled.Labels),
+			len(containerDetails.Labels),
+		)
 	}
 	if len(unmarshaled.Mounts) != len(containerDetails.Mounts) {
-		t.Errorf("Mounts length mismatch: got %d, want %d", len(unmarshaled.Mounts), len(containerDetails.Mounts))
+		t.Errorf(
+			"Mounts length mismatch: got %d, want %d",
+			len(unmarshaled.Mounts),
+			len(containerDetails.Mounts),
+		)
 	}
 }
 
@@ -116,7 +136,11 @@ func TestMount_JSON(t *testing.T) {
 		t.Errorf("Source mismatch: got %s, want %s", unmarshaled.Source, mount.Source)
 	}
 	if unmarshaled.Destination != mount.Destination {
-		t.Errorf("Destination mismatch: got %s, want %s", unmarshaled.Destination, mount.Destination)
+		t.Errorf(
+			"Destination mismatch: got %s, want %s",
+			unmarshaled.Destination,
+			mount.Destination,
+		)
 	}
 	if unmarshaled.ReadOnly != mount.ReadOnly {
 		t.Errorf("ReadOnly mismatch: got %t, want %t", unmarshaled.ReadOnly, mount.ReadOnly)
@@ -172,16 +196,28 @@ func TestNetworkSettings_JSON(t *testing.T) {
 
 	// Verify the data
 	if unmarshaled.IPAddress != networkSettings.IPAddress {
-		t.Errorf("IPAddress mismatch: got %s, want %s", unmarshaled.IPAddress, networkSettings.IPAddress)
+		t.Errorf(
+			"IPAddress mismatch: got %s, want %s",
+			unmarshaled.IPAddress,
+			networkSettings.IPAddress,
+		)
 	}
 	if unmarshaled.Gateway != networkSettings.Gateway {
 		t.Errorf("Gateway mismatch: got %s, want %s", unmarshaled.Gateway, networkSettings.Gateway)
 	}
 	if len(unmarshaled.Ports) != len(networkSettings.Ports) {
-		t.Errorf("Ports length mismatch: got %d, want %d", len(unmarshaled.Ports), len(networkSettings.Ports))
+		t.Errorf(
+			"Ports length mismatch: got %d, want %d",
+			len(unmarshaled.Ports),
+			len(networkSettings.Ports),
+		)
 	}
 	if len(unmarshaled.Networks) != len(networkSettings.Networks) {
-		t.Errorf("Networks length mismatch: got %d, want %d", len(unmarshaled.Networks), len(networkSettings.Networks))
+		t.Errorf(
+			"Networks length mismatch: got %d, want %d",
+			len(unmarshaled.Networks),
+			len(networkSettings.Networks),
+		)
 	}
 }
 
@@ -293,7 +329,11 @@ func TestDockerInfo_JSON(t *testing.T) {
 
 	// Verify key fields
 	if unmarshaled.Containers != dockerInfo.Containers {
-		t.Errorf("Containers mismatch: got %d, want %d", unmarshaled.Containers, dockerInfo.Containers)
+		t.Errorf(
+			"Containers mismatch: got %d, want %d",
+			unmarshaled.Containers,
+			dockerInfo.Containers,
+		)
 	}
 	if unmarshaled.Images != dockerInfo.Images {
 		t.Errorf("Images mismatch: got %d, want %d", unmarshaled.Images, dockerInfo.Images)
@@ -305,22 +345,38 @@ func TestDockerInfo_JSON(t *testing.T) {
 		t.Errorf("OS mismatch: got %s, want %s", unmarshaled.OS, dockerInfo.OS)
 	}
 	if unmarshaled.Architecture != dockerInfo.Architecture {
-		t.Errorf("Architecture mismatch: got %s, want %s", unmarshaled.Architecture, dockerInfo.Architecture)
+		t.Errorf(
+			"Architecture mismatch: got %s, want %s",
+			unmarshaled.Architecture,
+			dockerInfo.Architecture,
+		)
 	}
 	if unmarshaled.Driver != dockerInfo.Driver {
 		t.Errorf("Driver mismatch: got %s, want %s", unmarshaled.Driver, dockerInfo.Driver)
 	}
 	if unmarshaled.MemoryLimit != dockerInfo.MemoryLimit {
-		t.Errorf("MemoryLimit mismatch: got %t, want %t", unmarshaled.MemoryLimit, dockerInfo.MemoryLimit)
+		t.Errorf(
+			"MemoryLimit mismatch: got %t, want %t",
+			unmarshaled.MemoryLimit,
+			dockerInfo.MemoryLimit,
+		)
 	}
 	if unmarshaled.Debug != dockerInfo.Debug {
 		t.Errorf("Debug mismatch: got %t, want %t", unmarshaled.Debug, dockerInfo.Debug)
 	}
 	if len(unmarshaled.SecurityOptions) != len(dockerInfo.SecurityOptions) {
-		t.Errorf("SecurityOptions length mismatch: got %d, want %d", len(unmarshaled.SecurityOptions), len(dockerInfo.SecurityOptions))
+		t.Errorf(
+			"SecurityOptions length mismatch: got %d, want %d",
+			len(unmarshaled.SecurityOptions),
+			len(dockerInfo.SecurityOptions),
+		)
 	}
 	if len(unmarshaled.Warnings) != len(dockerInfo.Warnings) {
-		t.Errorf("Warnings length mismatch: got %d, want %d", len(unmarshaled.Warnings), len(dockerInfo.Warnings))
+		t.Errorf(
+			"Warnings length mismatch: got %d, want %d",
+			len(unmarshaled.Warnings),
+			len(dockerInfo.Warnings),
+		)
 	}
 }
 
@@ -347,16 +403,32 @@ func TestPlugins_JSON(t *testing.T) {
 
 	// Verify the data
 	if len(unmarshaled.Volume) != len(plugins.Volume) {
-		t.Errorf("Volume plugins length mismatch: got %d, want %d", len(unmarshaled.Volume), len(plugins.Volume))
+		t.Errorf(
+			"Volume plugins length mismatch: got %d, want %d",
+			len(unmarshaled.Volume),
+			len(plugins.Volume),
+		)
 	}
 	if len(unmarshaled.Network) != len(plugins.Network) {
-		t.Errorf("Network plugins length mismatch: got %d, want %d", len(unmarshaled.Network), len(plugins.Network))
+		t.Errorf(
+			"Network plugins length mismatch: got %d, want %d",
+			len(unmarshaled.Network),
+			len(plugins.Network),
+		)
 	}
 	if len(unmarshaled.Authorization) != len(plugins.Authorization) {
-		t.Errorf("Authorization plugins length mismatch: got %d, want %d", len(unmarshaled.Authorization), len(plugins.Authorization))
+		t.Errorf(
+			"Authorization plugins length mismatch: got %d, want %d",
+			len(unmarshaled.Authorization),
+			len(plugins.Authorization),
+		)
 	}
 	if len(unmarshaled.Log) != len(plugins.Log) {
-		t.Errorf("Log plugins length mismatch: got %d, want %d", len(unmarshaled.Log), len(plugins.Log))
+		t.Errorf(
+			"Log plugins length mismatch: got %d, want %d",
+			len(unmarshaled.Log),
+			len(plugins.Log),
+		)
 	}
 }
 
@@ -400,7 +472,7 @@ func TestEmptyStructs(t *testing.T) {
 
 	testCases := []struct {
 		name string
-		data interface{}
+		data any
 	}{
 		{"ContainerDetails", &emptyContainerDetails},
 		{"Mount", &emptyMount},

@@ -2,6 +2,7 @@ package image
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/wikczerski/whaletui/internal/docker"
@@ -48,11 +49,11 @@ func (s *imageService) ListImages(ctx context.Context) ([]shared.Image, error) {
 // RemoveImage removes an image
 func (s *imageService) RemoveImage(ctx context.Context, id string, force bool) error {
 	if s.client == nil {
-		return fmt.Errorf("docker client is not initialized")
+		return errors.New("docker client is not initialized")
 	}
 
 	if id == "" {
-		return fmt.Errorf("image ID cannot be empty")
+		return errors.New("image ID cannot be empty")
 	}
 
 	return s.client.RemoveImage(ctx, id, force)
@@ -76,5 +77,6 @@ func (s *imageService) GetActions() map[rune]string {
 
 // GetActionsString returns the available actions for images as a formatted string
 func (s *imageService) GetActionsString() string {
-	return "<r> Remove\n<h> History\n<f> Filter\n<t> Sort\n<i> Inspect\n<enter> Details\n<up/down> Navigate\n<?> Help\n<f5> Refresh\n<:> Command"
+	return "<r> Remove\n<h> History\n<f> Filter\n<t> Sort\n<i> Inspect\n<enter> Details\n" +
+		"<up/down> Navigate\n<?> Help\n<f5> Refresh\n<:> Command"
 }

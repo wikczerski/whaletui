@@ -4,6 +4,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -73,14 +74,20 @@ func (ah *ActionHandlers) HandleResourceAction(
 func (ah *ActionHandlers) HandleContainerAction(
 	action rune,
 	containerID, containerName string,
-	containerService interface{},
+	containerService any,
 	onRefresh func(),
 ) {
 	if ah.handleContainerLifecycleAction(action, containerID, containerService, onRefresh) {
 		return
 	}
 
-	if ah.handleContainerManagementAction(action, containerID, containerName, containerService, onRefresh) {
+	if ah.handleContainerManagementAction(
+		action,
+		containerID,
+		containerName,
+		containerService,
+		onRefresh,
+	) {
 		return
 	}
 
@@ -91,7 +98,7 @@ func (ah *ActionHandlers) HandleContainerAction(
 func (ah *ActionHandlers) HandleContainerLifecycleAction(
 	action rune,
 	containerID string,
-	containerService interface{},
+	containerService any,
 	onRefresh func(),
 ) {
 	switch action {
@@ -114,13 +121,19 @@ func (ah *ActionHandlers) HandleContainerLifecycleAction(
 func (ah *ActionHandlers) HandleContainerManagementAction(
 	action rune,
 	containerID, containerName string,
-	containerService interface{},
+	containerService any,
 	onRefresh func(),
 ) {
 	switch action {
 	case 'd':
 		if cs, ok := containerService.(interfaces.ContainerService); ok {
-			ah.HandleDeleteAction("container", containerID, containerName, cs.RemoveContainer, onRefresh)
+			ah.HandleDeleteAction(
+				"container",
+				containerID,
+				containerName,
+				cs.RemoveContainer,
+				onRefresh,
+			)
 		}
 	case 'i':
 		if cs, ok := containerService.(interfaces.ContainerService); ok {
@@ -133,7 +146,7 @@ func (ah *ActionHandlers) HandleContainerManagementAction(
 func (ah *ActionHandlers) HandleContainerAccessAction(
 	action rune,
 	containerID, containerName string,
-	containerService interface{},
+	containerService any,
 ) {
 	switch action {
 	case 'a':
@@ -157,7 +170,11 @@ func (ah *ActionHandlers) HandleExecAction(
 	containerID, containerName string,
 	execFunc func(context.Context, string, []string, bool) (string, error),
 ) {
-	mainFlex := ah.ui.GetMainFlex().(*tview.Flex)
+	mainFlex, ok := ah.ui.GetMainFlex().(*tview.Flex)
+	if !ok {
+		ah.ui.ShowError(errors.New("failed to get main flex container"))
+		return
+	}
 	execInput := ah.createExecInput(containerName)
 
 	ah.setupExecInputHandlers(execInput, mainFlex, containerID, containerName, execFunc)
@@ -167,14 +184,22 @@ func (ah *ActionHandlers) HandleExecAction(
 // setupInspectCloseButton configures the close button for the inspect view
 func (ah *ActionHandlers) setupInspectCloseButton(inspectFlex *tview.Flex) {
 	inspectFlex.GetItem(1).(*tview.Button).SetSelectedFunc(func() {
-		pages := ah.ui.GetPages().(*tview.Pages)
+		pages, ok := ah.ui.GetPages().(*tview.Pages)
+		if !ok {
+			ah.ui.ShowError(errors.New("failed to get pages container"))
+			return
+		}
 		pages.RemovePage("inspect")
 	})
 }
 
 // addInspectPage adds the inspect page to the UI
 func (ah *ActionHandlers) addInspectPage(inspectFlex *tview.Flex) {
-	pages := ah.ui.GetPages().(*tview.Pages)
+	pages, ok := ah.ui.GetPages().(*tview.Pages)
+	if !ok {
+		ah.ui.ShowError(errors.New("failed to get pages container"))
+		return
+	}
 	pages.AddPage("inspect", inspectFlex, true, true)
 }
 
@@ -186,7 +211,11 @@ func (ah *ActionHandlers) loadInspectDataAsync(
 ) {
 	go func() {
 		inspectData, err := inspectFunc(context.Background(), resourceID)
-		app := ah.ui.GetApp().(*tview.Application)
+		app, ok := ah.ui.GetApp().(*tview.Application)
+		if !ok {
+			ah.ui.ShowError(errors.New("failed to get application instance"))
+			return
+		}
 		app.QueueUpdateDraw(func() {
 			ah.updateInspectView(resourceType, inspectView, inspectData, err)
 		})
@@ -218,40 +247,73 @@ func (ah *ActionHandlers) updateInspectView(
 func (ah *ActionHandlers) handleContainerLifecycleAction(
 	action rune,
 	containerID string,
-	containerService interface{},
+	containerService any,
 	onRefresh func(),
 ) bool {
 	switch action {
 	case 's':
-		if cs, ok := containerService.(interfaces.ContainerService); ok {
-			ah.executor.StartOperation("container", containerID, cs.StartContainer, onRefresh)
-		}
-		return true
+		return ah.handleStartContainer(containerID, containerService, onRefresh)
 	case 'S':
-		if cs, ok := containerService.(interfaces.ContainerService); ok {
-			ah.executor.StopOperation("container", containerID, cs.StopContainer, onRefresh)
-		}
-		return true
+		return ah.handleStopContainer(containerID, containerService, onRefresh)
 	case 'r':
-		if cs, ok := containerService.(interfaces.ContainerService); ok {
-			ah.executor.RestartOperation("container", containerID, cs.RestartContainer, onRefresh)
-		}
-		return true
+		return ah.handleRestartContainer(containerID, containerService, onRefresh)
 	}
 	return false
+}
+
+// handleStartContainer handles starting a container
+func (ah *ActionHandlers) handleStartContainer(
+	containerID string,
+	containerService any,
+	onRefresh func(),
+) bool {
+	if cs, ok := containerService.(interfaces.ContainerService); ok {
+		ah.executor.StartOperation("container", containerID, cs.StartContainer, onRefresh)
+	}
+	return true
+}
+
+// handleStopContainer handles stopping a container
+func (ah *ActionHandlers) handleStopContainer(
+	containerID string,
+	containerService any,
+	onRefresh func(),
+) bool {
+	if cs, ok := containerService.(interfaces.ContainerService); ok {
+		ah.executor.StopOperation("container", containerID, cs.StopContainer, onRefresh)
+	}
+	return true
+}
+
+// handleRestartContainer handles restarting a container
+func (ah *ActionHandlers) handleRestartContainer(
+	containerID string,
+	containerService any,
+	onRefresh func(),
+) bool {
+	if cs, ok := containerService.(interfaces.ContainerService); ok {
+		ah.executor.RestartOperation("container", containerID, cs.RestartContainer, onRefresh)
+	}
+	return true
 }
 
 // handleContainerManagementAction handles container management operations (delete, inspect)
 func (ah *ActionHandlers) handleContainerManagementAction(
 	action rune,
 	containerID, containerName string,
-	containerService interface{},
+	containerService any,
 	onRefresh func(),
 ) bool {
 	switch action {
 	case 'd':
 		if cs, ok := containerService.(interfaces.ContainerService); ok {
-			ah.HandleDeleteAction("container", containerID, containerName, cs.RemoveContainer, onRefresh)
+			ah.HandleDeleteAction(
+				"container",
+				containerID,
+				containerName,
+				cs.RemoveContainer,
+				onRefresh,
+			)
 		}
 		return true
 	case 'i':
@@ -267,7 +329,7 @@ func (ah *ActionHandlers) handleContainerManagementAction(
 func (ah *ActionHandlers) handleContainerAccessAction(
 	action rune,
 	containerID, containerName string,
-	containerService interface{},
+	containerService any,
 ) bool {
 	switch action {
 	case 'a':
@@ -297,7 +359,11 @@ func (ah *ActionHandlers) createExecInput(containerName string) *tview.InputFiel
 }
 
 // configureExecInputStyling configures the visual styling of the exec input
-func (ah *ActionHandlers) configureExecInputStyling(execInput *tview.InputField, themeManager *config.ThemeManager, containerName string) {
+func (ah *ActionHandlers) configureExecInputStyling(
+	execInput *tview.InputField,
+	themeManager *config.ThemeManager,
+	containerName string,
+) {
 	execInput.SetLabel(" Exec Command: ")
 	execInput.SetLabelColor(themeManager.GetContainerExecLabelColor())
 	execInput.SetFieldTextColor(themeManager.GetContainerExecTextColor())
@@ -309,7 +375,10 @@ func (ah *ActionHandlers) configureExecInputStyling(execInput *tview.InputField,
 }
 
 // configureExecInputBehavior configures the behavior of the exec input
-func (ah *ActionHandlers) configureExecInputBehavior(execInput *tview.InputField, themeManager *config.ThemeManager) {
+func (ah *ActionHandlers) configureExecInputBehavior(
+	execInput *tview.InputField,
+	themeManager *config.ThemeManager,
+) {
 	execInput.SetPlaceholder("Type command to execute (e.g., ls -la, pwd, whoami)")
 	execInput.SetPlaceholderTextColor(themeManager.GetContainerExecPlaceholderColor())
 	execInput.SetFieldWidth(80)
@@ -338,13 +407,13 @@ func (ah *ActionHandlers) handleExecCommand(
 ) {
 	command := execInput.GetText()
 	if command == "" {
-		ah.ui.ShowError(fmt.Errorf("command cannot be empty"))
+		ah.ui.ShowError(errors.New("command cannot be empty"))
 		return
 	}
 
 	args := ah.parseExecCommand(command)
 	if len(args) == 0 {
-		ah.ui.ShowError(fmt.Errorf("invalid command"))
+		ah.ui.ShowError(errors.New("invalid command"))
 		return
 	}
 
@@ -391,7 +460,11 @@ func (ah *ActionHandlers) executeCommand(
 func (ah *ActionHandlers) addExecInputToUI(execInput *tview.InputField, mainFlex *tview.Flex) {
 	mainFlex.AddItem(execInput, 3, 0, true)
 
-	app := ah.ui.GetApp().(*tview.Application)
+	app, ok := ah.ui.GetApp().(*tview.Application)
+	if !ok {
+		ah.ui.ShowError(errors.New("failed to get application instance"))
+		return
+	}
 	app.SetFocus(execInput)
 }
 
@@ -404,7 +477,9 @@ func (ah *ActionHandlers) showExecOutput(containerName, command, output string) 
 }
 
 // createExecOutputModal creates the exec output modal with content
-func (ah *ActionHandlers) createExecOutputModal(containerName, command, output string) *tview.Modal {
+func (ah *ActionHandlers) createExecOutputModal(
+	containerName, command, output string,
+) *tview.Modal {
 	return tview.NewModal().
 		SetText(fmt.Sprintf("Command Output: %s\n\nContainer: %s\nCommand: %s\n\nOutput:\n%s",
 			containerName, containerName, command, output)).
@@ -421,7 +496,11 @@ func (ah *ActionHandlers) setupExecOutputModalHandlers(outputModal *tview.Modal)
 
 // closeExecOutputModal removes the exec output modal from the UI
 func (ah *ActionHandlers) closeExecOutputModal() {
-	pages := ah.ui.GetPages().(*tview.Pages)
+	pages, ok := ah.ui.GetPages().(*tview.Pages)
+	if !ok {
+		ah.ui.ShowError(errors.New("failed to get pages container"))
+		return
+	}
 	pages.RemovePage("exec_output_modal")
 }
 
@@ -437,15 +516,32 @@ func (ah *ActionHandlers) returnFocusToViewContainer() {
 		return
 	}
 
-	app := ah.ui.GetApp().(*tview.Application)
+	ah.setFocusToViewContainer(vc)
+}
+
+// setFocusToViewContainer sets focus to the specified view container
+func (ah *ActionHandlers) setFocusToViewContainer(vc *tview.Flex) {
+	app, ok := ah.ui.GetApp().(*tview.Application)
+	if !ok {
+		ah.ui.ShowError(errors.New("failed to get application instance"))
+		return
+	}
 	app.SetFocus(vc)
 }
 
 // addExecOutputModalToUI adds the exec output modal to the UI and sets focus
 func (ah *ActionHandlers) addExecOutputModalToUI(outputModal *tview.Modal) {
-	pages := ah.ui.GetPages().(*tview.Pages)
+	pages, ok := ah.ui.GetPages().(*tview.Pages)
+	if !ok {
+		ah.ui.ShowError(errors.New("failed to get pages container"))
+		return
+	}
 	pages.AddPage("exec_output_modal", outputModal, true, true)
 
-	app := ah.ui.GetApp().(*tview.Application)
+	app, ok := ah.ui.GetApp().(*tview.Application)
+	if !ok {
+		ah.ui.ShowError(errors.New("failed to get application instance"))
+		return
+	}
 	app.SetFocus(outputModal)
 }

@@ -4,10 +4,10 @@ package docker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
-	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -36,7 +36,7 @@ type Client struct {
 // New creates a new Docker client
 func New(cfg *config.Config) (*Client, error) {
 	if cfg == nil {
-		return nil, fmt.Errorf("config cannot be nil")
+		return nil, errors.New("config cannot be nil")
 	}
 
 	log := logger.GetLogger()
@@ -70,159 +70,17 @@ func (c *Client) Close() error {
 
 	c.log.Info("Docker client closing, starting cleanup")
 
-	if c.cli != nil {
-		if err := c.cli.Close(); err != nil {
-			c.log.Error("Failed to close Docker client", "error", err)
-			errors = append(errors, fmt.Sprintf("Docker client close: %v", err))
-		} else {
-			c.log.Info("Docker client closed successfully")
-		}
-	}
+	c.closeDockerClient(&errors)
+	c.closeSSHConnection(&errors)
+	c.closeSSHContext(&errors)
 
-	if c.sshConn != nil {
-		c.log.Info("Closing SSH connection with socat")
-		if err := c.sshConn.Close(); err != nil {
-			c.log.Error("Failed to close SSH connection", "error", err)
-			errors = append(errors, fmt.Sprintf("SSH connection close: %v", err))
-		} else {
-			c.log.Info("SSH connection closed successfully")
-		}
-	}
-
-	if c.sshCtx != nil {
-		c.log.Info("Closing SSH context")
-		if err := c.sshCtx.Close(); err != nil {
-			c.log.Error("Failed to close SSH context", "error", err)
-			errors = append(errors, fmt.Sprintf("SSH context close: %v", err))
-		} else {
-			c.log.Info("SSH context closed successfully")
-		}
-	}
-
-	if len(errors) > 0 {
-		return fmt.Errorf("failed to close client: %s", strings.Join(errors, "; "))
-	}
-
-	return nil
-}
-
-// marshalToMap converts any value to a map[string]any using JSON marshaling
-func marshalToMap(v any) (map[string]any, error) {
-	data, err := json.Marshal(v)
-	if err != nil {
-		return nil, fmt.Errorf("marshal failed: %w", err)
-	}
-
-	var result map[string]any
-	if err := json.Unmarshal(data, &result); err != nil {
-		return nil, fmt.Errorf("unmarshal failed: %w", err)
-	}
-
-	return result, nil
-}
-
-// formatSize formats a size in bytes to a human-readable string
-func formatSize(size int64) string {
-	const (
-		KB int64 = 1024
-		MB int64 = KB * 1024
-		GB int64 = MB * 1024
-		TB int64 = GB * 1024
-	)
-
-	var (
-		unit  string
-		value float64
-	)
-
-	switch {
-	case size >= TB:
-		unit = "TB"
-		value = float64(size) / float64(TB)
-	case size >= GB:
-		unit = "GB"
-		value = float64(size) / float64(GB)
-	case size >= MB:
-		unit = "MB"
-		value = float64(size) / float64(MB)
-	case size >= KB:
-		unit = "KB"
-		value = float64(size) / float64(KB)
-	default:
-		unit = "B"
-		value = float64(size)
-	}
-
-	return fmt.Sprintf("%.2f %s", value, unit)
-}
-
-// detectWindowsDockerHost attempts to find the correct Docker host on Windows
-func detectWindowsDockerHost(log *slog.Logger) (string, error) {
-	if runtime.GOOS != "windows" {
-		return "", fmt.Errorf("not on Windows")
-	}
-
-	possibleHosts := getWindowsDockerHosts()
-	for _, host := range possibleHosts {
-		if isHostWorking(host, log) {
-			return host, nil
-		}
-	}
-
-	return "", fmt.Errorf("no working Docker host found")
-}
-
-// getWindowsDockerHosts returns the list of possible Windows Docker host paths
-func getWindowsDockerHosts() []string {
-	return []string{
-		"npipe:////./pipe/dockerDesktopLinuxEngine", // Linux containers
-		"npipe:////./pipe/docker_engine",            // Windows containers
-		"npipe:////./pipe/dockerDesktopEngine",      // Legacy Docker Desktop
-	}
-}
-
-// isHostWorking tests if a Docker host is working
-func isHostWorking(host string, log *slog.Logger) bool {
-	cli, err := createTestClient(host)
-	if err != nil {
-		return false
-	}
-	defer closeClientSafely(cli, log)
-
-	return testClientConnection(cli)
-}
-
-// createTestClient creates a Docker client for testing host connectivity
-func createTestClient(host string) (*client.Client, error) {
-	opts := []client.Opt{
-		client.WithHost(host),
-		client.WithAPIVersionNegotiation(),
-		client.WithTimeout(5 * time.Second),
-	}
-
-	return client.NewClientWithOpts(opts...)
-}
-
-// testClientConnection tests if the Docker client can connect successfully
-func testClientConnection(cli *client.Client) bool {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	_, err := cli.Ping(ctx)
-	return err == nil
-}
-
-// closeClientSafely closes a Docker client and logs any errors
-func closeClientSafely(cli *client.Client, log *slog.Logger) {
-	if err := cli.Close(); err != nil {
-		log.Warn("Failed to close Docker client during host detection", "error", err)
-	}
+	return c.buildCloseError(errors)
 }
 
 // GetInfo retrieves Docker system information
 func (c *Client) GetInfo(ctx context.Context) (map[string]any, error) {
 	if c.cli == nil {
-		return nil, fmt.Errorf("Docker client not initialized")
+		return nil, errors.New("docker client not initialized")
 	}
 
 	info, err := c.cli.Info(ctx)
@@ -235,7 +93,7 @@ func (c *Client) GetInfo(ctx context.Context) (map[string]any, error) {
 // InspectContainer inspects a container
 func (c *Client) InspectContainer(ctx context.Context, id string) (map[string]any, error) {
 	if c.cli == nil {
-		return nil, fmt.Errorf("Docker client not initialized")
+		return nil, errors.New("docker client not initialized")
 	}
 
 	container, err := c.cli.ContainerInspect(ctx, id)
@@ -249,7 +107,7 @@ func (c *Client) InspectContainer(ctx context.Context, id string) (map[string]an
 // GetContainerLogs retrieves container logs
 func (c *Client) GetContainerLogs(ctx context.Context, id string) (string, error) {
 	if c.cli == nil {
-		return "", fmt.Errorf("Docker client not initialized")
+		return "", errors.New("docker client not initialized")
 	}
 
 	logs, err := c.cli.ContainerLogs(ctx, id, container.LogsOptions{
@@ -314,62 +172,17 @@ func (c *Client) InspectNetwork(ctx context.Context, id string) (map[string]any,
 // ListContainers lists all containers
 func (c *Client) ListContainers(ctx context.Context, all bool) ([]Container, error) {
 	if c.cli == nil {
-		return nil, fmt.Errorf("Docker client not initialized")
+		return nil, errors.New("docker client not initialized")
 	}
 
-	opts := container.ListOptions{
-		All: all,
-	}
-
-	containers, err := c.cli.ContainerList(ctx, opts)
+	containers, err := c.getContainerList(ctx, all)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list containers: %w", err)
+		return nil, err
 	}
 
-	result := make([]Container, 0, len(containers))
-	for i := range containers {
-		cont := &containers[i]
-		ports := formatContainerPorts(cont.Ports)
-
-		result = append(result, Container{
-			ID:      cont.ID[:12],
-			Name:    cont.Names[0][1:], // Remove leading slash
-			Image:   cont.Image,
-			Status:  cont.Status,
-			State:   cont.State,
-			Created: time.Unix(cont.Created, 0),
-			Ports:   ports,
-			Size:    "", // Size is not available in ContainerList
-		})
-	}
-
+	result := c.convertToContainers(containers)
 	sortContainersByCreationTime(result)
 	return result, nil
-}
-
-// formatContainerPorts formats container ports into a readable string
-func formatContainerPorts(ports []container.Port) string {
-	if len(ports) == 0 {
-		return ""
-	}
-
-	var formattedPorts []string
-	for _, p := range ports {
-		if p.PublicPort > 0 {
-			formattedPorts = append(formattedPorts, fmt.Sprintf("%d:%d/%s", p.PublicPort, p.PrivatePort, p.Type))
-		} else if p.PrivatePort > 0 {
-			formattedPorts = append(formattedPorts, fmt.Sprintf("%d/%s", p.PrivatePort, p.Type))
-		}
-	}
-
-	return strings.Join(formattedPorts, ", ")
-}
-
-// sortContainersByCreationTime sorts containers by creation time (newest first)
-func sortContainersByCreationTime(containers []Container) {
-	sort.Slice(containers, func(i, j int) bool {
-		return containers[i].Created.After(containers[j].Created)
-	})
 }
 
 // GetContainerStats gets container stats
@@ -389,51 +202,14 @@ func (c *Client) GetContainerStats(ctx context.Context, id string) (map[string]a
 
 // ListImages lists all images
 func (c *Client) ListImages(ctx context.Context) ([]Image, error) {
-	opts := image.ListOptions{}
-
-	images, err := c.cli.ImageList(ctx, opts)
+	images, err := c.getImageList(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list images: %w", err)
+		return nil, err
 	}
 
-	result := make([]Image, 0, len(images))
-	for i := range images {
-		img := &images[i]
-		repo, tag := parseImageRepository(img.RepoTags)
-		size := formatSize(img.Size)
-
-		result = append(result, Image{
-			ID:         img.ID[7:19], // Remove "sha256:" prefix and truncate
-			Repository: repo,
-			Tag:        tag,
-			Size:       size,
-			Created:    time.Unix(img.Created, 0),
-			Containers: int(img.Containers),
-		})
-	}
-
+	result := c.convertToImages(images)
 	sortImagesByCreationTime(result)
 	return result, nil
-}
-
-// parseImageRepository parses repository and tag from image repoTags
-func parseImageRepository(repoTags []string) (repository, tag string) {
-	if len(repoTags) == 0 || repoTags[0] == "<none>:<none>" {
-		return "<none>", "<none>"
-	}
-
-	parts := strings.Split(repoTags[0], ":")
-	if len(parts) >= 2 {
-		return parts[0], parts[1]
-	}
-	return repoTags[0], "<none>"
-}
-
-// sortImagesByCreationTime sorts images by creation time (newest first)
-func sortImagesByCreationTime(images []Image) {
-	sort.Slice(images, func(i, j int) bool {
-		return images[i].Created.After(images[j].Created)
-	})
 }
 
 // ListVolumes lists all volumes
@@ -451,13 +227,6 @@ func (c *Client) ListVolumes(ctx context.Context) ([]Volume, error) {
 
 	sortVolumesByName(result)
 	return result, nil
-}
-
-// sortVolumesByName sorts volumes by name
-func sortVolumesByName(volumes []Volume) {
-	sort.Slice(volumes, func(i, j int) bool {
-		return volumes[i].Name < volumes[j].Name
-	})
 }
 
 // ListNetworks lists all networks
@@ -524,7 +293,12 @@ func (c *Client) RemoveContainer(ctx context.Context, id string, force bool) err
 }
 
 // ExecContainer executes a command in a running container and returns the output
-func (c *Client) ExecContainer(ctx context.Context, id string, command []string, _ bool) (string, error) {
+func (c *Client) ExecContainer(
+	ctx context.Context,
+	id string,
+	command []string,
+	_ bool,
+) (string, error) {
 	if err := c.validateClient(); err != nil {
 		return "", err
 	}
@@ -633,7 +407,12 @@ func (c *Client) InspectSwarmService(ctx context.Context, id string) (swarm.Serv
 
 // UpdateSwarmService updates a swarm service
 // nolint:gocritic // Docker API requires value parameter for compatibility
-func (c *Client) UpdateSwarmService(ctx context.Context, id string, version swarm.Version, spec swarm.ServiceSpec) error {
+func (c *Client) UpdateSwarmService(
+	ctx context.Context,
+	id string,
+	version swarm.Version,
+	spec swarm.ServiceSpec,
+) error {
 	if err := c.validateClient(); err != nil {
 		return err
 	}
@@ -673,45 +452,17 @@ func (c *Client) RemoveSwarmService(ctx context.Context, id string) error {
 
 // GetSwarmServiceLogs gets logs for a swarm service
 func (c *Client) GetSwarmServiceLogs(ctx context.Context, id string) (string, error) {
-	if err := c.validateClient(); err != nil {
+	if err := c.validateServiceLogsRequest(id); err != nil {
 		return "", err
 	}
 
-	if err := validateID(id, "service ID"); err != nil {
-		return "", err
-	}
-
-	options := container.LogsOptions{
-		ShowStdout: true,
-		ShowStderr: true,
-		Timestamps: true,
-		Follow:     false,
-	}
-
-	response, err := c.cli.ServiceLogs(ctx, id, options)
+	response, err := c.getServiceLogsResponse(ctx, id)
 	if err != nil {
-		return "", fmt.Errorf("failed to get logs for swarm service %s: %w", id, err)
+		return "", err
 	}
-	defer func() {
-		if err := response.Close(); err != nil {
-			c.log.Warn("Failed to close response", "error", err)
-		}
-	}()
+	defer c.closeServiceLogsResponse(response)
 
-	output := &strings.Builder{}
-	buffer := make([]byte, 1024)
-
-	for {
-		n, err := response.Read(buffer)
-		if n > 0 {
-			output.Write(buffer[:n])
-		}
-		if err != nil {
-			break
-		}
-	}
-
-	return output.String(), nil
+	return c.readServiceLogs(response), nil
 }
 
 // ListSwarmNodes lists all swarm nodes
@@ -738,11 +489,18 @@ func (c *Client) InspectSwarmNode(_ context.Context, id string) (swarm.Node, err
 		return swarm.Node{}, err
 	}
 
-	return swarm.Node{}, fmt.Errorf("NodeInspect method not available in this Docker client version")
+	return swarm.Node{}, errors.New(
+		"NodeInspect method not available in this Docker client version",
+	)
 }
 
 // UpdateSwarmNode updates a swarm node
-func (c *Client) UpdateSwarmNode(ctx context.Context, id string, version swarm.Version, spec swarm.NodeSpec) error {
+func (c *Client) UpdateSwarmNode(
+	ctx context.Context,
+	id string,
+	version swarm.Version,
+	spec swarm.NodeSpec,
+) error {
 	if err := c.validateClient(); err != nil {
 		return err
 	}
@@ -779,29 +537,10 @@ func (c *Client) RemoveSwarmNode(ctx context.Context, id string, force bool) err
 	return nil
 }
 
-// buildStopOptions builds stop options with optional timeout
-func buildStopOptions(timeout *time.Duration) container.StopOptions {
-	opts := container.StopOptions{}
-	if timeout != nil {
-		opts.Signal = "SIGTERM"
-		seconds := int(timeout.Seconds())
-		opts.Timeout = &seconds
-	}
-	return opts
-}
-
-// validateID validates that an ID is not empty
-func validateID(id, idType string) error {
-	if id == "" {
-		return fmt.Errorf("%s cannot be empty", idType)
-	}
-	return nil
-}
-
 // validateClient validates that the Docker client is initialized
 func (c *Client) validateClient() error {
 	if c.cli == nil {
-		return fmt.Errorf("docker client is not initialized")
+		return errors.New("docker client is not initialized")
 	}
 	return nil
 }
@@ -811,19 +550,24 @@ func (c *Client) readAndFormatLogs(logs io.ReadCloser) string {
 	var logLines []string
 	buffer := make([]byte, 1024)
 
+	c.readLogsIntoBuffer(logs, buffer, &logLines)
+
+	return strings.Join(logLines, "")
+}
+
+// readLogsIntoBuffer reads logs into the buffer and formats them
+func (c *Client) readLogsIntoBuffer(logs io.ReadCloser, buffer []byte, logLines *[]string) {
 	for {
 		n, err := logs.Read(buffer)
 		if n > 0 {
 			line := string(buffer[:n])
 			formattedLine := c.formatLogLine(line)
-			logLines = append(logLines, formattedLine)
+			*logLines = append(*logLines, formattedLine)
 		}
 		if err != nil {
 			break
 		}
 	}
-
-	return strings.Join(logLines, "")
 }
 
 // formatLogLine formats a single log line by removing timestamp prefix if present
@@ -860,7 +604,11 @@ func (c *Client) createVolumeFromAPI(vol *volume.Volume) Volume {
 }
 
 // createExecInstance creates an exec instance in the container
-func (c *Client) createExecInstance(ctx context.Context, id string, command []string) (*container.ExecCreateResponse, error) {
+func (c *Client) createExecInstance(
+	ctx context.Context,
+	id string,
+	command []string,
+) (*container.ExecCreateResponse, error) {
 	execConfig := container.ExecOptions{
 		Cmd:          command,
 		Tty:          false, // Set to false to capture output
@@ -913,4 +661,160 @@ func (c *Client) readExecOutput(hijackedResp types.HijackedResponse) string {
 	}
 
 	return output.String()
+}
+
+// getImageList retrieves the raw image list from Docker
+func (c *Client) getImageList(ctx context.Context) ([]image.Summary, error) {
+	opts := image.ListOptions{}
+	return c.cli.ImageList(ctx, opts)
+}
+
+// convertToImages converts Docker API images to our Image type
+func (c *Client) convertToImages(images []image.Summary) []Image {
+	result := make([]Image, 0, len(images))
+	for i := range images {
+		img := &images[i]
+		result = append(result, c.convertImage(img))
+	}
+	return result
+}
+
+// convertImage converts a single Docker API image to our Image type
+func (c *Client) convertImage(img *image.Summary) Image {
+	repo, tag := parseImageRepository(img.RepoTags)
+	size := formatSize(img.Size)
+	return Image{
+		ID:         img.ID[7:19], // Remove "sha256:" prefix and truncate
+		Repository: repo,
+		Tag:        tag,
+		Size:       size,
+		Created:    time.Unix(img.Created, 0),
+		Containers: int(img.Containers),
+	}
+}
+
+// validateServiceLogsRequest validates the service logs request
+func (c *Client) validateServiceLogsRequest(id string) error {
+	if err := c.validateClient(); err != nil {
+		return err
+	}
+	return validateID(id, "service ID")
+}
+
+// getServiceLogsResponse gets the service logs response from Docker
+func (c *Client) getServiceLogsResponse(ctx context.Context, id string) (io.ReadCloser, error) {
+	options := container.LogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Timestamps: true,
+		Follow:     false,
+	}
+
+	response, err := c.cli.ServiceLogs(ctx, id, options)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get logs for swarm service %s: %w", id, err)
+	}
+	return response, nil
+}
+
+// closeServiceLogsResponse safely closes the service logs response
+func (c *Client) closeServiceLogsResponse(response io.ReadCloser) {
+	if err := response.Close(); err != nil {
+		c.log.Warn("Failed to close response", "error", err)
+	}
+}
+
+// readServiceLogs reads and formats the service logs
+func (c *Client) readServiceLogs(response io.ReadCloser) string {
+	output := &strings.Builder{}
+	buffer := make([]byte, 1024)
+
+	for {
+		n, err := response.Read(buffer)
+		if n > 0 {
+			output.Write(buffer[:n])
+		}
+		if err != nil {
+			break
+		}
+	}
+
+	return output.String()
+}
+
+// getContainerList retrieves the raw container list from Docker
+func (c *Client) getContainerList(ctx context.Context, all bool) ([]container.Summary, error) {
+	opts := container.ListOptions{All: all}
+	return c.cli.ContainerList(ctx, opts)
+}
+
+// convertToContainers converts Docker API containers to our Container type
+func (c *Client) convertToContainers(containers []container.Summary) []Container {
+	result := make([]Container, 0, len(containers))
+	for i := range containers {
+		cont := &containers[i]
+		result = append(result, c.convertContainer(cont))
+	}
+	return result
+}
+
+// convertContainer converts a single Docker API container to our Container type
+func (c *Client) convertContainer(cont *container.Summary) Container {
+	ports := formatContainerPorts(cont.Ports)
+	return Container{
+		ID:      cont.ID[:12],
+		Name:    cont.Names[0][1:], // Remove leading slash
+		Image:   cont.Image,
+		Status:  cont.Status,
+		State:   cont.State,
+		Created: time.Unix(cont.Created, 0),
+		Ports:   ports,
+		Size:    "", // Size is not available in ContainerList
+	}
+}
+
+// closeDockerClient closes the Docker client and logs the result
+func (c *Client) closeDockerClient(errors *[]string) {
+	if c.cli != nil {
+		if err := c.cli.Close(); err != nil {
+			c.log.Error("Failed to close Docker client", "error", err)
+			*errors = append(*errors, fmt.Sprintf("Docker client close: %v", err))
+		} else {
+			c.log.Info("Docker client closed successfully")
+		}
+	}
+}
+
+// closeSSHConnection closes the SSH connection and logs the result
+func (c *Client) closeSSHConnection(errors *[]string) {
+	if c.sshConn != nil {
+		c.log.Info("Closing SSH connection with socat")
+		if err := c.sshConn.Close(); err != nil {
+			c.log.Error("Failed to close SSH connection", "error", err)
+			*errors = append(*errors, fmt.Sprintf("SSH connection close: %v", err))
+		} else {
+			c.log.Info("SSH connection closed successfully")
+		}
+	}
+}
+
+// closeSSHContext closes the SSH context and logs the result
+func (c *Client) closeSSHContext(errors *[]string) {
+	if c.sshCtx != nil {
+		c.log.Info("Closing SSH context")
+		if err := c.sshCtx.Close(); err != nil {
+			c.log.Error("Failed to close SSH context", "error", err)
+			*errors = append(*errors, fmt.Sprintf("SSH context close: %v", err))
+		} else {
+			c.log.Info("SSH context closed successfully")
+		}
+	}
+}
+
+// buildCloseError builds the final error message if any errors occurred
+func (c *Client) buildCloseError(errors []string) error {
+	if len(errors) > 0 {
+		return fmt.Errorf("failed to close client: %s", strings.Join(errors, "; "))
+	}
+	return nil
 }
