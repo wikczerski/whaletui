@@ -4,10 +4,11 @@ go 1.25.0
 
 require (
 	github.com/docker/docker v28.0.0+incompatible
-	github.com/gdamore/tcell/v2 v2.6.0
+	github.com/gdamore/tcell/v2 v2.9.0
 	github.com/rivo/tview v0.0.0-20231126152417-33a1d271f2b6
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
+	golang.org/x/crypto v0.41.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -42,7 +43,6 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.37.0 // indirect
 	go.opentelemetry.io/otel/metric v1.37.0 // indirect
 	go.opentelemetry.io/otel/trace v1.37.0 // indirect
-	golang.org/x/crypto v0.41.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/term v0.34.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
