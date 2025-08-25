@@ -125,7 +125,14 @@ func isValidConfigPath(configFile, configDir string) bool {
 	}
 
 	// Ensure the config file is within the config directory
-	return strings.HasPrefix(cleanConfigFile, cleanConfigDir)
+	// Use filepath.Rel to check if the config file is within the config directory
+	relPath, err := filepath.Rel(cleanConfigDir, cleanConfigFile)
+	if err != nil {
+		return false
+	}
+
+	// The relative path should not start with ".." (going up directories)
+	return !strings.HasPrefix(relPath, "..")
 }
 
 // Save saves the configuration to file
