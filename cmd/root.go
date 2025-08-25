@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -131,14 +132,19 @@ func init() {
 
 func setupRootFlags() {
 	rootCmd.PersistentFlags().IntVar(&refresh, "refresh", 5, "Refresh interval in seconds")
-	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "INFO", "Log level (DEBUG, INFO, WARN, ERROR)")
-	rootCmd.PersistentFlags().StringVar(&logFilePath, "log-file", "", "Path to log file (used when --log-level DEBUG is set)")
-	rootCmd.PersistentFlags().StringVar(&theme, "theme", "", "Path to theme configuration file (YAML/JSON)")
+	rootCmd.PersistentFlags().
+		StringVar(&logLevel, "log-level", "INFO", "Log level (DEBUG, INFO, WARN, ERROR)")
+	rootCmd.PersistentFlags().
+		StringVar(&logFilePath, "log-file", "", "Path to log file (used when --log-level DEBUG is set)")
+	rootCmd.PersistentFlags().
+		StringVar(&theme, "theme", "", "Path to theme configuration file (YAML/JSON)")
 }
 
 func setupConnectFlags() {
-	connectCmd.Flags().String("host", "", "Remote Docker host (e.g., 192.168.1.100, tcp://192.168.1.100, or ssh://user@host)")
-	connectCmd.Flags().String("user", "", "SSH username for remote host connection (not needed if host includes ssh:// scheme)")
+	connectCmd.Flags().
+		String("host", "", "Remote Docker host (e.g., 192.168.1.100, tcp://192.168.1.100, or ssh://user@host)")
+	connectCmd.Flags().
+		String("user", "", "SSH username for remote host connection (not needed if host includes ssh:// scheme)")
 	connectCmd.Flags().Int("port", 2375, "Port for SSH fallback Docker proxy (default: 2375)")
 	connectCmd.Flags().Bool("diagnose", false, "Run SSH connection diagnostics before connecting")
 	_ = connectCmd.MarkFlagRequired("host")
@@ -168,6 +174,11 @@ func runConnectCommand(cmd *cobra.Command, _ []string) error {
 		runDiagnosticsIfRequested(host, user, port, log)
 	}
 
+	return connectToRemoteHost(host, user, cfg, log)
+}
+
+// connectToRemoteHost connects to the remote host
+func connectToRemoteHost(host, user string, cfg *config.Config, log *slog.Logger) error {
 	log.Info("Connecting to remote Docker host", "host", host, "user", user)
 
 	application, err := app.New(cfg)
@@ -199,7 +210,7 @@ func validateConnectParameters(host, user string) error {
 	}
 
 	if user == "" {
-		return fmt.Errorf("--user flag is required when not using ssh:// URL format")
+		return errors.New("--user flag is required when not using ssh:// URL format")
 	}
 
 	return nil
@@ -284,6 +295,11 @@ func runApp(_ *cobra.Command, _ []string) error {
 
 	logConnectionInfo(cfg, log)
 
+	return createAndRunApplication(cfg, log)
+}
+
+// createAndRunApplication creates and runs the application
+func createAndRunApplication(cfg *config.Config, log *slog.Logger) error {
 	application, err := app.New(cfg)
 	if err != nil {
 		log.Error("App init failed", "error", err)
@@ -347,19 +363,29 @@ func runApplicationWithShutdown(application *app.App, log *slog.Logger) error {
 		}
 	}()
 
+	waitForShutdownSignal(sigCh, uiShutdownCh, log)
+	cleanupAndShutdown(application)
+
+	return nil
+}
+
+// waitForShutdownSignal waits for shutdown signals
+func waitForShutdownSignal(sigCh chan os.Signal, uiShutdownCh chan struct{}, log *slog.Logger) {
 	select {
 	case <-sigCh:
 		log.Info("Received shutdown signal, shutting down gracefully...")
 	case <-uiShutdownCh:
 		log.Info("Received UI shutdown signal, shutting down gracefully...")
 	}
+}
 
+// cleanupAndShutdown performs cleanup and shutdown
+func cleanupAndShutdown(application *app.App) {
 	defer cleanupTerminal()
 	defer logger.CloseLogFile()
 	defer logger.SetTUIMode(false)
 
 	application.Shutdown()
-	return nil
 }
 
 // cleanupTerminal performs additional terminal cleanup operations
@@ -450,7 +476,13 @@ func setLogLevel(level string) {
 func runThemeCommand(_ *cobra.Command, _ []string) error {
 	log := logger.GetLogger()
 
-	log.Debug("Theme command started", "debug_mode", logger.IsDebugMode(), "log_file_path", logger.GetLogFilePath())
+	log.Debug(
+		"Theme command started",
+		"debug_mode",
+		logger.IsDebugMode(),
+		"log_file_path",
+		logger.GetLogFilePath(),
+	)
 
 	themeManager := config.NewThemeManager("")
 
@@ -461,7 +493,11 @@ func runThemeCommand(_ *cobra.Command, _ []string) error {
 	}
 
 	log.Info("Theme configuration saved", "path", defaultPath)
-	log.Info("You can now customize the colors in this file and restart whaletui with --theme", "path", defaultPath)
+	log.Info(
+		"You can now customize the colors in this file and restart whaletui with --theme",
+		"path",
+		defaultPath,
+	)
 
 	return nil
 }

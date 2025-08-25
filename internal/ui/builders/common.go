@@ -10,24 +10,16 @@ import (
 	"github.com/wikczerski/whaletui/internal/ui/constants"
 )
 
-// TimeFormatter provides time formatting utilities
-type TimeFormatter struct{}
-
-// NewTimeFormatter creates a new time formatter
-func NewTimeFormatter() *TimeFormatter {
-	return &TimeFormatter{}
-}
-
 // FormatTime formats a time.Time to a human-readable string
-func (tf *TimeFormatter) FormatTime(t time.Time) string {
+func FormatTime(t time.Time) string {
 	if time.Since(t) < constants.TimeThreshold24h {
-		return fmt.Sprintf("%s %s", tf.formatDuration(time.Since(t)), constants.TimeFormatRelative)
+		return fmt.Sprintf("%s %s", formatDuration(time.Since(t)), constants.TimeFormatRelative)
 	}
 	return t.Format(constants.TimeFormatAbsolute)
 }
 
 // formatDuration formats a duration to a human-readable string
-func (tf *TimeFormatter) formatDuration(d time.Duration) string {
+func formatDuration(d time.Duration) string {
 	seconds := int(d.Seconds())
 
 	switch {
@@ -55,13 +47,34 @@ func NewDetailsViewBuilder() *DetailsViewBuilder {
 }
 
 // CreateDetailsView creates a details view that can be displayed inline
-func (dvb *DetailsViewBuilder) CreateDetailsView(title, details string, actions map[rune]string, onAction func(rune), onBack func()) *tview.Flex {
+func (dvb *DetailsViewBuilder) CreateDetailsView(
+	title, details string,
+	actions map[rune]string,
+	onAction func(rune),
+	onBack func(),
+) *tview.Flex {
 	detailsFlex := dvb.builder.CreateFlex(tview.FlexRow)
 
+	dvb.addDetailsViewComponents(detailsFlex, title, details, actions, onBack)
+	dvb.setupDetailsKeyBindings(detailsFlex, onAction, onBack)
+
+	return detailsFlex
+}
+
+// addDetailsViewComponents adds the main components to the details view
+func (dvb *DetailsViewBuilder) addDetailsViewComponents(
+	detailsFlex *tview.Flex,
+	title, details string,
+	actions map[rune]string,
+	onBack func(),
+) {
 	titleView := dvb.builder.CreateBorderedTextView("", title, constants.HeaderColor)
 	titleView.SetTextAlign(tview.AlignCenter)
 
-	detailsText := dvb.builder.CreateBorderedTextView(details+"\nActions:\n"+dvb.formatActions(actions), "", constants.BorderColor)
+	detailsText := dvb.builder.CreateBorderedTextView(
+		details+"\nActions:\n"+dvb.formatActions(actions),
+		"",
+		constants.BorderColor)
 	detailsText.SetDynamicColors(true)
 	detailsText.SetScrollable(true)
 
@@ -70,14 +83,14 @@ func (dvb *DetailsViewBuilder) CreateDetailsView(title, details string, actions 
 	detailsFlex.AddItem(titleView, constants.TitleViewHeight, 0, false)
 	detailsFlex.AddItem(detailsText, 0, 1, false)
 	detailsFlex.AddItem(backButton, constants.BackButtonHeight, 0, true)
-
-	dvb.setupDetailsKeyBindings(detailsFlex, onAction, onBack)
-
-	return detailsFlex
 }
 
 // setupDetailsKeyBindings sets up keyboard navigation for details view
-func (dvb *DetailsViewBuilder) setupDetailsKeyBindings(detailsFlex *tview.Flex, onAction func(rune), onBack func()) {
+func (dvb *DetailsViewBuilder) setupDetailsKeyBindings(
+	detailsFlex *tview.Flex,
+	onAction func(rune),
+	onBack func(),
+) {
 	detailsFlex.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyEscape, tcell.KeyEnter:
@@ -133,7 +146,12 @@ func (tb *TableBuilder) SetupHeaders(table *tview.Table, headers []string) {
 }
 
 // SetupRow sets up a table row with consistent styling
-func (tb *TableBuilder) SetupRow(table *tview.Table, row int, cells []string, textColor tcell.Color) {
+func (tb *TableBuilder) SetupRow(
+	table *tview.Table,
+	row int,
+	cells []string,
+	textColor tcell.Color,
+) {
 	for i, cell := range cells {
 		tableCell := tview.NewTableCell(cell).
 			SetTextColor(textColor).
@@ -161,17 +179,26 @@ func (vb *ViewBuilder) CreateView() *tview.Flex {
 }
 
 // FormatTime is an exported function for backward compatibility
-func FormatTime(t time.Time) string {
-	return NewTimeFormatter().FormatTime(t)
-}
+// This function is now a direct implementation, no longer using TimeFormatter
 
 // CreateDetailsView is an exported function for backward compatibility
-func CreateDetailsView(title, details string, actions map[rune]string, onAction func(rune), onBack func()) *tview.Flex {
+func CreateDetailsView(
+	title, details string,
+	actions map[rune]string,
+	onAction func(rune),
+	onBack func(),
+) *tview.Flex {
 	return NewDetailsViewBuilder().CreateDetailsView(title, details, actions, onAction, onBack)
 }
 
 // CreateInspectDetailsView is an exported function for backward compatibility
-func CreateInspectDetailsView(title string, inspectData map[string]any, actions map[rune]string, onAction func(rune), onBack func()) *tview.Flex {
+func CreateInspectDetailsView(
+	title string,
+	inspectData map[string]any,
+	actions map[rune]string,
+	onAction func(rune),
+	onBack func(),
+) *tview.Flex {
 	return createInspectDetailsView(title, inspectData, actions, onAction, onBack)
 }
 
@@ -198,7 +225,13 @@ func CreateInspectView(title string) (*tview.TextView, *tview.Flex) {
 }
 
 // createInspectDetailsView creates a details view that displays Docker inspect data in condensed JSON
-func createInspectDetailsView(title string, inspectData map[string]any, actions map[rune]string, onAction func(rune), onBack func()) *tview.Flex {
+func createInspectDetailsView(
+	title string,
+	inspectData map[string]any,
+	actions map[rune]string,
+	onAction func(rune),
+	onBack func(),
+) *tview.Flex {
 	detailsFlex := tview.NewFlex().SetDirection(tview.FlexRow)
 
 	titleView := createInspectTitleView(title)
@@ -218,32 +251,43 @@ func createInspectDetailsView(title string, inspectData map[string]any, actions 
 
 // createInspectTitleView creates the title view for the inspect details
 func createInspectTitleView(title string) *tview.TextView {
-	titleView := tview.NewTextView().SetText(fmt.Sprintf(" %s ", title)).SetTextAlign(tview.AlignCenter)
+	titleView := tview.NewTextView().
+		SetText(fmt.Sprintf(" %s ", title)).
+		SetTextAlign(tview.AlignCenter)
 	titleView.SetBorder(true).SetBorderColor(constants.HeaderColor)
 	return titleView
 }
 
 // createInspectTextView creates the main text view for displaying inspect data
 func createInspectTextView(inspectData map[string]any, actions map[rune]string) *tview.TextView {
+	inspectText := createBaseInspectTextView()
+	setupInspectTextScrolling(inspectText)
+
+	content := buildInspectContent(inspectData, actions)
+	inspectText.SetText(content)
+
+	return inspectText
+}
+
+// createBaseInspectTextView creates the base inspect text view with common settings
+func createBaseInspectTextView() *tview.TextView {
 	inspectText := tview.NewTextView()
 	inspectText.SetDynamicColors(true)
 	inspectText.SetScrollable(true)
 	inspectText.SetBorder(true)
 	inspectText.SetBorderColor(constants.BorderColor)
+	return inspectText
+}
 
-	// Configure spacebar for half-page scrolling
-	setupInspectTextScrolling(inspectText)
-
-	// Format the inspect data as condensed JSON
+// buildInspectContent builds the content for the inspect text view
+func buildInspectContent(inspectData map[string]any, actions map[rune]string) string {
 	condensedJSON := formatInspectData(inspectData)
 
-	// Add actions if provided
 	if len(actions) > 0 {
 		condensedJSON += "\n\nActions:\n" + formatActionsText(actions)
 	}
 
-	inspectText.SetText(condensedJSON)
-	return inspectText
+	return condensedJSON
 }
 
 // createInspectBackButton creates the back button for the inspect details
@@ -262,7 +306,10 @@ func setupInspectTextScrolling(inspectText *tview.TextView) {
 }
 
 // setupInspectTextScrollingHandleSpacebar handles spacebar for half-page scrolling
-func setupInspectTextScrollingHandleSpacebar(event *tcell.EventKey, inspectText *tview.TextView) bool {
+func setupInspectTextScrollingHandleSpacebar(
+	event *tcell.EventKey,
+	inspectText *tview.TextView,
+) bool {
 	if event.Key() == tcell.KeyRune && event.Rune() == ' ' {
 		setupInspectTextScrollingPerformHalfPageScroll(inspectText)
 		return true
@@ -298,7 +345,12 @@ func setupInspectTextScrollingCalculateHalfView(visibleHeight int) int {
 }
 
 // setupInspectDetailsKeyBindings sets up the key bindings for the inspect details view
-func setupInspectDetailsKeyBindings(detailsFlex *tview.Flex, _ *tview.TextView, onAction func(rune), onBack func()) {
+func setupInspectDetailsKeyBindings(
+	detailsFlex *tview.Flex,
+	_ *tview.TextView,
+	onAction func(rune),
+	onBack func(),
+) {
 	detailsFlex.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if setupInspectDetailsKeyBindingsHandleNavigationKeys(event, onBack) {
 			return nil
@@ -346,7 +398,10 @@ func setupInspectDetailsKeyBindingsHandleScrollingKeys(event *tcell.EventKey) bo
 }
 
 // setupInspectDetailsKeyBindingsHandleActionKeys handles action keys (rune characters)
-func setupInspectDetailsKeyBindingsHandleActionKeys(event *tcell.EventKey, onAction func(rune)) bool {
+func setupInspectDetailsKeyBindingsHandleActionKeys(
+	event *tcell.EventKey,
+	onAction func(rune),
+) bool {
 	if event.Key() == tcell.KeyRune {
 		if onAction != nil {
 			onAction(event.Rune())

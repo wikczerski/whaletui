@@ -3,6 +3,7 @@ package logs
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/gdamore/tcell/v2"
@@ -107,8 +108,15 @@ func (lv *View) createTitleView(componentBuilder *builders.ComponentBuilder, log
 }
 
 // createLogsTextView creates the logs text view
-func (lv *View) createLogsTextView(componentBuilder *builders.ComponentBuilder, logsFlex *tview.Flex) {
-	lv.logsText = componentBuilder.CreateTextView("Loading logs...", tview.AlignLeft, lv.themeManager.GetTextColor())
+func (lv *View) createLogsTextView(
+	componentBuilder *builders.ComponentBuilder,
+	logsFlex *tview.Flex,
+) {
+	lv.logsText = componentBuilder.CreateTextView(
+		"Loading logs...",
+		tview.AlignLeft,
+		lv.themeManager.GetTextColor(),
+	)
 	lv.logsText.SetDynamicColors(true)
 	lv.logsText.SetScrollable(true)
 	lv.logsText.SetBorder(true)
@@ -118,7 +126,10 @@ func (lv *View) createLogsTextView(componentBuilder *builders.ComponentBuilder, 
 }
 
 // createBackButton creates the back button
-func (lv *View) createBackButton(componentBuilder *builders.ComponentBuilder, logsFlex *tview.Flex) {
+func (lv *View) createBackButton(
+	componentBuilder *builders.ComponentBuilder,
+	logsFlex *tview.Flex,
+) {
 	backButton := componentBuilder.CreateButton("Back to Table", func() {
 		lv.ui.ShowCurrentView()
 	})
@@ -162,7 +173,7 @@ func (lv *View) getResourceLogs(ctx context.Context) (string, error) {
 	services := lv.ui.GetServices()
 	logsService := services.GetLogsService()
 	if logsService == nil {
-		return "", fmt.Errorf("logs service not available")
+		return "", errors.New("logs service not available")
 	}
 
 	return logsService.GetLogs(ctx, lv.ResourceType, lv.ResourceID)

@@ -3,6 +3,7 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -43,33 +44,58 @@ func DefaultConfig() *Config {
 
 // Load loads the configuration from file
 func Load() (*Config, error) {
+	configDir, configFile, err := getConfigPaths()
+	if err != nil {
+		return nil, err
+	}
+
+	if isNewConfig(configFile) {
+		return createNewConfig(configFile)
+	}
+
+	return loadExistingConfig(configFile, configDir)
+}
+
+// getConfigPaths gets the configuration directory and file paths
+func getConfigPaths() (string, string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return nil, fmt.Errorf("home directory access failed: %w", err)
+		return "", "", fmt.Errorf("home directory access failed: %w", err)
 	}
 
 	configDir := filepath.Join(homeDir, ".dockerk9s")
 	if err := os.MkdirAll(configDir, 0o750); err != nil {
-		return nil, fmt.Errorf("config directory creation failed: %w", err)
+		return "", "", fmt.Errorf("config directory creation failed: %w", err)
 	}
 
 	configFile := filepath.Join(configDir, "config.json")
+	return configDir, configFile, nil
+}
 
-	if _, err := os.Stat(configFile); os.IsNotExist(err) {
-		cfg := DefaultConfig()
-		if err := saveConfig(configFile, cfg); err != nil {
-			return nil, fmt.Errorf("config save failed: %w", err)
-		}
-		return cfg, nil
+// isNewConfig checks if the config file doesn't exist
+func isNewConfig(configFile string) bool {
+	_, err := os.Stat(configFile)
+	return os.IsNotExist(err)
+}
+
+// createNewConfig creates a new default configuration
+func createNewConfig(configFile string) (*Config, error) {
+	cfg := DefaultConfig()
+	if err := saveConfig(configFile, cfg); err != nil {
+		return nil, fmt.Errorf("config save failed: %w", err)
 	}
+	return cfg, nil
+}
 
+// loadExistingConfig loads an existing configuration file
+func loadExistingConfig(configFile, configDir string) (*Config, error) {
 	cfg := DefaultConfig()
 
-	// Validate config file path to prevent directory traversal
-	if !filepath.IsAbs(configFile) || !strings.HasPrefix(filepath.Clean(configFile), filepath.Clean(configDir)) {
-		return nil, fmt.Errorf("invalid config file path")
+	if !isValidConfigPath(configFile, configDir) {
+		return nil, errors.New("invalid config file path")
 	}
 
+	// nolint:gosec // Path is validated by isValidConfigPath before this function is called
 	data, err := os.ReadFile(configFile)
 	if err != nil {
 		return nil, fmt.Errorf("config read failed: %w", err)
@@ -80,6 +106,26 @@ func Load() (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// isValidConfigPath validates the config file path to prevent directory traversal
+func isValidConfigPath(configFile, configDir string) bool {
+	// Clean both paths to remove any directory traversal attempts
+	cleanConfigFile := filepath.Clean(configFile)
+	cleanConfigDir := filepath.Clean(configDir)
+
+	// Ensure both paths are absolute
+	if !filepath.IsAbs(cleanConfigFile) || !filepath.IsAbs(cleanConfigDir) {
+		return false
+	}
+
+	// Additional security: check for suspicious patterns
+	if strings.Contains(cleanConfigFile, "..") || strings.Contains(cleanConfigFile, "~") {
+		return false
+	}
+
+	// Ensure the config file is within the config directory
+	return strings.HasPrefix(cleanConfigFile, cleanConfigDir)
 }
 
 // Save saves the configuration to file

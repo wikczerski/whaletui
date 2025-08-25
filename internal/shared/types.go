@@ -1,3 +1,4 @@
+//nolint:max-public-structs
 package shared
 
 import (
@@ -114,7 +115,7 @@ type Volume struct {
 // VolumeDetails represents detailed volume information
 type VolumeDetails struct {
 	Volume
-	Status map[string]interface{} `json:"status"`
+	Status map[string]any `json:"status"`
 }
 
 // Network represents a Docker network

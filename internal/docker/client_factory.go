@@ -100,32 +100,50 @@ func createClientWithHost(cfg *config.Config, log *slog.Logger, host string) (*C
 }
 
 // testAndCreateClient tests the connection and creates the client
-func testAndCreateClient(cfg *config.Config, log *slog.Logger, cli *client.Client) (*Client, error) {
+func testAndCreateClient(
+	cfg *config.Config,
+	log *slog.Logger,
+	cli *client.Client,
+) (*Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if _, err := cli.Ping(ctx); err != nil {
-		if closeErr := cli.Close(); closeErr != nil {
-			log.Warn("Failed to close Docker client", "error", closeErr)
-		}
-
-		// If this is a remote host and direct connection failed, try SSH fallback
-		// Only try SSH fallback if it's not already an SSH connection
-		if cfg.RemoteHost != "" && !strings.HasPrefix(cfg.RemoteHost, "ssh://") {
-			return trySSHFallback(cfg, log)
-		}
-
-		return nil, fmt.Errorf("failed to connect to Docker: %w", err)
+		return handleConnectionFailure(cfg, log, cli, err)
 	}
 
-	client := &Client{
+	client := createDockerClientInstance(cli, cfg, log)
+	logConnectionSuccess(cfg, log)
+	return client, nil
+}
+
+// handleConnectionFailure handles connection failure and attempts SSH fallback
+func handleConnectionFailure(
+	cfg *config.Config,
+	log *slog.Logger,
+	cli *client.Client,
+	err error,
+) (*Client, error) {
+	if closeErr := cli.Close(); closeErr != nil {
+		log.Warn("Failed to close Docker client", "error", closeErr)
+	}
+
+	// If this is a remote host and direct connection failed, try SSH fallback
+	// Only try SSH fallback if it's not already an SSH connection
+	if cfg.RemoteHost != "" && !strings.HasPrefix(cfg.RemoteHost, "ssh://") {
+		return trySSHFallback(cfg, log)
+	}
+
+	return nil, fmt.Errorf("failed to connect to Docker: %w", err)
+}
+
+// createDockerClientInstance creates a new client instance
+func createDockerClientInstance(cli *client.Client, cfg *config.Config, log *slog.Logger) *Client {
+	return &Client{
 		cli: cli,
 		cfg: cfg,
 		log: log,
 	}
-
-	logConnectionSuccess(cfg, log)
-	return client, nil
 }
 
 // logConnectionSuccess logs the successful connection

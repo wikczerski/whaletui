@@ -31,17 +31,32 @@ func init() {
 
 // showConfig displays the current configuration
 func showConfig() {
+	cfg := loadConfig()
+	homeDir := getHomeDirectory()
+	displayConfigInfo(cfg, homeDir)
+}
+
+// loadConfig loads the configuration
+func loadConfig() *config.Config {
 	cfg, err := config.Load()
 	if err != nil {
 		logger.Error("Error loading config", "error", err)
 		os.Exit(1)
 	}
+	return cfg
+}
 
+// getHomeDirectory gets the user's home directory
+func getHomeDirectory() string {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		homeDir = "unknown"
+		return "unknown"
 	}
+	return homeDir
+}
 
+// displayConfigInfo displays the configuration information
+func displayConfigInfo(cfg *config.Config, homeDir string) {
 	fmt.Printf("whaletui Configuration\n")
 	fmt.Printf("==================\n\n")
 

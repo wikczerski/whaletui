@@ -3,6 +3,7 @@ package shared
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/wikczerski/whaletui/internal/docker"
@@ -30,7 +31,7 @@ func NewBaseService[T any](client *docker.Client, resourceName string) *BaseServ
 // List retrieves all resources using the provided list function
 func (bs *BaseService[T]) List(ctx context.Context) ([]T, error) {
 	if bs.client == nil {
-		return nil, fmt.Errorf("docker client is not initialized")
+		return nil, errors.New("docker client is not initialized")
 	}
 
 	if bs.ListFunc == nil {
@@ -48,7 +49,7 @@ func (bs *BaseService[T]) List(ctx context.Context) ([]T, error) {
 // Remove removes a resource using the provided remove function
 func (bs *BaseService[T]) Remove(ctx context.Context, id string, force bool) error {
 	if bs.client == nil {
-		return fmt.Errorf("docker client is not initialized")
+		return errors.New("docker client is not initialized")
 	}
 
 	if bs.RemoveFunc == nil {
@@ -65,7 +66,7 @@ func (bs *BaseService[T]) Remove(ctx context.Context, id string, force bool) err
 // Inspect inspects a resource using the provided inspect function
 func (bs *BaseService[T]) Inspect(ctx context.Context, id string) (map[string]any, error) {
 	if bs.client == nil {
-		return nil, fmt.Errorf("docker client is not initialized")
+		return nil, errors.New("docker client is not initialized")
 	}
 
 	if bs.InspectFunc == nil {
@@ -83,7 +84,7 @@ func (bs *BaseService[T]) Inspect(ctx context.Context, id string) (map[string]an
 // ValidateClient checks if the Docker client is initialized
 func (bs *BaseService[T]) ValidateClient() error {
 	if bs.client == nil {
-		return fmt.Errorf("docker client is not initialized")
+		return errors.New("docker client is not initialized")
 	}
 	return nil
 }

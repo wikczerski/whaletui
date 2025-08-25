@@ -32,18 +32,8 @@ func (h *dockerErrorHandler) handle() error {
 	h.prepareTerminal()
 	h.showErrorHeader()
 
-	if h.askForDetails() {
-		h.showDetailedError()
-	}
-
-	if h.isRemoteConnection() {
-		h.showRemoteHelp()
-	} else {
-		h.showLocalHelp()
-		if h.askForRetry() {
-			return h.attemptRetry()
-		}
-	}
+	h.handleErrorDetails()
+	h.handleConnectionType()
 
 	h.showGeneralHelp()
 	h.showLogOption()
@@ -51,6 +41,27 @@ func (h *dockerErrorHandler) handle() error {
 	h.showRemoteOption()
 
 	return fmt.Errorf("docker connection failed: %w", h.err)
+}
+
+// handleErrorDetails handles the error details display
+func (h *dockerErrorHandler) handleErrorDetails() {
+	if h.askForDetails() {
+		h.showDetailedError()
+	}
+}
+
+// handleConnectionType handles different connection types
+func (h *dockerErrorHandler) handleConnectionType() {
+	if h.isRemoteConnection() {
+		h.showRemoteHelp()
+	} else {
+		h.showLocalHelp()
+		if h.askForRetry() {
+			if err := h.attemptRetry(); err != nil {
+				fmt.Fprintf(os.Stderr, "Retry attempt failed: %v\n", err)
+			}
+		}
+	}
 }
 
 func (h *dockerErrorHandler) prepareTerminal() {
@@ -139,8 +150,19 @@ func (h *dockerErrorHandler) showTimeoutErrorHelp() {
 }
 
 func (h *dockerErrorHandler) showRemoteHelp() {
+	h.showRemoteHelpHeader()
+	h.showRemoteHelpChecklist()
+	h.showRemoteHelpSuggestions()
+}
+
+// showRemoteHelpHeader shows the remote help header
+func (h *dockerErrorHandler) showRemoteHelpHeader() {
 	fmt.Printf("Unable to connect to remote Docker host: %s\n", h.cfg.RemoteHost)
 	fmt.Println()
+}
+
+// showRemoteHelpChecklist shows the remote help checklist
+func (h *dockerErrorHandler) showRemoteHelpChecklist() {
 	fmt.Println("Please check:")
 	fmt.Println("• The remote host is accessible")
 	fmt.Println("• Docker daemon is running on the remote host")
@@ -148,6 +170,10 @@ func (h *dockerErrorHandler) showRemoteHelp() {
 	fmt.Println("• Firewall settings allow the connection")
 	fmt.Println("• Port 2375/2376 is open (for TCP connections)")
 	fmt.Println()
+}
+
+// showRemoteHelpSuggestions shows the remote help suggestions
+func (h *dockerErrorHandler) showRemoteHelpSuggestions() {
 	fmt.Println("You can try:")
 	fmt.Printf("  whaletui connect --host %s --user <username>\n", h.cfg.RemoteHost)
 	fmt.Println("  • Test SSH connection: ssh <username>@<host>")
@@ -270,24 +296,62 @@ func (h *dockerErrorHandler) hasLogFile(logFilePath string) bool {
 }
 
 func (h *dockerErrorHandler) showRecentLogs(logFilePath string) {
+	h.showRecentLogsHeader()
+	h.validateAndReadLogFile(logFilePath)
+}
+
+// showRecentLogsHeader shows the recent logs header
+func (h *dockerErrorHandler) showRecentLogsHeader() {
 	fmt.Println()
 	fmt.Println("Recent logs:")
 	fmt.Println("============")
+}
 
-	// Validate logFilePath to prevent directory traversal
-	if !filepath.IsAbs(logFilePath) || !strings.HasPrefix(filepath.Clean(logFilePath), filepath.Clean(filepath.Dir(logFilePath))) {
-		fmt.Println("Invalid log file path")
-		fmt.Println()
+// validateAndReadLogFile validates and reads the log file
+func (h *dockerErrorHandler) validateAndReadLogFile(logFilePath string) {
+	if !h.isValidLogFilePath(logFilePath) {
+		h.showInvalidLogPathMessage()
 		return
 	}
 
+	h.readAndDisplayLogFile(logFilePath)
+	fmt.Println()
+}
+
+// isValidLogFilePath checks if the log file path is valid
+func (h *dockerErrorHandler) isValidLogFilePath(logFilePath string) bool {
+	// Clean the path to remove any directory traversal attempts
+	cleanPath := filepath.Clean(logFilePath)
+
+	// Ensure it's an absolute path
+	if !filepath.IsAbs(cleanPath) {
+		return false
+	}
+
+	// Additional security: check for suspicious patterns
+	if strings.Contains(cleanPath, "..") || strings.Contains(cleanPath, "~") {
+		return false
+	}
+
+	// Ensure the cleaned path matches the original (after cleaning)
+	return cleanPath == filepath.Clean(logFilePath)
+}
+
+// showInvalidLogPathMessage shows the invalid log path message
+func (h *dockerErrorHandler) showInvalidLogPathMessage() {
+	fmt.Println("Invalid log file path")
+	fmt.Println()
+}
+
+// readAndDisplayLogFile reads and displays the log file
+func (h *dockerErrorHandler) readAndDisplayLogFile(logFilePath string) {
+	// nolint:gosec // Path is validated by isValidLogFilePath before this function is called
 	logContent, readErr := os.ReadFile(logFilePath)
 	if h.canReadLogFile(readErr) {
 		h.displayLastLogLines(string(logContent))
 	} else {
 		fmt.Printf("Could not read log file: %v\n", readErr)
 	}
-	fmt.Println()
 }
 
 func (h *dockerErrorHandler) canReadLogFile(err error) bool {

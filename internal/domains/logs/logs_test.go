@@ -49,7 +49,9 @@ func TestLogsView_LoadLogs_Success(t *testing.T) {
 	mockUI.On("GetThemeManager").Return(mockThemeManager)
 	mockUI.On("GetServices").Return(mockServices)
 	mockServices.EXPECT().GetLogsService().Return(mockLogsService)
-	mockLogsService.EXPECT().GetLogs(context.Background(), "container", "test-id").Return("test logs", nil)
+	mockLogsService.EXPECT().
+		GetLogs(context.Background(), "container", "test-id").
+		Return("test logs", nil)
 
 	logsView := NewView(mockUI, "container", "test-id", "test-name")
 
@@ -138,7 +140,14 @@ func TestLogsView_KeyBindings_ScrollingKeys(t *testing.T) {
 	view := logsView.GetView()
 
 	// Test scrolling keys
-	scrollingKeys := []tcell.Key{tcell.KeyUp, tcell.KeyDown, tcell.KeyPgUp, tcell.KeyPgDn, tcell.KeyHome, tcell.KeyEnd}
+	scrollingKeys := []tcell.Key{
+		tcell.KeyUp,
+		tcell.KeyDown,
+		tcell.KeyPgUp,
+		tcell.KeyPgDn,
+		tcell.KeyHome,
+		tcell.KeyEnd,
+	}
 
 	for _, key := range scrollingKeys {
 		event := tcell.NewEventKey(key, 0, tcell.ModNone)

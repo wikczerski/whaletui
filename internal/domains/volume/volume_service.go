@@ -15,40 +15,53 @@ type volumeService struct {
 // NewVolumeService creates a new volume service
 func NewVolumeService(client *docker.Client) interfaces.VolumeService {
 	base := shared.NewBaseService[shared.Volume](client, "volume")
+	base.ListFunc = createListVolumesFunc()
+	base.InspectFunc = createInspectVolumeFunc()
+	base.RemoveFunc = createRemoveVolumeFunc()
+	return &volumeService{BaseService: base}
+}
 
-	// Set up Docker-specific functions
-	base.ListFunc = func(client *docker.Client, ctx context.Context) ([]shared.Volume, error) {
+// createListVolumesFunc creates the function for listing volumes
+func createListVolumesFunc() func(*docker.Client, context.Context) ([]shared.Volume, error) {
+	return func(client *docker.Client, ctx context.Context) ([]shared.Volume, error) {
 		dockerVolumes, err := client.ListVolumes(ctx)
 		if err != nil {
 			return nil, err
 		}
-
-		// Convert docker types to shared types
-		result := make([]shared.Volume, len(dockerVolumes))
-		for i, vol := range dockerVolumes {
-			result[i] = shared.Volume{
-				Name:       vol.Name,
-				Driver:     vol.Driver,
-				Mountpoint: vol.Mountpoint,
-				CreatedAt:  vol.Created,
-				Status:     make(map[string]any),
-				Labels:     vol.Labels,
-				Scope:      vol.Scope,
-				Size:       vol.Size,
-			}
-		}
-		return result, nil
+		return convertDockerVolumes(dockerVolumes), nil
 	}
+}
 
-	base.InspectFunc = func(client *docker.Client, ctx context.Context, name string) (map[string]any, error) {
+// convertDockerVolumes converts Docker volume types to shared types
+func convertDockerVolumes(dockerVolumes []docker.Volume) []shared.Volume {
+	result := make([]shared.Volume, len(dockerVolumes))
+	for i, vol := range dockerVolumes {
+		result[i] = shared.Volume{
+			Name:       vol.Name,
+			Driver:     vol.Driver,
+			Mountpoint: vol.Mountpoint,
+			CreatedAt:  vol.Created,
+			Status:     make(map[string]any),
+			Labels:     vol.Labels,
+			Scope:      vol.Scope,
+			Size:       vol.Size,
+		}
+	}
+	return result
+}
+
+// createInspectVolumeFunc creates the function for inspecting volumes
+func createInspectVolumeFunc() func(*docker.Client, context.Context, string) (map[string]any, error) {
+	return func(client *docker.Client, ctx context.Context, name string) (map[string]any, error) {
 		return client.InspectVolume(ctx, name)
 	}
+}
 
-	base.RemoveFunc = func(client *docker.Client, ctx context.Context, name string, force bool) error {
+// createRemoveVolumeFunc creates the function for removing volumes
+func createRemoveVolumeFunc() func(*docker.Client, context.Context, string, bool) error {
+	return func(client *docker.Client, ctx context.Context, name string, force bool) error {
 		return client.RemoveVolume(ctx, name, force)
 	}
-
-	return &volumeService{BaseService: base}
 }
 
 func (s *volumeService) ListVolumes(ctx context.Context) ([]shared.Volume, error) {
@@ -76,5 +89,6 @@ func (s *volumeService) GetActions() map[rune]string {
 
 // GetActionsString returns the available actions for volumes as a formatted string
 func (s *volumeService) GetActionsString() string {
-	return "<r> Remove\n<h> History\n<f> Filter\n<t> Sort\n<i> Inspect\n<enter> Details\n<up/down> Navigate\n<?> Help\n<f5> Refresh\n<:> Command"
+	return "<r> Remove\n<h> History\n<f> Filter\n<t> Sort\n<i> Inspect\n<enter> Details\n" +
+		"<up/down> Navigate\n<?> Help\n<f5> Refresh\n<:> Command"
 }

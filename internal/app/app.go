@@ -36,29 +36,71 @@ func New(cfg *config.Config) (*App, error) {
 	}
 
 	log := logger.GetLogger()
+	client, services, err := createDockerClientAndServices(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	ui, err := createAndSetupUI(services, cfg, client, cancel)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Info("UI created", "ui", ui != nil)
+
+	return createAppInstance(cfg, client, services, ui, ctx, cancel, log), nil
+}
+
+// createDockerClientAndServices creates a new Docker client and service factory
+func createDockerClientAndServices(
+	cfg *config.Config,
+) (*docker.Client, *core.ServiceFactory, error) {
 	client, err := docker.New(cfg)
 	if err != nil {
-		return nil, errors.NewDockerError("docker client creation", err)
+		return nil, nil, errors.NewDockerError("docker client creation", err)
 	}
 
 	services := core.NewServiceFactory(client)
-	log.Info("Service factory created", "services", services != nil)
+	logger.GetLogger().Info("Service factory created", "services", services != nil)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	return client, services, nil
+}
+
+// createAndSetupUI creates and sets up the UI
+func createAndSetupUI(
+	services *core.ServiceFactory,
+	cfg *config.Config,
+	client *docker.Client,
+	cancel context.CancelFunc,
+) (*core.UI, error) {
 	ui, err := createUI(services, cfg)
 	if err != nil {
 		cleanupOnError(client, cancel)
 		return nil, err
 	}
 
-	log.Info("UI created", "ui", ui != nil)
 	setupManagers(ui)
 
 	if err := ui.CompleteInitialization(); err != nil {
 		cleanupOnError(client, cancel)
-		return nil, errors.NewUIError("UI initialization", err)
+		return nil, errors.UIError("UI initialization", err)
 	}
 
+	return ui, nil
+}
+
+// createAppInstance creates the App instance
+func createAppInstance(
+	cfg *config.Config,
+	client *docker.Client,
+	services *core.ServiceFactory,
+	ui *core.UI,
+	ctx context.Context,
+	cancel context.CancelFunc,
+	log *slog.Logger,
+) *App {
 	return &App{
 		cfg:      cfg,
 		docker:   client,
@@ -67,13 +109,13 @@ func New(cfg *config.Config) (*App, error) {
 		ctx:      ctx,
 		cancel:   cancel,
 		log:      log,
-	}, nil
+	}
 }
 
 func createUI(services *core.ServiceFactory, cfg *config.Config) (*core.UI, error) {
 	ui, err := core.New(services, cfg.Theme, nil, nil, cfg)
 	if err != nil {
-		return nil, errors.NewUIError("UI creation", err)
+		return nil, errors.UIError("UI creation", err)
 	}
 	return ui, nil
 }

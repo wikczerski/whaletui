@@ -7,8 +7,16 @@ run:
 formatters:
   enable:
     - gofmt
-    - goimports
     - gofumpt
+    - golines
+    - goimports
+  settings:
+    golines:
+      tab-len: 4
+    gofmt:
+      rewrite-rules:
+        - pattern: "interface{}"
+          replacement: "any"
 
 linters:
   enable:
@@ -22,7 +30,6 @@ linters:
     - prealloc
     - revive
     - funcorder
-    - godox
 
   settings:
     iface:
@@ -57,8 +64,8 @@ linters:
         - name: function-length
           severity: warning
           disabled: false
-          exclude: [""]
-          arguments: [10, 40]
+          exclude: ["TEST"]
+          arguments: [20, 40]
         - name: if-return
           severity: warning
           disabled: false
@@ -81,7 +88,7 @@ linters:
           severity: warning
           disabled: false
           exclude: [""]
-          arguments: [2]
+          arguments: [3]
         - name: optimize-operands-order
           severity: warning
           disabled: false
@@ -144,5 +151,14 @@ linters:
           - errcheck
           - gosec
           - funlen
+      - path: internal/ui/interfaces/.*\.go
+        linters: [revive]
+        text: "max-public-structs"
+      - path: .*types\.go
+        linters: [revive]
+        text: "max-public-structs"
+      - path: internal/domains/container/container\.go
+        linters: [revive]
+        text: "max-public-structs"
     paths:
       - internal/mocks

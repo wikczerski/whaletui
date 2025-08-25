@@ -168,7 +168,13 @@ func (bv *BaseView[T]) ShowConfirmDialog(message string, onConfirm func()) {
 func (bv *BaseView[T]) setupKeyBindings() {
 	// Set up key bindings on the table
 	bv.table.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		bv.log.Info("Table InputCapture called", "key", string(event.Rune()), "keyType", event.Key())
+		bv.log.Info(
+			"Table InputCapture called",
+			"key",
+			string(event.Rune()),
+			"keyType",
+			event.Key(),
+		)
 
 		row, _ := bv.table.GetSelection()
 		if row <= 0 || row > len(bv.items) {
@@ -188,22 +194,29 @@ func (bv *BaseView[T]) setupKeyBindings() {
 
 		// Handle action keys
 		if event.Key() == tcell.KeyRune && bv.HandleKeyPress != nil {
-			// Get available actions for this view
-			actions := bv.getActionsForItem()
-
-			bv.log.Info("Checking action key", "key", string(event.Rune()), "actions", actions, "GetActions_nil", bv.GetActions == nil)
-
-			// If this key is a valid action, handle it and consume the event
-			if _, isValidAction := actions[event.Rune()]; isValidAction {
-				bv.log.Info("Valid action key, handling", "key", string(event.Rune()))
-				bv.HandleKeyPress(event.Rune(), item)
-				return nil // Consume the event so it doesn't propagate to global handlers
-			}
-			bv.log.Info("Key is not a valid action", "key", string(event.Rune()))
+			return bv.handleActionKey(event, item)
 		}
 
 		return event
 	})
+}
+
+// handleActionKey handles action key presses
+func (bv *BaseView[T]) handleActionKey(event *tcell.EventKey, item T) *tcell.EventKey {
+	// Get available actions for this view
+	actions := bv.getActionsForItem()
+
+	bv.log.Info("Checking action key", "key", string(event.Rune()),
+		"actions", actions, "GetActions_nil", bv.GetActions == nil)
+
+	// If this key is a valid action, handle it and consume the event
+	if _, isValidAction := actions[event.Rune()]; isValidAction {
+		bv.log.Info("Valid action key, handling", "key", string(event.Rune()))
+		bv.HandleKeyPress(event.Rune(), item)
+		return nil // Consume the event so it doesn't propagate to global handlers
+	}
+	bv.log.Info("Key is not a valid action", "key", string(event.Rune()))
+	return event
 }
 
 // updateItemsAndTable updates the items and refreshes the table display
@@ -288,14 +301,30 @@ func (bv *BaseView[T]) getActionsForItem() map[rune]string {
 func (bv *BaseView[T]) showErrorDetails(item T, err error, actions map[rune]string) {
 	itemName := bv.GetItemName(item)
 	details := fmt.Sprintf("Item: %s\nInspect error: %v", itemName, err)
-	detailsView := builders.CreateDetailsView(itemName, details, actions, bv.handleAction, bv.showTable)
+	detailsView := builders.CreateDetailsView(
+		itemName,
+		details,
+		actions,
+		bv.handleAction,
+		bv.showTable,
+	)
 	bv.ui.ShowDetails(detailsView)
 }
 
 // showSuccessDetails shows successful inspection details
-func (bv *BaseView[T]) showSuccessDetails(item T, inspectData map[string]any, actions map[rune]string) {
+func (bv *BaseView[T]) showSuccessDetails(
+	item T,
+	inspectData map[string]any,
+	actions map[rune]string,
+) {
 	itemName := bv.GetItemName(item)
-	detailsView := builders.CreateInspectDetailsView(itemName, inspectData, actions, bv.handleAction, bv.showTable)
+	detailsView := builders.CreateInspectDetailsView(
+		itemName,
+		inspectData,
+		actions,
+		bv.handleAction,
+		bv.showTable,
+	)
 	bv.ui.ShowDetails(detailsView)
 }
 

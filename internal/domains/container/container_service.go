@@ -19,43 +19,66 @@ func NewContainerService(client *docker.Client) interfaces.ContainerService {
 	base := shared.NewBaseService[shared.Container](client, "container")
 	ops := shared.NewCommonOperations(client)
 
-	base.ListFunc = func(client *docker.Client, ctx context.Context) ([]shared.Container, error) {
+	base.ListFunc = createListFunction()
+	base.RemoveFunc = createRemoveFunction()
+	base.InspectFunc = createInspectFunction()
+
+	return &containerService{
+		BaseService: base,
+		operations:  ops,
+	}
+}
+
+// createListFunction creates the list function for containers
+func createListFunction() func(client *docker.Client, ctx context.Context) ([]shared.Container, error) {
+	return func(client *docker.Client, ctx context.Context) ([]shared.Container, error) {
 		dockerContainers, err := client.ListContainers(ctx, true)
 		if err != nil {
 			return nil, err
 		}
 
-		result := make([]shared.Container, len(dockerContainers))
-		for i := range dockerContainers {
-			result[i] = shared.Container{
-				ID:          dockerContainers[i].ID,
-				Name:        dockerContainers[i].Name,
-				Image:       dockerContainers[i].Image,
-				Status:      dockerContainers[i].Status,
-				Created:     dockerContainers[i].Created,
-				Ports:       []string{dockerContainers[i].Ports},
-				SizeRw:      0, // docker.Container.Size is string, shared.Container.SizeRw is int64
-				SizeRootFs:  0, // docker.Container doesn't have SizeRootFs
-				Labels:      make(map[string]string),
-				State:       dockerContainers[i].State,
-				NetworkMode: "",
-				Mounts:      []string{},
-			}
-		}
-		return result, nil
+		return convertDockerContainers(dockerContainers), nil
 	}
+}
 
-	base.RemoveFunc = func(client *docker.Client, ctx context.Context, id string, force bool) error {
+// convertDockerContainers converts Docker API containers to shared containers
+func convertDockerContainers(dockerContainers []docker.Container) []shared.Container {
+	result := make([]shared.Container, len(dockerContainers))
+	for i := range dockerContainers {
+		result[i] = convertDockerContainer(dockerContainers[i])
+	}
+	return result
+}
+
+// convertDockerContainer converts a single Docker API container to shared container
+func convertDockerContainer(dockerContainer docker.Container) shared.Container {
+	return shared.Container{
+		ID:          dockerContainer.ID,
+		Name:        dockerContainer.Name,
+		Image:       dockerContainer.Image,
+		Status:      dockerContainer.Status,
+		Created:     dockerContainer.Created,
+		Ports:       []string{dockerContainer.Ports},
+		SizeRw:      0, // docker.Container.Size is string, shared.Container.SizeRw is int64
+		SizeRootFs:  0, // docker.Container doesn't have SizeRootFs
+		Labels:      make(map[string]string),
+		State:       dockerContainer.State,
+		NetworkMode: "",
+		Mounts:      []string{},
+	}
+}
+
+// createRemoveFunction creates the remove function for containers
+func createRemoveFunction() func(client *docker.Client, ctx context.Context, id string, force bool) error {
+	return func(client *docker.Client, ctx context.Context, id string, force bool) error {
 		return client.RemoveContainer(ctx, id, force)
 	}
+}
 
-	base.InspectFunc = func(client *docker.Client, ctx context.Context, id string) (map[string]any, error) {
+// createInspectFunction creates the inspect function for containers
+func createInspectFunction() func(client *docker.Client, ctx context.Context, id string) (map[string]any, error) {
+	return func(client *docker.Client, ctx context.Context, id string) (map[string]any, error) {
 		return client.InspectContainer(ctx, id)
-	}
-
-	return &containerService{
-		BaseService: base,
-		operations:  ops,
 	}
 }
 
@@ -67,11 +90,19 @@ func (s *containerService) StartContainer(ctx context.Context, id string) error 
 	return s.operations.StartContainer(ctx, id)
 }
 
-func (s *containerService) StopContainer(ctx context.Context, id string, timeout *time.Duration) error {
+func (s *containerService) StopContainer(
+	ctx context.Context,
+	id string,
+	timeout *time.Duration,
+) error {
 	return s.operations.StopContainer(ctx, id, timeout)
 }
 
-func (s *containerService) RestartContainer(ctx context.Context, id string, timeout *time.Duration) error {
+func (s *containerService) RestartContainer(
+	ctx context.Context,
+	id string,
+	timeout *time.Duration,
+) error {
 	return s.operations.RestartContainer(ctx, id, timeout)
 }
 
@@ -83,11 +114,19 @@ func (s *containerService) GetContainerLogs(ctx context.Context, id string) (str
 	return s.operations.GetContainerLogs(ctx, id)
 }
 
-func (s *containerService) InspectContainer(ctx context.Context, id string) (map[string]any, error) {
+func (s *containerService) InspectContainer(
+	ctx context.Context,
+	id string,
+) (map[string]any, error) {
 	return s.Inspect(ctx, id)
 }
 
-func (s *containerService) ExecContainer(ctx context.Context, id string, command []string, tty bool) (string, error) {
+func (s *containerService) ExecContainer(
+	ctx context.Context,
+	id string,
+	command []string,
+	tty bool,
+) (string, error) {
 	return s.operations.ExecContainer(ctx, id, command, tty)
 }
 
@@ -115,7 +154,21 @@ func (s *containerService) GetActions() map[rune]string {
 
 // GetActionsString returns the available actions for containers as a formatted string
 func (s *containerService) GetActionsString() string {
-	return "<s> Start\n<S> Stop\n<r> Restart\n<d> Delete\n<a> Attach\n<l> Logs\n<i> Inspect\n<n> New\n<e> Exec\n<f> Filter\n<t> Sort\n<h> History\n<enter> Details\n<:> Command"
+	actions := "<s> Start\n" +
+		"<S> Stop\n" +
+		"<r> Restart\n" +
+		"<d> Delete\n" +
+		"<a> Attach\n" +
+		"<l> Logs\n" +
+		"<i> Inspect\n" +
+		"<n> New\n" +
+		"<e> Exec\n" +
+		"<f> Filter\n" +
+		"<t> Sort\n" +
+		"<h> History\n" +
+		"<enter> Details\n" +
+		"<:> Command"
+	return actions
 }
 
 // GetNavigation returns the available navigation options for containers as a map

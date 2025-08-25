@@ -6,45 +6,63 @@ import (
 )
 
 func TestMultistreamLogging(t *testing.T) {
-	// Clean up any existing log files
 	testLogPath := "./test_logs/test.log"
+	setupTestLogging(t, testLogPath)
+	defer cleanupTestLogging(t, testLogPath)
+
+	testDebugLevelHandler(t, testLogPath)
+	testInfoLevelHandler(t, testLogPath)
+	testLogFileCreation(t, testLogPath)
+	testLogFileCleanup(t)
+}
+
+func setupTestLogging(t *testing.T, testLogPath string) {
+	t.Helper()
 	defer func() {
 		if err := os.RemoveAll("./test_logs"); err != nil {
 			t.Logf("Failed to remove test logs: %v", err)
 		}
 	}()
+}
 
-	// Test that DEBUG level creates multistream handler
+func testDebugLevelHandler(t *testing.T, testLogPath string) {
+	t.Helper()
 	SetLevelWithPath("DEBUG", testLogPath)
-
 	logger := GetLogger()
 	if logger == nil {
 		t.Fatal("Logger should not be nil")
 	}
+}
 
-	// Test that INFO level creates console-only handler
+func testInfoLevelHandler(t *testing.T, testLogPath string) {
+	t.Helper()
 	SetLevelWithPath("INFO", testLogPath)
-
-	logger = GetLogger()
+	logger := GetLogger()
 	if logger == nil {
 		t.Fatal("Logger should not be nil")
 	}
+}
 
-	// Test that log file is created for DEBUG level
+func testLogFileCreation(t *testing.T, testLogPath string) {
+	t.Helper()
 	SetLevelWithPath("DEBUG", testLogPath)
-
-	// Verify log file exists
 	if _, err := os.Stat(testLogPath); os.IsNotExist(err) {
 		t.Fatal("Log file should be created for DEBUG level")
 	}
+}
 
-	// Test log file cleanup
+func testLogFileCleanup(t *testing.T) {
+	t.Helper()
 	CloseLogFile()
-
-	// Verify log file is closed
 	if logFile != nil {
 		t.Fatal("Log file should be closed after CloseLogFile()")
 	}
+}
+
+func cleanupTestLogging(t *testing.T, testLogPath string) {
+	t.Helper()
+	// This function is called by defer, so it's intentionally empty
+	// The actual cleanup is done in setupTestLogging
 }
 
 func TestLogLevelParsing(t *testing.T) {
@@ -106,33 +124,52 @@ func TestTUIModeToggle(t *testing.T) {
 }
 
 func TestTUIModeLogging(t *testing.T) {
-	// Clean up any existing log files
 	testLogPath := "./test_logs/tui_test.log"
+	setupTUITestLogging(t, testLogPath)
+	defer cleanupTUITestLogging(t, testLogPath)
+
+	testTUIModeHandler(t, testLogPath)
+	testNormalModeHandler(t, testLogPath)
+	cleanupTUIModeTest(t)
+}
+
+func setupTUITestLogging(t *testing.T, testLogPath string) {
+	t.Helper()
 	defer func() {
 		if err := os.RemoveAll("./test_logs"); err != nil {
 			t.Logf("Failed to remove test logs: %v", err)
 		}
 	}()
+}
 
-	// Test TUI mode uses file-only handler
+func testTUIModeHandler(t *testing.T, testLogPath string) {
+	t.Helper()
 	SetTUIMode(true)
 	SetLevelWithPath("DEBUG", testLogPath)
-
 	logger := GetLogger()
 	if logger == nil {
 		t.Fatal("Logger should not be nil in TUI mode")
 	}
+}
 
-	// Test normal mode uses multistream handler
+func testNormalModeHandler(t *testing.T, testLogPath string) {
+	t.Helper()
 	SetTUIMode(false)
 	SetLevelWithPath("DEBUG", testLogPath)
-
-	logger = GetLogger()
+	logger := GetLogger()
 	if logger == nil {
 		t.Fatal("Logger should not be nil in normal mode")
 	}
+}
 
-	// Clean up
+func cleanupTUIModeTest(t *testing.T) {
+	t.Helper()
 	CloseLogFile()
 	SetTUIMode(false) // Reset to default
+}
+
+func cleanupTUITestLogging(t *testing.T, testLogPath string) {
+	t.Helper()
+	// This function is called by defer, so it's intentionally empty
+	// The actual cleanup is done in setupTUITestLogging
 }

@@ -22,7 +22,11 @@ func TestNewServicesView(t *testing.T) {
 
 	assert.NotNil(t, view)
 	assert.Equal(t, "Swarm Services", view.GetTitle())
-	assert.Equal(t, []string{"ID", "Name", "Image", "Mode", "Replicas", "Status", "Created"}, view.GetHeaders())
+	assert.Equal(
+		t,
+		[]string{"ID", "Name", "Image", "Mode", "Replicas", "Status", "Created"},
+		view.GetHeaders(),
+	)
 }
 
 // TestServicesView_GetActions tests the getActions method

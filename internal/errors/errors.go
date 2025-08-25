@@ -64,24 +64,7 @@ func (e *ConfigError) Error() string {
 	return e.Message
 }
 
-// UIError represents a UI-related error
-type UIError struct {
-	Operation string
-	Err       error
-}
-
-// NewUIError creates a new UI error
-func NewUIError(operation string, err error) *UIError {
-	return &UIError{
-		Operation: operation,
-		Err:       err,
-	}
-}
-
-func (e *UIError) Error() string {
-	return fmt.Sprintf("%s failed: %v", e.Operation, e.Err)
-}
-
-func (e *UIError) Unwrap() error {
-	return e.Err
+// UIError creates a UI-related error
+func UIError(operation string, err error) error {
+	return NewDockerError(fmt.Sprintf("UI %s", operation), err)
 }

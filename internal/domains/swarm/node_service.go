@@ -74,35 +74,23 @@ func (n *NodeService) UpdateNodeAvailability(ctx context.Context, id, availabili
 		return fmt.Errorf("failed to inspect node for availability update: %w", err)
 	}
 
-	// Parse availability string to swarm.Availability
-	var avail string
-	switch availability {
-	case "active":
-		avail = "active"
-	case "pause":
-		avail = "pause"
-	case "drain":
-		avail = "drain"
-	default:
-		return fmt.Errorf("invalid availability: %s", availability)
+	if err := n.validateAvailability(availability); err != nil {
+		return err
 	}
 
-	// Update the node spec - convert string to swarm.NodeAvailability
-	switch avail {
-	case "active":
-		node.Spec.Availability = swarm.NodeAvailabilityActive
-	case "pause":
-		node.Spec.Availability = swarm.NodeAvailabilityPause
-	case "drain":
-		node.Spec.Availability = swarm.NodeAvailabilityDrain
-	}
+	n.updateNodeSpecAvailability(node, availability)
 
-	err = n.client.UpdateSwarmNode(ctx, id, node.Version, node.Spec)
-	if err != nil {
+	if err := n.client.UpdateSwarmNode(ctx, id, node.Version, node.Spec); err != nil {
 		return fmt.Errorf("failed to update node availability: %w", err)
 	}
 
-	n.log.Info("Node availability updated successfully", "node_id", id, "availability", availability)
+	n.log.Info(
+		"Node availability updated successfully",
+		"node_id",
+		id,
+		"availability",
+		availability,
+	)
 	return nil
 }
 
@@ -146,6 +134,28 @@ func (n *NodeService) convertToSharedNode(node swarm.Node) shared.SwarmNode {
 		CPUs:          node.Description.Resources.NanoCPUs,
 		Memory:        node.Description.Resources.MemoryBytes,
 		Labels:        node.Spec.Labels,
+	}
+}
+
+// validateAvailability validates the availability string
+func (n *NodeService) validateAvailability(availability string) error {
+	switch availability {
+	case "active", "pause", "drain":
+		return nil
+	default:
+		return fmt.Errorf("invalid availability: %s", availability)
+	}
+}
+
+// updateNodeSpecAvailability updates the node spec availability
+func (n *NodeService) updateNodeSpecAvailability(node swarm.Node, availability string) {
+	switch availability {
+	case "active":
+		node.Spec.Availability = swarm.NodeAvailabilityActive
+	case "pause":
+		node.Spec.Availability = swarm.NodeAvailabilityPause
+	case "drain":
+		node.Spec.Availability = swarm.NodeAvailabilityDrain
 	}
 }
 

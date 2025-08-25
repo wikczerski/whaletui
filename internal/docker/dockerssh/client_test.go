@@ -53,10 +53,14 @@ func TestSSHClient_validateHostname(t *testing.T) {
 			errorContains: []string{"cannot contain consecutive dots"},
 		},
 		{
-			name:          "NonExistentHostname",
-			host:          "this-hostname-definitely-does-not-exist-12345ssss.com",
-			expectError:   true,
-			errorContains: []string{"lookup", "this-hostname-definitely-does-not-exist-12345ssss.com", "no such host"},
+			name:        "NonExistentHostname",
+			host:        "this-hostname-definitely-does-not-exist-12345ssss.com",
+			expectError: true,
+			errorContains: []string{
+				"lookup",
+				"this-hostname-definitely-does-not-exist-12345ssss.com",
+				"no such host",
+			},
 		},
 	}
 

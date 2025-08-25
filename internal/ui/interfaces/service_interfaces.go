@@ -1,3 +1,4 @@
+//nolint:max-public-structs
 package interfaces
 
 import (

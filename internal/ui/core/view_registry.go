@@ -27,7 +27,13 @@ func NewViewRegistry() *ViewRegistry {
 }
 
 // Register adds a view to the registry
-func (vr *ViewRegistry) Register(name, title string, shortcut rune, view tview.Primitive, refresh func(), actions, navigation string) {
+func (vr *ViewRegistry) Register(
+	name, title string,
+	shortcut rune,
+	view tview.Primitive,
+	refresh func(),
+	actions, navigation string,
+) {
 	vr.views[name] = &ViewInfo{
 		Name:       name,
 		Title:      title,

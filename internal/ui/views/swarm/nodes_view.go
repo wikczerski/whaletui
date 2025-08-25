@@ -3,6 +3,7 @@ package swarm
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -30,7 +31,10 @@ func NewNodesView(
 	modalManager *managers.ModalManager,
 	headerManager *managers.HeaderManager,
 ) *NodesView {
-	headers := []string{"ID", "Hostname", "Role", "Availability", "Status", "Manager Status", "Engine Version", "Address"}
+	headers := []string{
+		"ID", "Hostname", "Role", "Availability", "Status",
+		"Manager Status", "Engine Version", "Address",
+	}
 
 	view := &NodesView{
 		BaseView:      shared.NewBaseView[shared.SwarmNode](ui, "Swarm Nodes", headers),
@@ -54,7 +58,12 @@ func (v *NodesView) Render(_ context.Context) error {
 }
 
 // HandleInput handles user input for the nodes view
-func (v *NodesView) HandleInput(ctx context.Context, input rune) (interface{}, error) {
+func (v *NodesView) HandleInput(ctx context.Context, input rune) (any, error) {
+	return v.routeInput(ctx, input)
+}
+
+// routeInput routes the input to the appropriate handler
+func (v *NodesView) routeInput(ctx context.Context, input rune) (any, error) {
 	switch input {
 	case 'i':
 		return v.handleInspect(ctx)
@@ -125,100 +134,155 @@ func (v *NodesView) getActions() map[rune]string {
 }
 
 // handleInspect handles node inspection
-func (v *NodesView) handleInspect(ctx context.Context) (interface{}, error) {
-	// Get the currently selected node
-	selectedNode := v.GetSelectedItem()
-	if selectedNode == nil {
-		v.GetUI().ShowError(fmt.Errorf("please select a node first"))
-		return v, fmt.Errorf("no node selected")
-	}
-
-	// Get the node service to access inspection functionality
-	nodeService := v.GetUI().GetSwarmNodeService()
-	if nodeService == nil {
-		v.GetUI().ShowError(fmt.Errorf("swarm node service is not available - please check your Docker connection"))
-		return v, fmt.Errorf("swarm node service not available")
+func (v *NodesView) handleInspect(ctx context.Context) (any, error) {
+	selectedNode, nodeService, err := v.validateNodeSelection()
+	if err != nil {
+		return v, err
 	}
 
 	// Cast to the correct type
 	if swarmNodeService, ok := nodeService.(*swarm.NodeService); ok {
-		// Get detailed node information
-		nodeInfo, err := swarmNodeService.InspectNode(ctx, selectedNode.ID)
-		if err != nil {
-			errorMsg := fmt.Sprintf("failed to inspect node '%s': %v\n\nPlease check:\n• Node is accessible\n• You have sufficient permissions\n• Docker daemon is running", selectedNode.Hostname, err)
-			v.GetUI().ShowError(fmt.Errorf("%s", errorMsg))
-			return v, fmt.Errorf("failed to inspect node: %w", err)
-		}
-
-		// Show node information in a modal
-		if nodeInfo == nil {
-			v.GetUI().ShowInfo(fmt.Sprintf("Node '%s' has no detailed information available", selectedNode.Hostname))
-		} else {
-			// Format node information for display
-			infoText := fmt.Sprintf("Node Details: %s\n\n"+
-				"ID: %s\n"+
-				"Role: %s\n"+
-				"Availability: %s\n"+
-				"Status: %s\n"+
-				"Manager Status: %s\n"+
-				"Engine Version: %s\n"+
-				"Address: %s\n"+
-				"CPUs: %d\n"+
-				"Memory: %d",
-				selectedNode.Hostname, shared.TruncName(selectedNode.ID, 12), selectedNode.Role, selectedNode.Availability,
-				selectedNode.Status, selectedNode.ManagerStatus, selectedNode.EngineVersion,
-				selectedNode.Address, selectedNode.CPUs, selectedNode.Memory)
-
-			v.GetUI().ShowInfo(infoText)
-		}
-
-		return v, nil
+		return v.performNodeInspection(ctx, selectedNode, swarmNodeService)
 	}
 
-	v.GetUI().ShowError(fmt.Errorf("swarm node service is not properly configured"))
-	return v, fmt.Errorf("swarm node service not available")
+	v.GetUI().ShowError(errors.New("swarm node service is not properly configured"))
+	return v, errors.New("swarm node service not available")
+}
+
+// validateNodeSelection validates node selection and service availability
+func (v *NodesView) validateNodeSelection() (*shared.SwarmNode, any, error) {
+	selectedNode := v.GetSelectedItem()
+	if selectedNode == nil {
+		v.GetUI().ShowError(errors.New("please select a node first"))
+		return nil, nil, errors.New("no node selected")
+	}
+
+	nodeService := v.GetUI().GetSwarmNodeService()
+	if nodeService == nil {
+		v.GetUI().
+			ShowError(errors.New("swarm node service is not available - please check your Docker connection"))
+		return nil, nil, errors.New("swarm node service not available")
+	}
+
+	return selectedNode, nodeService, nil
+}
+
+// performNodeInspection performs the actual node inspection
+func (v *NodesView) performNodeInspection(
+	ctx context.Context,
+	selectedNode *shared.SwarmNode,
+	swarmNodeService *swarm.NodeService,
+) (any, error) {
+	nodeInfo, err := swarmNodeService.InspectNode(ctx, selectedNode.ID)
+	if err != nil {
+		errorMsg := fmt.Sprintf(
+			"failed to inspect node '%s': %v\n\nPlease check:\n"+
+				"• Node is accessible\n"+
+				"• You have sufficient permissions\n"+
+				"• Docker daemon is running",
+			selectedNode.Hostname,
+			err,
+		)
+		v.GetUI().ShowError(fmt.Errorf("%s", errorMsg))
+		return v, fmt.Errorf("failed to inspect node: %w", err)
+	}
+
+	v.displayNodeInfo(selectedNode, nodeInfo)
+	return v, nil
+}
+
+// displayNodeInfo displays node information in a modal
+func (v *NodesView) displayNodeInfo(selectedNode *shared.SwarmNode, nodeInfo map[string]any) {
+	if nodeInfo == nil {
+		v.GetUI().
+			ShowInfo(fmt.Sprintf("Node '%s' has no detailed information available", selectedNode.Hostname))
+		return
+	}
+
+	infoText := v.formatNodeInfo(selectedNode, nodeInfo)
+	v.GetUI().ShowInfo(infoText)
+}
+
+// formatNodeInfo formats node information for display
+func (v *NodesView) formatNodeInfo(selectedNode *shared.SwarmNode, nodeInfo map[string]any) string {
+	return fmt.Sprintf(
+		"Node Details: %s\n\n"+
+			"ID: %s\n"+
+			"Role: %s\n"+
+			"Availability: %s\n"+
+			"Status: %s\n"+
+			"Manager Status: %s\n"+
+			"Engine Version: %s\n"+
+			"Address: %s\n"+
+			"CPUs: %d\n"+
+			"Memory: %d",
+		selectedNode.Hostname,
+		shared.TruncName(selectedNode.ID, 12),
+		selectedNode.Role,
+		selectedNode.Availability,
+		selectedNode.Status,
+		selectedNode.ManagerStatus,
+		selectedNode.EngineVersion,
+		selectedNode.Address,
+		selectedNode.CPUs,
+		selectedNode.Memory,
+	)
 }
 
 // handleUpdateAvailability handles node availability updates
-func (v *NodesView) handleUpdateAvailability(ctx context.Context) (interface{}, error) {
-	// Get the currently selected node
-	selectedNode := v.GetSelectedItem()
-	if selectedNode == nil {
-		v.GetUI().ShowError(fmt.Errorf("please select a node first"))
-		return v, fmt.Errorf("no node selected")
-	}
-
-	// Get the node service to access availability update functionality
-	nodeService := v.GetUI().GetSwarmNodeService()
-	if nodeService == nil {
-		v.GetUI().ShowError(fmt.Errorf("swarm node service is not available - please check your Docker connection"))
-		return v, fmt.Errorf("swarm node service not available")
+func (v *NodesView) handleUpdateAvailability(ctx context.Context) (any, error) {
+	selectedNode, nodeService, err := v.validateNodeSelection()
+	if err != nil {
+		return v, err
 	}
 
 	// Cast to the correct type
 	if swarmNodeService, ok := nodeService.(*swarm.NodeService); ok {
-		// Show availability update modal
-		v.GetUI().ShowNodeAvailabilityModal(selectedNode.Hostname, selectedNode.Availability, func(newAvailability string) {
-			// Callback when user confirms availability update
-			err := swarmNodeService.UpdateNodeAvailability(ctx, selectedNode.ID, newAvailability)
-			if err != nil {
-				// Enhanced error handling with retry and fallback options
-				v.handleAvailabilityUpdateError(ctx, selectedNode, newAvailability, err, swarmNodeService)
-			} else {
-				// Show success feedback and refresh
-				v.Refresh()
-			}
-		})
-
+		v.showAvailabilityUpdateModal(ctx, selectedNode, swarmNodeService)
 		return v, nil
 	}
 
-	v.GetUI().ShowError(fmt.Errorf("swarm node service is not properly configured"))
-	return v, fmt.Errorf("swarm node service not available")
+	v.GetUI().ShowError(errors.New("swarm node service is not properly configured"))
+	return v, errors.New("swarm node service not available")
+}
+
+// showAvailabilityUpdateModal shows the availability update modal
+func (v *NodesView) showAvailabilityUpdateModal(
+	ctx context.Context,
+	selectedNode *shared.SwarmNode,
+	swarmNodeService *swarm.NodeService,
+) {
+	v.GetUI().
+		ShowNodeAvailabilityModal(selectedNode.Hostname, selectedNode.Availability, func(newAvailability string) {
+			v.handleAvailabilityUpdate(ctx, selectedNode, newAvailability, swarmNodeService)
+		})
+}
+
+// handleAvailabilityUpdate handles the actual availability update
+func (v *NodesView) handleAvailabilityUpdate(
+	ctx context.Context,
+	selectedNode *shared.SwarmNode,
+	newAvailability string,
+	swarmNodeService *swarm.NodeService,
+) {
+	err := swarmNodeService.UpdateNodeAvailability(ctx, selectedNode.ID, newAvailability)
+	if err != nil {
+		// Enhanced error handling with retry and fallback options
+		v.handleAvailabilityUpdateError(ctx, selectedNode, newAvailability, err, swarmNodeService)
+	} else {
+		// Show success feedback and refresh
+		v.Refresh()
+	}
 }
 
 // handleAvailabilityUpdateError handles availability update errors with advanced recovery options
-func (v *NodesView) handleAvailabilityUpdateError(ctx context.Context, node *shared.SwarmNode, newAvailability string, err error, swarmNodeService *swarm.NodeService) {
+func (v *NodesView) handleAvailabilityUpdateError(
+	ctx context.Context,
+	node *shared.SwarmNode,
+	newAvailability string,
+	err error,
+	swarmNodeService *swarm.NodeService,
+) {
 	// Check if this is a retryable error
 	if v.isRetryableError(err) {
 		// Show retry dialog with automatic retry option
@@ -231,7 +295,9 @@ func (v *NodesView) handleAvailabilityUpdateError(ctx context.Context, node *sha
 			},
 			func() {
 				// Success callback
-				v.GetUI().ShowInfo(fmt.Sprintf("Node '%s' availability successfully updated to '%s'", node.Hostname, newAvailability))
+				v.GetUI().
+					ShowInfo(fmt.Sprintf("Node '%s' availability successfully updated to '%s'",
+						node.Hostname, newAvailability))
 				v.Refresh()
 			},
 		)
@@ -282,133 +348,199 @@ func (v *NodesView) isRetryableError(err error) bool {
 }
 
 // executeAvailabilityFallback executes fallback operations for availability update failures
-func (v *NodesView) executeAvailabilityFallback(ctx context.Context, node *shared.SwarmNode, fallbackOption, _ string, swarmNodeService *swarm.NodeService) {
+func (v *NodesView) executeAvailabilityFallback(
+	ctx context.Context,
+	node *shared.SwarmNode,
+	fallbackOption, _ string,
+	swarmNodeService *swarm.NodeService,
+) {
 	switch fallbackOption {
 	case "Check Node Status":
-		// Show current node status
-		nodeInfo, err := swarmNodeService.InspectNode(ctx, node.ID)
-		if err != nil {
-			v.GetUI().ShowError(fmt.Errorf("failed to check node status: %v", err))
-		} else {
-			statusText := fmt.Sprintf("Node '%s' Status:\n\n"+
-				"Current Availability: %v\n"+
-				"Status: %v\n"+
-				"Role: %v\n"+
-				"Manager Status: %v",
-				node.Hostname, nodeInfo["Availability"], nodeInfo["Status"], nodeInfo["Role"], nodeInfo["ManagerStatus"])
-			v.GetUI().ShowInfo(statusText)
-		}
-
+		v.handleCheckNodeStatus(ctx, node, swarmNodeService)
 	case "View Node Details":
-		// Show detailed node information
-		nodeInfo, err := swarmNodeService.InspectNode(ctx, node.ID)
-		if err != nil {
-			v.GetUI().ShowError(fmt.Errorf("failed to get node details: %v", err))
-		} else {
-			detailsText := fmt.Sprintf("Node '%s' Details:\n\n"+
-				"ID: %s\n"+
-				"Role: %s\n"+
-				"Availability: %v\n"+
-				"Status: %v\n"+
-				"Manager Status: %v\n"+
-				"Engine Version: %v\n"+
-				"Address: %s\n"+
-				"CPUs: %d\n"+
-				"Memory: %d",
-				node.Hostname, shared.TruncName(node.ID, 12), node.Role, nodeInfo["Availability"],
-				nodeInfo["Status"], nodeInfo["ManagerStatus"], nodeInfo["EngineVersion"],
-				node.Address, node.CPUs, node.Memory)
-			v.GetUI().ShowInfo(detailsText)
-		}
-
+		v.handleViewNodeDetails(ctx, node, swarmNodeService)
 	case "Try Different Availability":
-		// Show availability modal again with current availability
-		v.GetUI().ShowNodeAvailabilityModal(node.Hostname, node.Availability, func(differentAvailability string) {
-			err := swarmNodeService.UpdateNodeAvailability(ctx, node.ID, differentAvailability)
-			if err != nil {
-				v.GetUI().ShowError(fmt.Errorf("failed to update availability to '%s': %v", differentAvailability, err))
-			} else {
-				v.GetUI().ShowInfo(fmt.Sprintf("Node '%s' availability successfully updated to '%s'", node.Hostname, differentAvailability))
-				v.Refresh()
-			}
-		})
-
+		v.handleTryDifferentAvailability(ctx, node, swarmNodeService)
 	case "Check Swarm Health":
-		// Show swarm health information
-		// This would require additional swarm service methods
-		v.GetUI().ShowInfo(fmt.Sprintf("Swarm Health Check for Node '%s':\n\n"+
-			"Current Availability: %s\n"+
-			"Status: %s\n"+
-			"Role: %s\n\n"+
-			"Note: Detailed swarm health information requires additional swarm service methods.",
-			node.Hostname, node.Availability, node.Status, node.Role))
+		v.handleCheckSwarmHealth(node)
 	}
 }
 
+// handleCheckNodeStatus handles checking node status
+func (v *NodesView) handleCheckNodeStatus(
+	ctx context.Context,
+	node *shared.SwarmNode,
+	swarmNodeService *swarm.NodeService,
+) {
+	nodeInfo, err := swarmNodeService.InspectNode(ctx, node.ID)
+	if err != nil {
+		v.GetUI().ShowError(fmt.Errorf("failed to check node status: %v", err))
+		return
+	}
+
+	statusText := fmt.Sprintf("Node '%s' Status:\n\n"+
+		"Current Availability: %v\n"+
+		"Status: %v\n"+
+		"Role: %v\n"+
+		"Manager Status: %v",
+		node.Hostname, nodeInfo["Availability"], nodeInfo["Status"],
+		nodeInfo["Role"], nodeInfo["ManagerStatus"])
+	v.GetUI().ShowInfo(statusText)
+}
+
+// handleViewNodeDetails handles viewing node details
+func (v *NodesView) handleViewNodeDetails(
+	ctx context.Context,
+	node *shared.SwarmNode,
+	swarmNodeService *swarm.NodeService,
+) {
+	nodeInfo, err := swarmNodeService.InspectNode(ctx, node.ID)
+	if err != nil {
+		v.GetUI().ShowError(fmt.Errorf("failed to get node details: %v", err))
+		return
+	}
+
+	detailsText := fmt.Sprintf("Node '%s' Details:\n\n"+
+		"ID: %s\n"+
+		"Role: %s\n"+
+		"Availability: %v\n"+
+		"Status: %v\n"+
+		"Manager Status: %v\n"+
+		"Engine Version: %v\n"+
+		"Address: %s\n"+
+		"CPUs: %d\n"+
+		"Memory: %d",
+		node.Hostname, shared.TruncName(node.ID, 12), node.Role, nodeInfo["Availability"],
+		nodeInfo["Status"], nodeInfo["ManagerStatus"], nodeInfo["EngineVersion"],
+		node.Address, node.CPUs, node.Memory)
+	v.GetUI().ShowInfo(detailsText)
+}
+
+// handleTryDifferentAvailability handles trying different availability
+func (v *NodesView) handleTryDifferentAvailability(
+	ctx context.Context,
+	node *shared.SwarmNode,
+	swarmNodeService *swarm.NodeService,
+) {
+	v.GetUI().
+		ShowNodeAvailabilityModal(node.Hostname, node.Availability, func(differentAvailability string) {
+			err := swarmNodeService.UpdateNodeAvailability(ctx, node.ID, differentAvailability)
+			if err != nil {
+				v.GetUI().
+					ShowError(fmt.Errorf("failed to update availability to '%s': %v", differentAvailability, err))
+			} else {
+				v.GetUI().ShowInfo(fmt.Sprintf("Node '%s' availability successfully updated to '%s'",
+					node.Hostname, differentAvailability))
+				v.Refresh()
+			}
+		})
+}
+
+// handleCheckSwarmHealth handles checking swarm health
+func (v *NodesView) handleCheckSwarmHealth(node *shared.SwarmNode) {
+	v.GetUI().ShowInfo(fmt.Sprintf("Swarm Health Check for Node '%s':\n\n"+
+		"Current Availability: %s\n"+
+		"Status: %s\n"+
+		"Role: %s\n\n"+
+		"Note: Detailed swarm health information requires additional swarm service methods.",
+		node.Hostname, node.Availability, node.Status, node.Role))
+}
+
 // handleRemove handles node removal
-func (v *NodesView) handleRemove(ctx context.Context) (interface{}, error) {
+func (v *NodesView) handleRemove(ctx context.Context) (any, error) {
 	// Get the currently selected node
 	selectedNode := v.GetSelectedItem()
 	if selectedNode == nil {
-		v.GetUI().ShowError(fmt.Errorf("please select a node first"))
-		return v, fmt.Errorf("no node selected")
+		v.GetUI().ShowError(errors.New("please select a node first"))
+		return v, errors.New("no node selected")
 	}
 
 	// Show confirmation dialog with more detailed information
-	message := fmt.Sprintf("⚠️  Remove Node Confirmation\n\n"+
-		"Node: %s\n"+
-		"ID: %s\n"+
-		"Role: %s\n"+
-		"Status: %s\n\n"+
-		"This action will:\n"+
-		"• Force removal of the node\n"+
-		"• Stop all tasks running on this node\n"+
-		"• Cannot be undone\n\n"+
-		"⚠️  Warning: Removing a manager node may affect swarm stability\n\n"+
-		"Are you sure you want to continue?",
-		selectedNode.Hostname, shared.TruncName(selectedNode.ID, 12), selectedNode.Role, selectedNode.Status)
-
+	message := v.buildRemoveNodeConfirmationMessage(selectedNode)
 	v.GetUI().ShowConfirm(message, func(confirmed bool) {
 		if confirmed {
-			// Get the node service to access removal functionality
-			nodeService := v.GetUI().GetSwarmNodeService()
-			if nodeService == nil {
-				v.GetUI().ShowError(fmt.Errorf("swarm node service is not available - please check your Docker connection"))
-				return
-			}
-
-			// Cast to the correct type
-			if swarmNodeService, ok := nodeService.(swarm.NodeService); ok {
-				// Remove the node (force removal)
-				err := swarmNodeService.RemoveNode(ctx, selectedNode.ID, true)
-				if err != nil {
-					// Show detailed error modal with recovery suggestions
-					errorMsg := fmt.Sprintf("failed to remove node '%s': %v\n\nPlease check:\n• Docker daemon is running\n• You have sufficient permissions\n• Node is not the last manager node", selectedNode.Hostname, err)
-					v.GetUI().ShowError(fmt.Errorf("%s", errorMsg))
-				} else {
-					// Show success feedback and refresh
-					v.GetUI().ShowInfo(fmt.Sprintf("Node '%s' successfully removed from swarm", selectedNode.Hostname))
-					v.Refresh()
-				}
-			} else {
-				v.GetUI().ShowError(fmt.Errorf("swarm node service is not properly configured"))
-			}
+			v.performNodeRemoval(ctx, selectedNode)
 		}
 	})
 
 	return v, nil
 }
 
+// buildRemoveNodeConfirmationMessage builds the confirmation message for node removal
+func (v *NodesView) buildRemoveNodeConfirmationMessage(selectedNode *shared.SwarmNode) string {
+	return fmt.Sprintf(
+		"⚠️  Remove Node Confirmation\n\n"+
+			"Node: %s\n"+
+			"ID: %s\n"+
+			"Role: %s\n"+
+			"Status: %s\n\n"+
+			"This action will:\n"+
+			"• Force removal of the node\n"+
+			"• Stop all tasks running on this node\n"+
+			"• Cannot be undone\n\n"+
+			"⚠️  Warning: Removing a manager node may affect swarm stability\n\n"+
+			"Are you sure you want to continue?",
+		selectedNode.Hostname,
+		shared.TruncName(selectedNode.ID, 12),
+		selectedNode.Role,
+		selectedNode.Status,
+	)
+}
+
+// performNodeRemoval performs the actual node removal operation
+func (v *NodesView) performNodeRemoval(ctx context.Context, selectedNode *shared.SwarmNode) {
+	// Get the node service to access removal functionality
+	nodeService := v.GetUI().GetSwarmNodeService()
+	if nodeService == nil {
+		v.GetUI().
+			ShowError(errors.New("swarm node service is not available - please check your Docker connection"))
+		return
+	}
+
+	// Cast to the correct type
+	if swarmNodeService, ok := nodeService.(swarm.NodeService); ok {
+		// Remove the node (force removal)
+		err := swarmNodeService.RemoveNode(ctx, selectedNode.ID, true)
+		if err != nil {
+			v.handleNodeRemovalError(selectedNode, err)
+		} else {
+			v.handleNodeRemovalSuccess(selectedNode)
+		}
+	} else {
+		v.GetUI().ShowError(errors.New("swarm node service is not properly configured"))
+	}
+}
+
+// handleNodeRemovalError handles errors during node removal
+func (v *NodesView) handleNodeRemovalError(selectedNode *shared.SwarmNode, err error) {
+	errorMsg := fmt.Sprintf(
+		"failed to remove node '%s': %v\n\nPlease check:\n"+
+			"• Docker daemon is running\n"+
+			"• You have sufficient permissions\n"+
+			"• Node is not the last manager node",
+		selectedNode.Hostname,
+		err,
+	)
+	v.GetUI().ShowError(fmt.Errorf("%s", errorMsg))
+}
+
+// handleNodeRemovalSuccess handles successful node removal
+func (v *NodesView) handleNodeRemovalSuccess(selectedNode *shared.SwarmNode) {
+	v.GetUI().
+		ShowInfo(fmt.Sprintf("Node '%s' successfully removed from swarm", selectedNode.Hostname))
+	v.Refresh()
+}
+
 // handleNavigateToServices handles navigation to swarm services view
-func (v *NodesView) handleNavigateToServices(_ context.Context) (interface{}, error) {
+func (v *NodesView) handleNavigateToServices(_ context.Context) (any, error) {
 	// This would return a services view - placeholder for now
-	return v, fmt.Errorf("services view not implemented yet")
+	return v, errors.New("services view not implemented yet")
 }
 
 // handleBackToMain handles navigation back to main menu
-func (v *NodesView) handleBackToMain(_ context.Context) (interface{}, error) {
+func (v *NodesView) handleBackToMain(_ context.Context) (any, error) {
 	// This would return the main menu view - placeholder for now
-	return v, fmt.Errorf("main menu view not implemented yet")
+	return v, errors.New("main menu view not implemented yet")
 }
 
 // handleHelp shows contextual help for swarm nodes

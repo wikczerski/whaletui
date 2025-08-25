@@ -26,49 +26,9 @@ func NewHeaderManager(ui interfaces.UIInterface) *HeaderManager {
 
 // CreateHeaderSection creates the header section with Docker info, navigation, and actions
 func (hm *HeaderManager) CreateHeaderSection() tview.Primitive {
-	// Create a simple flex layout that spans the full width
-	headerFlex := tview.NewFlex()
-	headerFlex.SetDirection(tview.FlexColumn)
-
-	// Get Docker info
-	dockerInfo := hm.getDockerInfoText()
-	dockerLines := strings.Split(dockerInfo, "\n")
-	// Add padding to make header taller
-	dockerLines = append(dockerLines, "", "", "")
-
-	// Get navigation info
-	navigationInfo := hm.getNavigationText()
-	navigationLines := strings.Split(navigationInfo, "\n")
-	// Add padding to make header taller
-	navigationLines = append(navigationLines, "", "", "")
-
-	// Get actions info
-	actionsInfo := hm.getActionsText()
-	actionsLines := strings.Split(actionsInfo, "\n")
-	// Add padding to make header taller
-	actionsLines = append(actionsLines, "", "", "")
-
-	// Get logo
-	logoInfo := hm.getLogoText()
-	logoLines := strings.Split(logoInfo, "\n")
-	// Add padding to make header taller
-	logoLines = append(logoLines, "", "", "")
-
-	// Create enhanced text views for each section with more height
-	dockerView := hm.createEnhancedTextView(dockerLines, tview.AlignLeft, "Docker Info")
-	navigationView := hm.createEnhancedTextView(navigationLines, tview.AlignLeft, "Navigation")
-	actionsView := hm.createEnhancedTextView(actionsLines, tview.AlignLeft, "Actions")
-	logoView := hm.createEnhancedTextView(logoLines, tview.AlignCenter, "WhaleTui")
-
-	// Add views to flex with specified proportions
-	headerFlex.AddItem(dockerView, 0, 1, false)     // Docker Info: 1 part
-	headerFlex.AddItem(navigationView, 0, 1, false) // Navigation: 1 part
-	headerFlex.AddItem(actionsView, 0, 3, false)    // Actions: 3 parts
-	headerFlex.AddItem(logoView, 0, 2, false)       // Logo: 2 parts
-
-	// Store reference for updates
+	headerFlex := hm.createHeaderFlex()
+	hm.addHeaderViews(headerFlex)
 	hm.headerFlex = headerFlex
-
 	return headerFlex
 }
 
@@ -78,57 +38,8 @@ func (hm *HeaderManager) UpdateAll() {
 		return
 	}
 
-	// Get updated content
-	dockerInfo := hm.getDockerInfoText()
-	dockerLines := strings.Split(dockerInfo, "\n")
-
-	navigationInfo := hm.getNavigationText()
-	navigationLines := strings.Split(navigationInfo, "\n")
-
-	actionsInfo := hm.getActionsText()
-	actionsLines := strings.Split(actionsInfo, "\n")
-
-	logoInfo := hm.getLogoText()
-	logoLines := strings.Split(logoInfo, "\n")
-
-	// Update each view - handle both TextView and Grid types
-	if hm.headerFlex.GetItemCount() >= 4 {
-		// Update Docker view
-		switch item := hm.headerFlex.GetItem(0).(type) {
-		case *tview.TextView:
-			item.SetText(strings.Join(dockerLines, "\n"))
-		case *tview.Grid:
-			// For now, just update text if it's a grid (simplified approach)
-			// TODO: Implement proper grid recreation
-		}
-
-		// Update Navigation view
-		switch item := hm.headerFlex.GetItem(1).(type) {
-		case *tview.TextView:
-			item.SetText(strings.Join(navigationLines, "\n"))
-		case *tview.Grid:
-			// For now, just update text if it's a grid (simplified approach)
-			// TODO: Implement proper grid recreation
-		}
-
-		// Update Actions view
-		switch item := hm.headerFlex.GetItem(2).(type) {
-		case *tview.TextView:
-			item.SetText(strings.Join(actionsLines, "\n"))
-		case *tview.Grid:
-			// For now, just update text if it's a grid (simplified approach)
-			// TODO: Implement proper grid recreation
-		}
-
-		// Update Logo view
-		switch item := hm.headerFlex.GetItem(3).(type) {
-		case *tview.TextView:
-			item.SetText(strings.Join(logoLines, "\n"))
-		case *tview.Grid:
-			// For now, just update text if it's a grid (simplified approach)
-			// TODO: Implement proper grid recreation
-		}
-	}
+	contentLines := hm.getUpdatedContentLines()
+	hm.updateHeaderViews(contentLines)
 }
 
 // UpdateDockerInfo updates the Docker info (kept for backward compatibility)
@@ -161,89 +72,234 @@ func (hm *HeaderManager) GetActionsCol() *tview.TextView {
 	return nil
 }
 
-// createEnhancedTextView creates an enhanced text view with border and title
-func (hm *HeaderManager) createEnhancedTextView(lines []string, align int, title string) tview.Primitive {
-	// Docker Info and Logo should never use table layout
-	if title == "Docker Info" || title == "WhaleTui" {
-		textView := tview.NewTextView()
-		textView.SetText(strings.Join(lines, "\n"))
-		textView.SetTextColor(hm.ui.GetThemeManager().GetTextColor())
-		textView.SetBackgroundColor(hm.ui.GetThemeManager().GetBackgroundColor())
-		textView.SetTextAlign(align)
-		textView.SetBorder(true)
-		textView.SetTitle(fmt.Sprintf(" %s ", title))
-		textView.SetBorderColor(hm.ui.GetThemeManager().GetBorderColor())
-		textView.SetTitleColor(hm.ui.GetThemeManager().GetHeaderColor())
-		textView.SetScrollable(false)
-		textView.SetDynamicColors(false)
-		textView.SetWordWrap(false)
-		textView.SetWrap(false)
-		return textView
+// createHeaderFlex creates the main header flex container
+func (hm *HeaderManager) createHeaderFlex() *tview.Flex {
+	headerFlex := tview.NewFlex()
+	headerFlex.SetDirection(tview.FlexColumn)
+	return headerFlex
+}
+
+// addHeaderViews adds all the header views to the flex container
+func (hm *HeaderManager) addHeaderViews(headerFlex *tview.Flex) {
+	views := hm.createHeaderViews()
+	hm.addViewsToFlex(headerFlex, views)
+}
+
+// createHeaderViews creates all the header view components
+func (hm *HeaderManager) createHeaderViews() map[string]tview.Primitive {
+	dockerLines := hm.getPaddedLines(hm.getDockerInfoText())
+	navigationLines := hm.getPaddedLines(hm.getNavigationText())
+	actionsLines := hm.getPaddedLines(hm.getActionsText())
+	logoLines := hm.getPaddedLines(hm.getLogoText())
+
+	return map[string]tview.Primitive{
+		"docker":     hm.createEnhancedTextView(dockerLines, tview.AlignLeft, "Docker Info"),
+		"navigation": hm.createEnhancedTextView(navigationLines, tview.AlignLeft, "Navigation"),
+		"actions":    hm.createEnhancedTextView(actionsLines, tview.AlignLeft, "Actions"),
+		"logo":       hm.createEnhancedTextView(logoLines, tview.AlignCenter, "WhaleTui"),
+	}
+}
+
+// getPaddedLines adds padding to make header sections taller
+func (hm *HeaderManager) getPaddedLines(content string) []string {
+	lines := strings.Split(content, "\n")
+	return append(lines, "", "", "")
+}
+
+// addViewsToFlex adds views to the flex container with specified proportions
+func (hm *HeaderManager) addViewsToFlex(headerFlex *tview.Flex, views map[string]tview.Primitive) {
+	headerFlex.AddItem(views["docker"], 0, 1, false)     // Docker Info: 1 part
+	headerFlex.AddItem(views["navigation"], 0, 1, false) // Navigation: 1 part
+	headerFlex.AddItem(views["actions"], 0, 3, false)    // Actions: 3 parts
+	headerFlex.AddItem(views["logo"], 0, 2, false)       // Logo: 2 parts
+}
+
+// getUpdatedContentLines gets all the updated content lines
+func (hm *HeaderManager) getUpdatedContentLines() map[string][]string {
+	return map[string][]string{
+		"docker":     strings.Split(hm.getDockerInfoText(), "\n"),
+		"navigation": strings.Split(hm.getNavigationText(), "\n"),
+		"actions":    strings.Split(hm.getActionsText(), "\n"),
+		"logo":       strings.Split(hm.getLogoText(), "\n"),
+	}
+}
+
+// updateHeaderViews updates all the header views with new content
+func (hm *HeaderManager) updateHeaderViews(contentLines map[string][]string) {
+	if hm.headerFlex.GetItemCount() < 4 {
+		return
 	}
 
-	// For Navigation and Actions, use table layout if content is long
-	if len(lines) > 7 {
+	hm.updateView(0, contentLines["docker"])
+	hm.updateView(1, contentLines["navigation"])
+	hm.updateView(2, contentLines["actions"])
+	hm.updateView(3, contentLines["logo"])
+}
+
+// updateView updates a specific view with new content
+func (hm *HeaderManager) updateView(index int, lines []string) {
+	item := hm.headerFlex.GetItem(index)
+	switch view := item.(type) {
+	case *tview.TextView:
+		view.SetText(strings.Join(lines, "\n"))
+	case *tview.Grid:
+		// For now, just update text if it's a grid (simplified approach)
+	}
+}
+
+// createEnhancedTextView creates an enhanced text view with border and title
+func (hm *HeaderManager) createEnhancedTextView(
+	lines []string,
+	align int,
+	title string,
+) tview.Primitive {
+	if hm.shouldUseTableLayout(title, lines) {
 		return hm.createTableLayout(lines, align, title)
 	}
 
-	// Simple text view for short content
+	return hm.createSimpleTextView(lines, align, title)
+}
+
+// shouldUseTableLayout determines if table layout should be used
+func (hm *HeaderManager) shouldUseTableLayout(title string, lines []string) bool {
+	// Docker Info and Logo should never use table layout
+	if title == "Docker Info" || title == "WhaleTui" {
+		return false
+	}
+
+	// For Navigation and Actions, use table layout if content is long
+	return len(lines) > 7
+}
+
+// createSimpleTextView creates a simple text view with styling
+func (hm *HeaderManager) createSimpleTextView(
+	lines []string,
+	align int,
+	title string,
+) tview.Primitive {
 	textView := tview.NewTextView()
+	hm.setupTextViewStyling(textView, lines, align, title)
+	return textView
+}
+
+// setupTextViewStyling sets up the styling for a text view
+func (hm *HeaderManager) setupTextViewStyling(
+	textView *tview.TextView,
+	lines []string,
+	align int,
+	title string,
+) {
+	hm.setupTextViewContent(textView, lines, title)
+	hm.setupTextViewColors(textView)
+	hm.setupTextViewBehavior(textView, align)
+}
+
+// setupTextViewContent sets up the content and title for a text view
+func (hm *HeaderManager) setupTextViewContent(
+	textView *tview.TextView,
+	lines []string,
+	title string,
+) {
 	textView.SetText(strings.Join(lines, "\n"))
-	textView.SetTextColor(hm.ui.GetThemeManager().GetTextColor())
-	textView.SetBackgroundColor(hm.ui.GetThemeManager().GetBackgroundColor())
+	textView.SetTitle(fmt.Sprintf(" %s ", title))
+}
+
+// setupTextViewColors sets up the colors for a text view
+func (hm *HeaderManager) setupTextViewColors(textView *tview.TextView) {
+	themeManager := hm.ui.GetThemeManager()
+	textView.SetTextColor(themeManager.GetTextColor())
+	textView.SetBackgroundColor(themeManager.GetBackgroundColor())
+	textView.SetBorderColor(themeManager.GetBorderColor())
+	textView.SetTitleColor(themeManager.GetHeaderColor())
+}
+
+// setupTextViewBehavior sets up the behavior and layout for a text view
+func (hm *HeaderManager) setupTextViewBehavior(textView *tview.TextView, align int) {
 	textView.SetTextAlign(align)
 	textView.SetBorder(true)
-	textView.SetTitle(fmt.Sprintf(" %s ", title))
-	textView.SetBorderColor(hm.ui.GetThemeManager().GetBorderColor())
-	textView.SetTitleColor(hm.ui.GetThemeManager().GetHeaderColor())
 	textView.SetScrollable(false)
 	textView.SetDynamicColors(false)
 	textView.SetWordWrap(false)
 	textView.SetWrap(false)
-	return textView
 }
 
 // createTableLayout creates a table-like layout for content longer than 7 lines
-func (hm *HeaderManager) createTableLayout(lines []string, align int, title string) tview.Primitive {
-	// Calculate how many columns we need
+func (hm *HeaderManager) createTableLayout(
+	lines []string,
+	align int,
+	title string,
+) tview.Primitive {
 	maxRows := 7
-	numColumns := (len(lines) + maxRows - 1) / maxRows // Ceiling division
+	numColumns := hm.calculateColumnCount(len(lines), maxRows)
 
-	// Create a flex container for the table layout
+	flex := hm.createTableFlex(title)
+	hm.addTableColumns(flex, lines, align, maxRows, numColumns)
+
+	return flex
+}
+
+// calculateColumnCount calculates the number of columns needed
+func (hm *HeaderManager) calculateColumnCount(linesCount, maxRows int) int {
+	return (linesCount + maxRows - 1) / maxRows // Ceiling division
+}
+
+// createTableFlex creates the flex container for table layout
+func (hm *HeaderManager) createTableFlex(title string) *tview.Flex {
 	flex := tview.NewFlex()
 	flex.SetDirection(tview.FlexColumn)
 	flex.SetBorder(true)
 	flex.SetTitle(fmt.Sprintf(" %s ", title))
 	flex.SetBorderColor(hm.ui.GetThemeManager().GetBorderColor())
 	flex.SetBackgroundColor(hm.ui.GetThemeManager().GetBackgroundColor())
+	return flex
+}
 
-	// Create columns
+// addTableColumns adds columns to the table flex container
+func (hm *HeaderManager) addTableColumns(
+	flex *tview.Flex,
+	lines []string,
+	align, maxRows, numColumns int,
+) {
 	for col := 0; col < numColumns; col++ {
-		// Create a text view for this column
-		columnText := tview.NewTextView()
-		columnText.SetTextColor(hm.ui.GetThemeManager().GetTextColor())
-		columnText.SetBackgroundColor(hm.ui.GetThemeManager().GetBackgroundColor())
-		columnText.SetTextAlign(align)
-		columnText.SetBorder(false)
-		columnText.SetScrollable(false)
-		columnText.SetDynamicColors(false)
-		columnText.SetWordWrap(false)
-		columnText.SetWrap(false)
-
-		// Collect lines for this column
-		var columnLines []string
-		for i := col * maxRows; i < (col+1)*maxRows && i < len(lines); i++ {
-			columnLines = append(columnLines, lines[i])
-		}
-
-		// Set the text for this column
-		columnText.SetText(strings.Join(columnLines, "\n"))
-
-		// Add column to flex container
+		columnText := hm.createTableColumn(lines, align, maxRows, col)
 		flex.AddItem(columnText, 0, 1, false)
 	}
+}
 
-	return flex
+// createTableColumn creates a single table column
+func (hm *HeaderManager) createTableColumn(
+	lines []string,
+	align, maxRows, col int,
+) *tview.TextView {
+	columnText := tview.NewTextView()
+	hm.setupTableColumnStyling(columnText, align)
+	hm.setTableColumnContent(columnText, lines, maxRows, col)
+	return columnText
+}
+
+// setupTableColumnStyling sets up the styling for a table column
+func (hm *HeaderManager) setupTableColumnStyling(columnText *tview.TextView, align int) {
+	columnText.SetTextColor(hm.ui.GetThemeManager().GetTextColor())
+	columnText.SetBackgroundColor(hm.ui.GetThemeManager().GetBackgroundColor())
+	columnText.SetTextAlign(align)
+	columnText.SetBorder(false)
+	columnText.SetScrollable(false)
+	columnText.SetDynamicColors(false)
+	columnText.SetWordWrap(false)
+	columnText.SetWrap(false)
+}
+
+// setTableColumnContent sets the content for a table column
+func (hm *HeaderManager) setTableColumnContent(
+	columnText *tview.TextView,
+	lines []string,
+	maxRows, col int,
+) {
+	var columnLines []string
+	for i := col * maxRows; i < (col+1)*maxRows && i < len(lines); i++ {
+		columnLines = append(columnLines, lines[i])
+	}
+	columnText.SetText(strings.Join(columnLines, "\n"))
 }
 
 // getDockerInfoText returns the formatted Docker info text
@@ -269,32 +325,55 @@ func (hm *HeaderManager) getDefaultDockerInfo() string {
 }
 
 // getDockerInfoFromService gets Docker info from the service
-func (hm *HeaderManager) getDockerInfoFromService(services interfaces.ServiceFactoryInterface) string {
+func (hm *HeaderManager) getDockerInfoFromService(
+	services interfaces.ServiceFactoryInterface,
+) string {
 	if !services.IsContainerServiceAvailable() {
 		return hm.getDefaultDockerInfo()
 	}
 
-	// Try to get real Docker info
+	if dockerInfo := hm.tryGetDockerInfo(services); dockerInfo != nil {
+		return hm.formatDockerInfo(*dockerInfo)
+	}
+
+	return hm.getFallbackDockerInfo(services)
+}
+
+// tryGetDockerInfo attempts to get Docker info from the service
+func (hm *HeaderManager) tryGetDockerInfo(
+	services interfaces.ServiceFactoryInterface,
+) *interfaces.DockerInfo {
 	dockerInfoService := services.GetDockerInfoService()
-	if dockerInfoService != nil {
-		ctx := context.Background()
-		if dockerInfo, err := dockerInfoService.GetDockerInfo(ctx); err == nil {
-			return hm.formatDockerInfo(*dockerInfo)
-		}
+	if dockerInfoService == nil {
+		return nil
 	}
 
-	// Fallback - if service is available but info fetch failed, show partial connection
-	connectionStatus := "⚠️ Partial"
-	if services.IsContainerServiceAvailable() {
-		connectionStatus = "✅ Connected"
+	ctx := context.Background()
+	dockerInfo, err := dockerInfoService.GetDockerInfo(ctx)
+	if err != nil {
+		return nil
 	}
 
+	return dockerInfo
+}
+
+// getFallbackDockerInfo gets fallback Docker info when service fetch fails
+func (hm *HeaderManager) getFallbackDockerInfo(services interfaces.ServiceFactoryInterface) string {
+	connectionStatus := hm.getConnectionStatus(services)
 	return fmt.Sprintf(constants.DockerInfoTemplate,
 		connectionStatus,
 		"Available",
 		"--",
 		"--",
 		constants.AppVersion)
+}
+
+// getConnectionStatus determines the connection status for fallback info
+func (hm *HeaderManager) getConnectionStatus(services interfaces.ServiceFactoryInterface) string {
+	if services.IsContainerServiceAvailable() {
+		return "✅ Connected"
+	}
+	return "⚠️ Partial"
 }
 
 // formatDockerInfo formats Docker info data into displayable text

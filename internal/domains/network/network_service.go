@@ -2,6 +2,7 @@ package network
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/wikczerski/whaletui/internal/docker"
@@ -24,7 +25,7 @@ func NewNetworkService(client *docker.Client) interfaces.NetworkService {
 // ListNetworks retrieves all networks
 func (s *networkService) ListNetworks(ctx context.Context) ([]shared.Network, error) {
 	if s.client == nil {
-		return nil, fmt.Errorf("docker client is not initialized")
+		return nil, errors.New("docker client is not initialized")
 	}
 
 	networks, err := s.client.ListNetworks(ctx)
@@ -54,11 +55,11 @@ func (s *networkService) ListNetworks(ctx context.Context) ([]shared.Network, er
 // RemoveNetwork removes a network
 func (s *networkService) RemoveNetwork(ctx context.Context, id string) error {
 	if s.client == nil {
-		return fmt.Errorf("docker client is not initialized")
+		return errors.New("docker client is not initialized")
 	}
 
 	if id == "" {
-		return fmt.Errorf("network ID cannot be empty")
+		return errors.New("network ID cannot be empty")
 	}
 
 	return s.client.RemoveNetwork(ctx, id)
@@ -67,7 +68,7 @@ func (s *networkService) RemoveNetwork(ctx context.Context, id string) error {
 // InspectNetwork inspects a network
 func (s *networkService) InspectNetwork(ctx context.Context, id string) (map[string]any, error) {
 	if s.client == nil {
-		return nil, fmt.Errorf("docker client is not initialized")
+		return nil, errors.New("docker client is not initialized")
 	}
 
 	return s.client.InspectNetwork(ctx, id)
@@ -86,5 +87,6 @@ func (s *networkService) GetActions() map[rune]string {
 
 // GetActionsString returns the available actions for networks as a formatted string
 func (s *networkService) GetActionsString() string {
-	return "<r> Remove\n<h> History\n<f> Filter\n<t> Sort\n<i> Inspect\n<enter> Details\n<up/down> Navigate\n<?> Help\n<f5> Refresh\n<:> Command"
+	return "<r> Remove\n<h> History\n<f> Filter\n<t> Sort\n<i> Inspect\n<enter> Details\n" +
+		"<up/down> Navigate\n<?> Help\n<f5> Refresh\n<:> Command"
 }

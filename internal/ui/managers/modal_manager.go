@@ -24,42 +24,8 @@ func (mm *ModalManager) ShowHelp() {
 	helpText := mm.buildHelpText()
 	modal := mm.createModal(helpText, []string{"Close"})
 
-	// Add done function to handle Close button click
-	modal.SetDoneFunc(func(_ int, _ string) {
-		pages := mm.ui.GetPages().(*tview.Pages)
-		pages.RemovePage("help_modal")
-		// Restore focus to the main view after closing modal
-		if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-			if vc, ok := viewContainer.(*tview.Flex); ok {
-				app := mm.ui.GetApp().(*tview.Application)
-				app.SetFocus(vc)
-			}
-		}
-	})
-
-	// Add keyboard handling for ESC key to close modal
-	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEscape {
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("help_modal")
-			// Restore focus to the main view after closing modal
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app := mm.ui.GetApp().(*tview.Application)
-					app.SetFocus(vc)
-				}
-			}
-			return nil // Consume the event
-		}
-		return event
-	})
-
-	pages := mm.ui.GetPages().(*tview.Pages)
-	pages.AddPage("help_modal", modal, true, true)
-
-	// Set focus to the modal so it can receive keyboard input
-	app := mm.ui.GetApp().(*tview.Application)
-	app.SetFocus(modal)
+	mm.setupHelpModalHandlers(modal)
+	mm.addHelpModalToUI(modal)
 }
 
 // ShowError displays an error modal
@@ -67,42 +33,8 @@ func (mm *ModalManager) ShowError(err error) {
 	errorText := fmt.Sprintf("Error: %v", err)
 	modal := mm.createModal(errorText, []string{"OK"})
 
-	// Add done function to handle OK button click
-	modal.SetDoneFunc(func(_ int, _ string) {
-		pages := mm.ui.GetPages().(*tview.Pages)
-		pages.RemovePage("error_modal")
-		// Restore focus to the main view after closing modal
-		if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-			if vc, ok := viewContainer.(*tview.Flex); ok {
-				app := mm.ui.GetApp().(*tview.Application)
-				app.SetFocus(vc)
-			}
-		}
-	})
-
-	// Add keyboard handling for ESC key to close modal
-	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEscape {
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("error_modal")
-			// Restore focus to the main view after closing modal
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app := mm.ui.GetApp().(*tview.Application)
-					app.SetFocus(vc)
-				}
-			}
-			return nil // Consume the event
-		}
-		return event
-	})
-
-	pages := mm.ui.GetPages().(*tview.Pages)
-	pages.AddPage("error_modal", modal, true, true)
-
-	// Set focus to the modal so it can receive keyboard input
-	app := mm.ui.GetApp().(*tview.Application)
-	app.SetFocus(modal)
+	mm.setupErrorModalHandlers(modal)
+	mm.showErrorModal(modal)
 }
 
 // ShowInfo displays an info modal
@@ -111,40 +43,19 @@ func (mm *ModalManager) ShowInfo(message string) {
 
 	// Add done function to handle OK button click
 	modal.SetDoneFunc(func(_ int, _ string) {
-		pages := mm.ui.GetPages().(*tview.Pages)
-		pages.RemovePage("info_modal")
-		// Restore focus to the main view after closing modal
-		if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-			if vc, ok := viewContainer.(*tview.Flex); ok {
-				app := mm.ui.GetApp().(*tview.Application)
-				app.SetFocus(vc)
-			}
-		}
+		mm.closeInfoModalAndRestoreFocus()
 	})
 
 	// Add keyboard handling for ESC key to close modal
 	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEscape {
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("info_modal")
-			// Restore focus to the main view after closing modal
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app := mm.ui.GetApp().(*tview.Application)
-					app.SetFocus(vc)
-				}
-			}
+			mm.closeInfoModalAndRestoreFocus()
 			return nil // Consume the event
 		}
 		return event
 	})
 
-	pages := mm.ui.GetPages().(*tview.Pages)
-	pages.AddPage("info_modal", modal, true, true)
-
-	// Set focus to the modal so it can receive keyboard input
-	app := mm.ui.GetApp().(*tview.Application)
-	app.SetFocus(modal)
+	mm.showInfoModal(modal)
 }
 
 // ShowContextualHelp displays context-sensitive help modal
@@ -154,98 +65,204 @@ func (mm *ModalManager) ShowContextualHelp(context, operation string) {
 
 	// Add done function to handle OK button click
 	modal.SetDoneFunc(func(_ int, _ string) {
-		pages := mm.ui.GetPages().(*tview.Pages)
-		pages.RemovePage("contextual_help_modal")
-		// Restore focus to the main view after closing modal
-		if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-			if vc, ok := viewContainer.(*tview.Flex); ok {
-				app := mm.ui.GetApp().(*tview.Application)
-				app.SetFocus(vc)
-			}
-		}
+		mm.closeContextualHelpModalAndRestoreFocus()
 	})
 
 	// Add keyboard handling for ESC key to close modal
 	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEscape {
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("contextual_help_modal")
-			// Restore focus to the main view after closing modal
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app := mm.ui.GetApp().(*tview.Application)
-					app.SetFocus(vc)
-				}
-			}
+			mm.closeContextualHelpModalAndRestoreFocus()
 			return nil // Consume the event
 		}
 		return event
 	})
 
-	pages := mm.ui.GetPages().(*tview.Pages)
-	pages.AddPage("contextual_help_modal", modal, true, true)
+	mm.addContextualHelpModalToPages(modal)
 
 	// Set focus to the modal so it can receive keyboard input
-	app := mm.ui.GetApp().(*tview.Application)
-	app.SetFocus(modal)
+	mm.setFocusToModal(modal)
 }
 
 // ShowConfirm displays a confirmation modal with Yes/No buttons
 func (mm *ModalManager) ShowConfirm(text string, callback func(bool)) {
-	modal := tview.NewModal().
-		SetText(text).
-		AddButtons([]string{"Yes", "No"}).
-		SetDoneFunc(func(buttonIndex int, _ string) {
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("confirm_modal")
-			callback(buttonIndex == 0)
-			// Restore focus to the main view after closing modal
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app := mm.ui.GetApp().(*tview.Application)
-					app.SetFocus(vc)
-				}
-			}
-		})
+	modal := mm.createConfirmModal(text, callback)
+	mm.setupConfirmModalHandlers(modal, callback)
+	mm.showConfirmModal(modal)
+}
 
-	// Add keyboard handling for ESC key to close modal (cancel action)
+// ShowServiceScaleModal displays a modal for scaling a service
+func (mm *ModalManager) ShowServiceScaleModal(
+	serviceName string,
+	currentReplicas uint64,
+	onConfirm func(int),
+) {
+	// Create input field for replicas
+	inputField := mm.createReplicasInputField(currentReplicas)
+
+	// Create form with input and buttons including help
+	form := mm.createScaleForm(inputField, onConfirm)
+
+	// Create modal container
+	modal := mm.createScaleModal(serviceName, currentReplicas)
+
+	// Create a flex container to hold both modal and form
+	flex := mm.createScaleFlexContainer(modal, form)
+
+	// Add the modal to the pages
+	mm.addScaleModalToPages(flex)
+
+	// Set focus to the form
+	mm.setFocusToForm(form)
+}
+
+// ShowNodeAvailabilityModal displays a modal for updating node availability
+func (mm *ModalManager) ShowNodeAvailabilityModal(
+	nodeName, currentAvailability string,
+	onConfirm func(string),
+) {
+	// Create the modal content
+	content := mm.createNodeAvailabilityContent(nodeName, currentAvailability)
+
+	// Create modal with help button
+	modal := mm.createModal(content, []string{"Active", "Pause", "Drain", "Help", "Cancel"})
+
+	// Add done function to handle button clicks
+	modal.SetDoneFunc(func(_ int, buttonLabel string) {
+		mm.handleNodeAvailabilityButtonClick(buttonLabel, onConfirm)
+	})
+
+	// Add keyboard handling for ESC key to close modal
 	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEscape {
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("confirm_modal")
-			// Call callback with false (No) when ESC is pressed
-			callback(false)
-			// Restore focus to the main view after closing modal
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app := mm.ui.GetApp().(*tview.Application)
-					app.SetFocus(vc)
-				}
-			}
+			mm.closeNodeAvailabilityModalAndRestoreFocus()
 			return nil // Consume the event
 		}
 		return event
 	})
 
-	pages := mm.ui.GetPages().(*tview.Pages)
-	pages.AddPage("confirm_modal", modal, true, true)
+	// Add the modal to the pages
+	mm.addNodeAvailabilityModalToPages(modal)
 
 	// Set focus to the modal so it can receive keyboard input
-	app := mm.ui.GetApp().(*tview.Application)
+	mm.setFocusToModal(modal)
+}
+
+// ShowRetryDialog displays a retry dialog with automatic retry logic
+func (mm *ModalManager) ShowRetryDialog(
+	operation string,
+	err error,
+	retryFunc func() error,
+	onSuccess func(),
+) {
+	// Create retry dialog content
+	content := mm.createRetryDialogContent(operation, err)
+
+	// Create modal with retry options
+	modal := mm.createModal(content, []string{"Retry", "Retry (Auto)", "Cancel"})
+
+	// Add done function to handle button clicks
+	modal.SetDoneFunc(func(_ int, buttonLabel string) {
+		mm.handleRetryDialogButtonClick(buttonLabel, operation, retryFunc, onSuccess)
+	})
+
+	// Add keyboard handling for ESC key to close modal
+	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape {
+			mm.closeRetryDialogAndRestoreFocus()
+			return nil // Consume the event
+		}
+		return event
+	})
+
+	// Add the modal to the pages
+	mm.addRetryDialogToPages(modal)
+
+	// Set focus to the modal so it can receive keyboard input
+	mm.setFocusToModal(modal)
+}
+
+// ShowFallbackDialog displays a fallback operations dialog
+func (mm *ModalManager) ShowFallbackDialog(
+	operation string,
+	err error,
+	fallbackOptions []string,
+	onFallback func(string),
+) {
+	content := mm.createFallbackContent(operation, err)
+	buttons := mm.createFallbackButtons(fallbackOptions)
+	modal := mm.createModal(content, buttons)
+
+	mm.setupFallbackModalHandlers(modal, onFallback)
+	mm.showFallbackModal(modal)
+}
+
+// createFallbackContent creates the content for the fallback dialog
+func (mm *ModalManager) createFallbackContent(operation string, err error) string {
+	return fmt.Sprintf(
+		"⚠️  Operation Failed: %s\n\nError: %v\n\nAlternative operations are available:",
+		operation,
+		err,
+	)
+}
+
+// setupErrorModalHandlers sets up the handlers for the error modal
+func (mm *ModalManager) setupErrorModalHandlers(modal *tview.Modal) {
+	// Add done function to handle OK button click
+	modal.SetDoneFunc(func(_ int, _ string) {
+		mm.closeErrorModalAndRestoreFocus()
+	})
+
+	// Add keyboard handling for ESC key to close modal
+	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape {
+			mm.closeErrorModalAndRestoreFocus()
+			return nil // Consume the event
+		}
+		return event
+	})
+}
+
+// closeErrorModalAndRestoreFocus closes the error modal and restores focus
+func (mm *ModalManager) closeErrorModalAndRestoreFocus() {
+	pages, ok := mm.ui.GetPages().(*tview.Pages)
+	if !ok {
+		return
+	}
+	pages.RemovePage("error_modal")
+	mm.restoreFocusToMainView()
+}
+
+// showErrorModal shows the error modal
+func (mm *ModalManager) showErrorModal(modal *tview.Modal) {
+	pages, ok := mm.ui.GetPages().(*tview.Pages)
+	if !ok {
+		return
+	}
+	pages.AddPage("error_modal", modal, true, true)
+
+	// Set focus to the modal so it can receive keyboard input
+	app, ok := mm.ui.GetApp().(*tview.Application)
+	if !ok {
+		return
+	}
 	app.SetFocus(modal)
 }
 
-// ShowServiceScaleModal displays a modal for scaling a service
-func (mm *ModalManager) ShowServiceScaleModal(serviceName string, currentReplicas uint64, onConfirm func(int)) {
-	// Create input field for replicas
-	inputField := tview.NewInputField().
+// createReplicasInputField creates the replicas input field
+func (mm *ModalManager) createReplicasInputField(currentReplicas uint64) *tview.InputField {
+	return tview.NewInputField().
 		SetLabel("Replicas: ").
 		SetText(fmt.Sprintf("%d", currentReplicas)).
 		SetFieldWidth(10).
 		SetAcceptanceFunc(tview.InputFieldInteger)
+}
 
-	// Create form with input and buttons including help
-	form := tview.NewForm().
+// createScaleForm creates the scale form with buttons
+func (mm *ModalManager) createScaleForm(
+	inputField *tview.InputField,
+	onConfirm func(int),
+) *tview.Form {
+	return tview.NewForm().
 		AddFormItem(inputField).
 		AddButton("Scale", func() {
 			// Parse replicas from input
@@ -257,17 +274,8 @@ func (mm *ModalManager) ShowServiceScaleModal(serviceName string, currentReplica
 			}
 
 			// Close modal and call callback
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("scale_modal")
+			mm.closeScaleModalAndRestoreFocus()
 			onConfirm(replicas)
-
-			// Restore focus to main view
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app := mm.ui.GetApp().(*tview.Application)
-					app.SetFocus(vc)
-				}
-			}
 		}).
 		AddButton("Help", func() {
 			// Show contextual help for service scaling
@@ -275,27 +283,21 @@ func (mm *ModalManager) ShowServiceScaleModal(serviceName string, currentReplica
 		}).
 		AddButton("Cancel", func() {
 			// Close modal without action
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("scale_modal")
-
-			// Restore focus to main view
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app := mm.ui.GetApp().(*tview.Application)
-					app.SetFocus(vc)
-				}
-			}
+			mm.closeScaleModalAndRestoreFocus()
 		})
+}
 
-	// Create modal container
-	modal := tview.NewModal().
+// createScaleModal creates the scale modal
+func (mm *ModalManager) createScaleModal(serviceName string, currentReplicas uint64) *tview.Modal {
+	return tview.NewModal().
 		SetText(fmt.Sprintf("Scale Service: %s\nCurrent Replicas: %d", serviceName, currentReplicas)).
 		SetDoneFunc(func(_ int, _ string) {
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("scale_modal")
+			mm.closeScaleModalAndRestoreFocus()
 		})
+}
 
-	// Create a flex container to hold both modal and form
+// createScaleFlexContainer creates the flex container for the scale modal
+func (mm *ModalManager) createScaleFlexContainer(modal *tview.Modal, form *tview.Form) *tview.Flex {
 	flex := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(modal, 0, 1, false).
 		AddItem(form, 0, 1, true)
@@ -303,240 +305,176 @@ func (mm *ModalManager) ShowServiceScaleModal(serviceName string, currentReplica
 	// Add keyboard handling for ESC key
 	flex.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEscape {
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("scale_modal")
+			mm.closeScaleModalAndRestoreFocus()
 			return nil
 		}
 		return event
 	})
 
-	// Add the modal to the pages
-	pages := mm.ui.GetPages().(*tview.Pages)
-	pages.AddPage("scale_modal", flex, true, true)
-
-	// Set focus to the form
-	app := mm.ui.GetApp().(*tview.Application)
-	app.SetFocus(form)
+	return flex
 }
 
-// ShowNodeAvailabilityModal displays a modal for updating node availability
-func (mm *ModalManager) ShowNodeAvailabilityModal(nodeName, currentAvailability string, onConfirm func(string)) {
-	// Create the modal content
-	content := fmt.Sprintf("Update Node Availability: %s\n\nCurrent Availability: %s\n\nSelect new availability:", nodeName, currentAvailability)
+// createNodeAvailabilityContent creates the content for the node availability modal
+func (mm *ModalManager) createNodeAvailabilityContent(nodeName, currentAvailability string) string {
+	return fmt.Sprintf(
+		"Update Node Availability: %s\n\nCurrent Availability: %s\n\nSelect new availability:",
+		nodeName,
+		currentAvailability,
+	)
+}
 
-	// Create modal with help button
-	modal := mm.createModal(content, []string{"Active", "Pause", "Drain", "Help", "Cancel"})
+// handleNodeAvailabilityButtonClick handles button clicks in the node availability modal
+func (mm *ModalManager) handleNodeAvailabilityButtonClick(
+	buttonLabel string,
+	onConfirm func(string),
+) {
+	switch buttonLabel {
+	case "Active":
+		onConfirm("active")
+		mm.closeNodeAvailabilityModalAndRestoreFocus()
+	case "Pause":
+		onConfirm("pause")
+		mm.closeNodeAvailabilityModalAndRestoreFocus()
+	case "Drain":
+		onConfirm("drain")
+		mm.closeNodeAvailabilityModalAndRestoreFocus()
+	case "Help":
+		// Show contextual help for node availability updates
+		mm.ShowContextualHelp("swarm_nodes", "update_availability")
+	case "Cancel":
+		// Close the modal without action
+		mm.closeNodeAvailabilityModalAndRestoreFocus()
+	}
+}
 
-	// Add done function to handle button clicks
-	modal.SetDoneFunc(func(_ int, buttonLabel string) {
-		switch buttonLabel {
-		case "Active":
-			onConfirm("active")
-			// Close the modal
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("availability_modal")
-			// Restore focus to the main view
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app := mm.ui.GetApp().(*tview.Application)
-					app.SetFocus(vc)
-				}
-			}
-		case "Pause":
-			onConfirm("pause")
-			// Close the modal
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("availability_modal")
-			// Restore focus to the main view
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app := mm.ui.GetApp().(*tview.Application)
-					app.SetFocus(vc)
-				}
-			}
-		case "Drain":
-			onConfirm("drain")
-			// Close the modal
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("availability_modal")
-			// Restore focus to the main view
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app := mm.ui.GetApp().(*tview.Application)
-					app.SetFocus(vc)
-				}
-			}
-		case "Help":
-			// Show contextual help for node availability updates
-			mm.ShowContextualHelp("swarm_nodes", "update_availability")
-		case "Cancel":
-			// Close the modal without action
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("availability_modal")
-			// Restore focus to the main view
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app := mm.ui.GetApp().(*tview.Application)
-					app.SetFocus(vc)
-				}
-			}
-		}
-	})
+// closeNodeAvailabilityModalAndRestoreFocus closes the node availability modal and restores focus
+func (mm *ModalManager) closeNodeAvailabilityModalAndRestoreFocus() {
+	pages, ok := mm.ui.GetPages().(*tview.Pages)
+	if !ok {
+		return
+	}
+	pages.RemovePage("availability_modal")
+	mm.restoreFocusToMainView()
+}
 
-	// Add keyboard handling for ESC key to close modal
-	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEscape {
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("availability_modal")
-			// Restore focus to the main view
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app := mm.ui.GetApp().(*tview.Application)
-					app.SetFocus(vc)
-				}
-			}
-			return nil // Consume the event
-		}
-		return event
-	})
-
-	// Add the modal to the pages
-	pages := mm.ui.GetPages().(*tview.Pages)
+// addNodeAvailabilityModalToPages adds the node availability modal to the pages
+func (mm *ModalManager) addNodeAvailabilityModalToPages(modal *tview.Modal) {
+	pages, ok := mm.ui.GetPages().(*tview.Pages)
+	if !ok {
+		return
+	}
 	pages.AddPage("availability_modal", modal, true, true)
-
-	// Set focus to the modal so it can receive keyboard input
-	app := mm.ui.GetApp().(*tview.Application)
-	app.SetFocus(modal)
 }
 
-// ShowRetryDialog displays a retry dialog with automatic retry logic
-func (mm *ModalManager) ShowRetryDialog(operation string, err error, retryFunc func() error, onSuccess func()) {
-	// Create retry dialog content
-	content := fmt.Sprintf("🔄 Operation Failed: %s\n\nError: %v\n\nThis may be a temporary issue. Would you like to retry?", operation, err)
+// createRetryDialogContent creates the content for the retry dialog
+func (mm *ModalManager) createRetryDialogContent(operation string, err error) string {
+	return fmt.Sprintf(
+		"🔄 Operation Failed: %s\n\nError: %v\n\nThis may be a temporary issue. Would you like to retry?",
+		operation,
+		err,
+	)
+}
 
-	// Create modal with retry options
-	modal := mm.createModal(content, []string{"Retry", "Retry (Auto)", "Cancel"})
+// handleRetryDialogButtonClick handles button clicks in the retry dialog
+func (mm *ModalManager) handleRetryDialogButtonClick(
+	buttonLabel, operation string,
+	retryFunc func() error,
+	onSuccess func(),
+) {
+	switch buttonLabel {
+	case "Retry":
+		// Manual retry - close dialog and let user retry
+		mm.closeRetryDialogAndRestoreFocus()
+	case "Retry (Auto)":
+		// Automatic retry with progress indication
+		mm.performAutomaticRetry(operation, retryFunc, onSuccess)
+	case "Cancel":
+		// Close dialog without retry
+		mm.closeRetryDialogAndRestoreFocus()
+	}
+}
 
-	// Add done function to handle button clicks
-	modal.SetDoneFunc(func(_ int, buttonLabel string) {
-		switch buttonLabel {
-		case "Retry":
-			// Manual retry - close dialog and let user retry
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("retry_modal")
-			// Restore focus to the main view
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app := mm.ui.GetApp().(*tview.Application)
-					app.SetFocus(vc)
-				}
-			}
-		case "Retry (Auto)":
-			// Automatic retry with progress indication
-			mm.performAutomaticRetry(operation, retryFunc, onSuccess)
-		case "Cancel":
-			// Close dialog without retry
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("retry_modal")
-			// Restore focus to the main view
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app := mm.ui.GetApp().(*tview.Application)
-					app.SetFocus(vc)
-				}
-			}
-		}
-	})
+// closeRetryDialogAndRestoreFocus closes the retry dialog and restores focus
+func (mm *ModalManager) closeRetryDialogAndRestoreFocus() {
+	pages, ok := mm.ui.GetPages().(*tview.Pages)
+	if !ok {
+		return
+	}
+	pages.RemovePage("retry_modal")
+	mm.restoreFocusToMainView()
+}
 
-	// Add keyboard handling for ESC key to close modal
-	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEscape {
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("retry_modal")
-			// Restore focus to the main view
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app := mm.ui.GetApp().(*tview.Application)
-					app.SetFocus(vc)
-				}
-			}
-			return nil // Consume the event
-		}
-		return event
-	})
-
-	// Add the modal to the pages
-	pages := mm.ui.GetPages().(*tview.Pages)
+// addRetryDialogToPages adds the retry dialog to the pages
+func (mm *ModalManager) addRetryDialogToPages(modal *tview.Modal) {
+	pages, ok := mm.ui.GetPages().(*tview.Pages)
+	if !ok {
+		return
+	}
 	pages.AddPage("retry_modal", modal, true, true)
-
-	// Set focus to the modal so it can receive keyboard input
-	app := mm.ui.GetApp().(*tview.Application)
-	app.SetFocus(modal)
 }
 
-// ShowFallbackDialog displays a fallback operations dialog
-func (mm *ModalManager) ShowFallbackDialog(operation string, err error, fallbackOptions []string, onFallback func(string)) {
-	// Create fallback dialog content
-	content := fmt.Sprintf("⚠️  Operation Failed: %s\n\nError: %v\n\nAlternative operations are available:", operation, err)
-
-	// Create buttons for fallback options
+// createFallbackButtons creates the buttons for the fallback dialog
+func (mm *ModalManager) createFallbackButtons(fallbackOptions []string) []string {
 	buttons := make([]string, len(fallbackOptions)+1)
 	copy(buttons, fallbackOptions)
 	buttons[len(fallbackOptions)] = "Cancel"
-	modal := mm.createModal(content, buttons)
+	return buttons
+}
 
-	// Add done function to handle button clicks
+// setupFallbackModalHandlers sets up the handlers for the fallback modal
+func (mm *ModalManager) setupFallbackModalHandlers(modal *tview.Modal, onFallback func(string)) {
 	modal.SetDoneFunc(func(_ int, buttonLabel string) {
-		if buttonLabel == "Cancel" {
-			// Close dialog without action
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("fallback_modal")
-			// Restore focus to the main view
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app := mm.ui.GetApp().(*tview.Application)
-					app.SetFocus(vc)
-				}
-			}
-		} else {
-			// Execute fallback operation
-			onFallback(buttonLabel)
-			// Close dialog
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("fallback_modal")
-			// Restore focus to the main view
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app := mm.ui.GetApp().(*tview.Application)
-					app.SetFocus(vc)
-				}
-			}
-		}
+		mm.handleFallbackButtonClick(buttonLabel, onFallback)
 	})
 
-	// Add keyboard handling for ESC key to close modal
 	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEscape {
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("fallback_modal")
-			// Restore focus to the main view
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app := mm.ui.GetApp().(*tview.Application)
-					app.SetFocus(vc)
-				}
-			}
-			return nil // Consume the event
+			mm.handleFallbackEscape()
+			return nil
 		}
 		return event
 	})
+}
 
-	// Add the modal to the pages
-	pages := mm.ui.GetPages().(*tview.Pages)
+// handleFallbackButtonClick handles button clicks in the fallback modal
+func (mm *ModalManager) handleFallbackButtonClick(buttonLabel string, onFallback func(string)) {
+	if buttonLabel == "Cancel" {
+		mm.closeFallbackModal()
+		mm.restoreFocusToMainView()
+	} else {
+		onFallback(buttonLabel)
+		mm.closeFallbackModal()
+		mm.restoreFocusToMainView()
+	}
+}
+
+// handleFallbackEscape handles ESC key press in the fallback modal
+func (mm *ModalManager) handleFallbackEscape() {
+	mm.closeFallbackModal()
+	mm.restoreFocusToMainView()
+}
+
+// closeFallbackModal closes the fallback modal
+func (mm *ModalManager) closeFallbackModal() {
+	pages, ok := mm.ui.GetPages().(*tview.Pages)
+	if !ok {
+		return
+	}
+	pages.RemovePage("fallback_modal")
+}
+
+// showFallbackModal displays the fallback modal
+func (mm *ModalManager) showFallbackModal(modal *tview.Modal) {
+	pages, ok := mm.ui.GetPages().(*tview.Pages)
+	if !ok {
+		return
+	}
 	pages.AddPage("fallback_modal", modal, true, true)
 
-	// Set focus to the modal so it can receive keyboard input
-	app := mm.ui.GetApp().(*tview.Application)
+	app, ok := mm.ui.GetApp().(*tview.Application)
+	if !ok {
+		return
+	}
 	app.SetFocus(modal)
 }
 
@@ -549,98 +487,224 @@ func (mm *ModalManager) createModal(text string, buttons []string) *tview.Modal 
 
 // buildHelpText constructs the help text content
 func (mm *ModalManager) buildHelpText() string {
-	helpSections := []struct {
+	helpSections := mm.getHelpSections()
+	return mm.formatHelpText(helpSections)
+}
+
+// getHelpSections returns the help sections configuration
+func (mm *ModalManager) getHelpSections() []struct {
+	title   string
+	content []string
+} {
+	return []struct {
 		title   string
 		content []string
 	}{
-		{
-			title: "Global",
-			content: []string{
-				"ESC       Close modal",
-				"Ctrl+C    Exit application",
-				"Q         Exit application",
-				"F5        Refresh",
-				"?         Show help",
-			},
-		},
-		{
-			title: "Navigation",
-			content: []string{
-				"1, c      Containers view",
-				"2, i      Images view",
-				"3, v      Volumes view",
-				"4, n      Networks view",
-				"s         Swarm Services view",
-				"w         Swarm Nodes view",
-			},
-		},
-		{
-			title: "Table Navigation",
-			content: []string{
-				"↑/↓       Navigate rows",
-				"Enter     View details & actions",
-				"ESC       Close details",
-			},
-		},
-		{
-			title: "Container Actions",
-			content: []string{
-				"s         Start container",
-				"S         Stop container",
-				"r         Restart container",
-				"d         Delete container",
-				"l         View logs",
-				"i         Inspect container",
-			},
-		},
-		{
-			title: "Image Actions",
-			content: []string{
-				"d         Delete image",
-				"i         Inspect image",
-			},
-		},
-		{
-			title: "Volume Actions",
-			content: []string{
-				"d         Delete volume",
-				"i         Inspect volume",
-			},
-		},
-		{
-			title: "Network Actions",
-			content: []string{
-				"d         Delete network",
-				"i         Inspect network",
-			},
-		},
-		{
-			title: "Swarm Service Actions",
-			content: []string{
-				"i         Inspect service",
-				"s         Scale service",
-				"r         Remove service",
-				"l         View logs",
-			},
-		},
-		{
-			title: "Swarm Node Actions",
-			content: []string{
-				"i         Inspect node",
-				"a         Update availability",
-				"r         Remove node",
-			},
-		},
-		{
-			title: "Configuration",
-			content: []string{
-				":         Command mode",
-				"theme     Custom themes (YAML/JSON)",
-				"refresh   Auto-refresh settings",
-			},
+		mm.createGlobalHelpSection(),
+		mm.createNavigationHelpSection(),
+		mm.createTableNavigationHelpSection(),
+		mm.createContainerActionsHelpSection(),
+		mm.createImageActionsHelpSection(),
+		mm.createVolumeActionsHelpSection(),
+		mm.createNetworkActionsHelpSection(),
+		mm.createSwarmServiceActionsHelpSection(),
+		mm.createSwarmNodeActionsHelpSection(),
+		mm.createConfigurationHelpSection(),
+	}
+}
+
+// createGlobalHelpSection creates the global help section
+func (mm *ModalManager) createGlobalHelpSection() struct {
+	title   string
+	content []string
+} {
+	return struct {
+		title   string
+		content []string
+	}{
+		title: "Global",
+		content: []string{
+			"ESC       Close modal",
+			"Ctrl+C    Exit application",
+			"Q         Exit application",
+			"F5        Refresh",
+			"?         Show help",
 		},
 	}
+}
 
+// createNavigationHelpSection creates the navigation help section
+func (mm *ModalManager) createNavigationHelpSection() struct {
+	title   string
+	content []string
+} {
+	return struct {
+		title   string
+		content []string
+	}{
+		title: "Navigation",
+		content: []string{
+			"1, c      Containers view",
+			"2, i      Images view",
+			"3, v      Volumes view",
+			"4, n      Networks view",
+			"s         Swarm Services view",
+			"w         Swarm Nodes view",
+		},
+	}
+}
+
+// createTableNavigationHelpSection creates the table navigation help section
+func (mm *ModalManager) createTableNavigationHelpSection() struct {
+	title   string
+	content []string
+} {
+	return struct {
+		title   string
+		content []string
+	}{
+		title: "Table Navigation",
+		content: []string{
+			"↑/↓       Navigate rows",
+			"Enter     View details & actions",
+			"ESC       Close details",
+		},
+	}
+}
+
+// createContainerActionsHelpSection creates the container actions help section
+func (mm *ModalManager) createContainerActionsHelpSection() struct {
+	title   string
+	content []string
+} {
+	return struct {
+		title   string
+		content []string
+	}{
+		title: "Container Actions",
+		content: []string{
+			"s         Start container",
+			"S         Stop container",
+			"r         Restart container",
+			"d         Delete container",
+			"l         View logs",
+			"i         Inspect container",
+		},
+	}
+}
+
+// createImageActionsHelpSection creates the image actions help section
+func (mm *ModalManager) createImageActionsHelpSection() struct {
+	title   string
+	content []string
+} {
+	return struct {
+		title   string
+		content []string
+	}{
+		title: "Image Actions",
+		content: []string{
+			"d         Delete image",
+			"i         Inspect image",
+		},
+	}
+}
+
+// createVolumeActionsHelpSection creates the volume actions help section
+func (mm *ModalManager) createVolumeActionsHelpSection() struct {
+	title   string
+	content []string
+} {
+	return struct {
+		title   string
+		content []string
+	}{
+		title: "Volume Actions",
+		content: []string{
+			"d         Delete volume",
+			"i         Inspect volume",
+		},
+	}
+}
+
+// createNetworkActionsHelpSection creates the network actions help section
+func (mm *ModalManager) createNetworkActionsHelpSection() struct {
+	title   string
+	content []string
+} {
+	return struct {
+		title   string
+		content []string
+	}{
+		title: "Network Actions",
+		content: []string{
+			"d         Delete network",
+			"i         Inspect network",
+		},
+	}
+}
+
+// createSwarmServiceActionsHelpSection creates the swarm service actions help section
+func (mm *ModalManager) createSwarmServiceActionsHelpSection() struct {
+	title   string
+	content []string
+} {
+	return struct {
+		title   string
+		content []string
+	}{
+		title: "Swarm Service Actions",
+		content: []string{
+			"i         Inspect service",
+			"s         Scale service",
+			"r         Remove service",
+			"l         View logs",
+		},
+	}
+}
+
+// createSwarmNodeActionsHelpSection creates the swarm node actions help section
+func (mm *ModalManager) createSwarmNodeActionsHelpSection() struct {
+	title   string
+	content []string
+} {
+	return struct {
+		title   string
+		content []string
+	}{
+		title: "Swarm Node Actions",
+		content: []string{
+			"i         Inspect node",
+			"a         Update availability",
+			"r         Remove node",
+		},
+	}
+}
+
+// createConfigurationHelpSection creates the configuration help section
+func (mm *ModalManager) createConfigurationHelpSection() struct {
+	title   string
+	content []string
+} {
+	return struct {
+		title   string
+		content []string
+	}{
+		title: "Configuration",
+		content: []string{
+			":         Command mode",
+			"theme     Custom themes (YAML/JSON)",
+			"refresh   Auto-refresh settings",
+		},
+	}
+}
+
+// formatHelpText formats the help sections into a readable string
+func (mm *ModalManager) formatHelpText(helpSections []struct {
+	title   string
+	content []string
+},
+) string {
 	helpText := "DockerK9s Keyboard Shortcuts\n\n"
 	for _, section := range helpSections {
 		helpText += section.title + ":\n"
@@ -649,7 +713,6 @@ func (mm *ModalManager) buildHelpText() string {
 		}
 		helpText += "\n"
 	}
-
 	return helpText
 }
 
@@ -681,7 +744,21 @@ func (mm *ModalManager) generateContextualHelp(context, operation string) string
 func (mm *ModalManager) generateSwarmServicesHelp(operation string) string {
 	switch operation {
 	case "scale":
-		return `🔧 Service Scaling Help
+		return mm.getServiceScalingHelp()
+	case "remove":
+		return mm.getServiceRemovalHelp()
+	case "inspect":
+		return mm.getServiceInspectionHelp()
+	case "logs":
+		return mm.getServiceLogsHelp()
+	default:
+		return mm.getServiceGeneralHelp()
+	}
+}
+
+// getServiceScalingHelp returns help text for service scaling
+func (mm *ModalManager) getServiceScalingHelp() string {
+	return `🔧 Service Scaling Help
 
 Scaling a service changes the number of replicas running.
 
@@ -701,9 +778,11 @@ Common issues:
 • Network connectivity issues
 
 Need more help? Check Docker Swarm documentation.`
+}
 
-	case "remove":
-		return `⚠️ Service Removal Help
+// getServiceRemovalHelp returns help text for service removal
+func (mm *ModalManager) getServiceRemovalHelp() string {
+	return `⚠️ Service Removal Help
 
 Removing a service will permanently delete it.
 
@@ -724,9 +803,11 @@ Alternatives to removal:
 • Use service update for changes
 
 Need more help? Check Docker Swarm documentation.`
+}
 
-	case "inspect":
-		return `🔍 Service Inspection Help
+// getServiceInspectionHelp returns help text for service inspection
+func (mm *ModalManager) getServiceInspectionHelp() string {
+	return `🔍 Service Inspection Help
 
 Inspecting a service shows detailed information.
 
@@ -750,9 +831,11 @@ Common inspection fields:
 • PreviousSpec: Previous configuration
 
 Need more help? Check Docker Swarm documentation.`
+}
 
-	case "logs":
-		return `📋 Service Logs Help
+// getServiceLogsHelp returns help text for service logs
+func (mm *ModalManager) getServiceLogsHelp() string {
+	return `📋 Service Logs Help
 
 Viewing service logs helps with troubleshooting.
 
@@ -775,9 +858,11 @@ Common log issues:
 • Network connectivity problems
 
 Need more help? Check Docker Swarm documentation.`
+}
 
-	default:
-		return `📚 Swarm Services Help
+// getServiceGeneralHelp returns general help text for swarm services
+func (mm *ModalManager) getServiceGeneralHelp() string {
+	return `📚 Swarm Services Help
 
 Available operations:
 • Scale (s): Change number of replicas
@@ -791,14 +876,25 @@ Navigation:
 • Press 'q' to return to main view
 
 Need specific help? Select an operation first.`
-	}
 }
 
 // generateSwarmNodesHelp creates help content for swarm nodes context
 func (mm *ModalManager) generateSwarmNodesHelp(operation string) string {
 	switch operation {
 	case "update_availability":
-		return `🔄 Node Availability Help
+		return mm.getNodeAvailabilityHelp()
+	case "remove":
+		return mm.getNodeRemovalHelp()
+	case "inspect":
+		return mm.getNodeInspectionHelp()
+	default:
+		return mm.getNodeGeneralHelp()
+	}
+}
+
+// getNodeAvailabilityHelp returns help text for node availability updates
+func (mm *ModalManager) getNodeAvailabilityHelp() string {
+	return `🔄 Node Availability Help
 
 Changing node availability affects task placement.
 
@@ -826,9 +922,11 @@ Common issues:
 • Resource constraints preventing placement
 
 Need more help? Check Docker Swarm documentation.`
+}
 
-	case "remove":
-		return `⚠️ Node Removal Help
+// getNodeRemovalHelp returns help text for node removal
+func (mm *ModalManager) getNodeRemovalHelp() string {
+	return `⚠️ Node Removal Help
 
 Removing a node affects swarm stability.
 
@@ -851,9 +949,11 @@ Before removing:
 • Plan for service redistribution
 
 Need more help? Check Docker Swarm documentation.`
+}
 
-	case "inspect":
-		return `🔍 Node Inspection Help
+// getNodeInspectionHelp returns help text for node inspection
+func (mm *ModalManager) getNodeInspectionHelp() string {
+	return `🔍 Node Inspection Help
 
 Inspecting a node shows detailed information.
 
@@ -877,9 +977,11 @@ Common inspection fields:
 • ManagerStatus: Manager role information
 
 Need more help? Check Docker Swarm documentation.`
+}
 
-	default:
-		return `📚 Swarm Nodes Help
+// getNodeGeneralHelp returns general help text for swarm nodes
+func (mm *ModalManager) getNodeGeneralHelp() string {
+	return `📚 Swarm Nodes Help
 
 Available operations:
 • Update Availability (a): Change node availability
@@ -892,7 +994,6 @@ Navigation:
 • Press 'q' to return to main view
 
 Need specific help? Select an operation first.`
-	}
 }
 
 // generateContainersHelp creates help content for containers context
@@ -981,59 +1082,318 @@ Need specific help? Navigate to a specific view first.`
 }
 
 // performAutomaticRetry performs automatic retry with progress indication
-func (mm *ModalManager) performAutomaticRetry(operation string, retryFunc func() error, onSuccess func()) {
+func (mm *ModalManager) performAutomaticRetry(
+	operation string,
+	retryFunc func() error,
+	onSuccess func(),
+) {
 	// Close the retry dialog
-	pages := mm.ui.GetPages().(*tview.Pages)
-	pages.RemovePage("retry_modal")
+	mm.closeRetryDialog()
 
 	// Show progress modal
-	progressContent := fmt.Sprintf("🔄 Retrying: %s\n\nPlease wait while we attempt to recover...", operation)
+	progressModal := mm.createProgressModal(operation)
+
+	// Add the progress modal to the pages
+	mm.addProgressModalToPages(progressModal)
+
+	// Perform retry in a goroutine to avoid blocking UI
+	go mm.executeRetryOperation(operation, retryFunc, onSuccess)
+}
+
+// closeRetryDialog closes the retry dialog
+func (mm *ModalManager) closeRetryDialog() {
+	pages, ok := mm.ui.GetPages().(*tview.Pages)
+	if !ok {
+		return
+	}
+	pages.RemovePage("retry_modal")
+}
+
+// createProgressModal creates the progress modal for automatic retry
+func (mm *ModalManager) createProgressModal(operation string) *tview.Modal {
+	progressContent := fmt.Sprintf(
+		"🔄 Retrying: %s\n\nPlease wait while we attempt to recover...",
+		operation,
+	)
 	progressModal := mm.createModal(progressContent, []string{"Cancel"})
 
 	// Add cancel functionality
 	progressModal.SetDoneFunc(func(_ int, _ string) {
-		pages := mm.ui.GetPages().(*tview.Pages)
-		pages.RemovePage("retry_progress_modal")
-		// Restore focus to the main view
-		if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-			if vc, ok := viewContainer.(*tview.Flex); ok {
-				app := mm.ui.GetApp().(*tview.Application)
-				app.SetFocus(vc)
-			}
-		}
+		mm.closeProgressModalAndRestoreFocus()
 	})
 
-	// Add the progress modal to the pages
+	return progressModal
+}
+
+// closeProgressModalAndRestoreFocus closes the progress modal and restores focus
+func (mm *ModalManager) closeProgressModalAndRestoreFocus() {
+	pages, ok := mm.ui.GetPages().(*tview.Pages)
+	if !ok {
+		return
+	}
+	pages.RemovePage("retry_progress_modal")
+	mm.restoreFocusToMainView()
+}
+
+// addProgressModalToPages adds the progress modal to the pages
+func (mm *ModalManager) addProgressModalToPages(progressModal *tview.Modal) {
+	pages, ok := mm.ui.GetPages().(*tview.Pages)
+	if !ok {
+		return
+	}
 	pages.AddPage("retry_progress_modal", progressModal, true, true)
+}
 
-	// Perform retry in a goroutine to avoid blocking UI
-	go func() {
-		// Attempt retry
-		err := retryFunc()
+// executeRetryOperation executes the retry operation in a goroutine
+func (mm *ModalManager) executeRetryOperation(
+	operation string,
+	retryFunc func() error,
+	onSuccess func(),
+) {
+	// Attempt retry
+	err := retryFunc()
 
-		// Close progress modal from main thread
-		app := mm.ui.GetApp().(*tview.Application)
-		app.QueueUpdateDraw(func() {
-			pages := mm.ui.GetPages().(*tview.Pages)
-			pages.RemovePage("retry_progress_modal")
+	// Close progress modal from main thread
+	app, ok := mm.ui.GetApp().(*tview.Application)
+	if !ok {
+		return
+	}
+	app.QueueUpdateDraw(func() {
+		mm.handleRetryResult(operation, err, onSuccess)
+	})
+}
 
-			if err != nil {
-				// Retry failed - show error
-				mm.ShowError(fmt.Errorf("automatic retry failed for %s: %v", operation, err))
-			} else {
-				// Retry succeeded - show success and execute callback
-				mm.ShowInfo(fmt.Sprintf("✅ Operation '%s' recovered successfully!", operation))
-				if onSuccess != nil {
-					onSuccess()
-				}
-			}
+// handleRetryResult handles the result of the retry operation
+func (mm *ModalManager) handleRetryResult(operation string, err error, onSuccess func()) {
+	mm.closeProgressModal()
 
-			// Restore focus to the main view
-			if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-				if vc, ok := viewContainer.(*tview.Flex); ok {
-					app.SetFocus(vc)
-				}
-			}
+	if err != nil {
+		// Retry failed - show error
+		mm.ShowError(fmt.Errorf("automatic retry failed for %s: %v", operation, err))
+	} else {
+		// Retry succeeded - show success and execute callback
+		mm.ShowInfo(fmt.Sprintf("✅ Operation '%s' recovered successfully!", operation))
+		if onSuccess != nil {
+			onSuccess()
+		}
+	}
+
+	// Restore focus to the main view
+	mm.restoreFocusToMainView()
+}
+
+// closeProgressModal closes the progress modal
+func (mm *ModalManager) closeProgressModal() {
+	pages, ok := mm.ui.GetPages().(*tview.Pages)
+	if !ok {
+		return
+	}
+	pages.RemovePage("retry_progress_modal")
+}
+
+// createConfirmModal creates the confirmation modal
+func (mm *ModalManager) createConfirmModal(text string, callback func(bool)) *tview.Modal {
+	return tview.NewModal().
+		SetText(text).
+		AddButtons([]string{"Yes", "No"}).
+		SetDoneFunc(func(buttonIndex int, _ string) {
+			mm.handleConfirmButtonClick(buttonIndex, callback)
 		})
-	}()
+}
+
+// setupConfirmModalHandlers sets up the keyboard handlers for the confirm modal
+func (mm *ModalManager) setupConfirmModalHandlers(modal *tview.Modal, callback func(bool)) {
+	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape {
+			mm.handleConfirmEscape(callback)
+			return nil
+		}
+		return event
+	})
+}
+
+// handleConfirmButtonClick handles button clicks in the confirm modal
+func (mm *ModalManager) handleConfirmButtonClick(buttonIndex int, callback func(bool)) {
+	mm.closeConfirmModal()
+	callback(buttonIndex == 0)
+	mm.restoreFocusToMainView()
+}
+
+// handleConfirmEscape handles ESC key press in the confirm modal
+func (mm *ModalManager) handleConfirmEscape(callback func(bool)) {
+	mm.closeConfirmModal()
+	callback(false)
+	mm.restoreFocusToMainView()
+}
+
+// closeConfirmModal closes the confirmation modal
+func (mm *ModalManager) closeConfirmModal() {
+	pages, ok := mm.ui.GetPages().(*tview.Pages)
+	if !ok {
+		return
+	}
+	pages.RemovePage("confirm_modal")
+}
+
+// showConfirmModal displays the confirmation modal
+func (mm *ModalManager) showConfirmModal(modal *tview.Modal) {
+	pages, ok := mm.ui.GetPages().(*tview.Pages)
+	if !ok {
+		return
+	}
+	pages.AddPage("confirm_modal", modal, true, true)
+
+	app, ok := mm.ui.GetApp().(*tview.Application)
+	if !ok {
+		return
+	}
+	app.SetFocus(modal)
+}
+
+// setupHelpModalHandlers configures the event handlers for the help modal
+func (mm *ModalManager) setupHelpModalHandlers(modal *tview.Modal) {
+	// Add done function to handle Close button click
+	modal.SetDoneFunc(func(_ int, _ string) {
+		mm.closeHelpModal()
+	})
+
+	// Add keyboard handling for ESC key to close modal
+	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape {
+			mm.closeHelpModal()
+			return nil // Consume the event
+		}
+		return event
+	})
+}
+
+// closeHelpModal closes the help modal and restores focus
+func (mm *ModalManager) closeHelpModal() {
+	pages, ok := mm.ui.GetPages().(*tview.Pages)
+	if !ok {
+		return
+	}
+	pages.RemovePage("help_modal")
+
+	// Restore focus to the main view after closing modal
+	if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
+		if vc, ok := viewContainer.(*tview.Flex); ok {
+			app, ok := mm.ui.GetApp().(*tview.Application)
+			if !ok {
+				return
+			}
+			app.SetFocus(vc)
+		}
+	}
+}
+
+// addHelpModalToUI adds the help modal to the UI and sets focus
+func (mm *ModalManager) addHelpModalToUI(modal *tview.Modal) {
+	pages, ok := mm.ui.GetPages().(*tview.Pages)
+	if !ok {
+		return
+	}
+	pages.AddPage("help_modal", modal, true, true)
+
+	// Set focus to the modal so it can receive keyboard input
+	app, ok := mm.ui.GetApp().(*tview.Application)
+	if !ok {
+		return
+	}
+	app.SetFocus(modal)
+}
+
+// closeInfoModalAndRestoreFocus closes the info modal and restores focus
+func (mm *ModalManager) closeInfoModalAndRestoreFocus() {
+	pages, ok := mm.ui.GetPages().(*tview.Pages)
+	if !ok {
+		return
+	}
+	pages.RemovePage("info_modal")
+	mm.restoreFocusToMainView()
+}
+
+// showInfoModal shows the info modal and sets focus
+func (mm *ModalManager) showInfoModal(modal *tview.Modal) {
+	pages, ok := mm.ui.GetPages().(*tview.Pages)
+	if !ok {
+		return
+	}
+	pages.AddPage("info_modal", modal, true, true)
+
+	// Set focus to the modal so it can receive keyboard input
+	app, ok := mm.ui.GetApp().(*tview.Application)
+	if !ok {
+		return
+	}
+	app.SetFocus(modal)
+}
+
+// restoreFocusToMainView restores focus to the main view container
+func (mm *ModalManager) restoreFocusToMainView() {
+	if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
+		if vc, ok := viewContainer.(*tview.Flex); ok {
+			app, ok := mm.ui.GetApp().(*tview.Application)
+			if !ok {
+				return
+			}
+			app.SetFocus(vc)
+		}
+	}
+}
+
+// closeContextualHelpModalAndRestoreFocus closes the contextual help modal and restores focus
+func (mm *ModalManager) closeContextualHelpModalAndRestoreFocus() {
+	pages, ok := mm.ui.GetPages().(*tview.Pages)
+	if !ok {
+		return
+	}
+	pages.RemovePage("contextual_help_modal")
+	mm.restoreFocusToMainView()
+}
+
+// closeScaleModalAndRestoreFocus closes the scale modal and restores focus
+func (mm *ModalManager) closeScaleModalAndRestoreFocus() {
+	pages, ok := mm.ui.GetPages().(*tview.Pages)
+	if !ok {
+		return
+	}
+	pages.RemovePage("scale_modal")
+	mm.restoreFocusToMainView()
+}
+
+// addScaleModalToPages adds the scale modal to the pages
+func (mm *ModalManager) addScaleModalToPages(flex *tview.Flex) {
+	pages, ok := mm.ui.GetPages().(*tview.Pages)
+	if !ok {
+		return
+	}
+	pages.AddPage("scale_modal", flex, true, true)
+}
+
+// setFocusToForm sets focus to the form
+func (mm *ModalManager) setFocusToForm(form *tview.Form) {
+	app, ok := mm.ui.GetApp().(*tview.Application)
+	if !ok {
+		return
+	}
+	app.SetFocus(form)
+}
+
+// addContextualHelpModalToPages adds the contextual help modal to the pages
+func (mm *ModalManager) addContextualHelpModalToPages(modal *tview.Modal) {
+	pages, ok := mm.ui.GetPages().(*tview.Pages)
+	if !ok {
+		return
+	}
+	pages.AddPage("contextual_help_modal", modal, true, true)
+}
+
+// setFocusToModal sets focus to the modal
+func (mm *ModalManager) setFocusToModal(modal *tview.Modal) {
+	app, ok := mm.ui.GetApp().(*tview.Application)
+	if !ok {
+		return
+	}
+	app.SetFocus(modal)
 }

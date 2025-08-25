@@ -45,43 +45,77 @@ type ServiceFactory struct {
 // NewServiceFactory creates a new service factory
 func NewServiceFactory(client *docker.Client) *ServiceFactory {
 	if client == nil {
-		return &ServiceFactory{
-			ContainerService:  nil,
-			ImageService:      nil,
-			VolumeService:     nil,
-			NetworkService:    nil,
-			DockerInfoService: nil,
-			LogsService:       nil,
-			currentService:    "container", // Default to container service
-		}
+		return createEmptyServiceFactory()
 	}
 
 	containerService := container.NewContainerService(client)
 	sharedDockerInfoService := shared.NewDockerInfoService(client)
 
 	// Create adapter services that bridge between shared interfaces and UI interfaces
-	uiContainerService := &containerServiceAdapter{service: containerService}
-	uiImageService := &imageServiceAdapter{service: image.NewImageService(client)}
-	uiVolumeService := &volumeServiceAdapter{service: volume.NewVolumeService(client)}
-	uiNetworkService := &networkServiceAdapter{service: network.NewNetworkService(client)}
-
-	// Create swarm services
-	swarmServiceService := swarm.NewServiceService(client)
-	swarmNodeService := swarm.NewNodeService(client)
+	uiServices := createUIServices(client, containerService)
+	swarmServices := createSwarmServices(client)
 
 	// Create a wrapper that converts between shared.DockerInfo and interfaces.DockerInfo
 	dockerInfoService := &dockerInfoServiceWrapper{service: sharedDockerInfoService}
 
 	return &ServiceFactory{
-		ContainerService:    uiContainerService,
-		ImageService:        uiImageService,
-		VolumeService:       uiVolumeService,
-		NetworkService:      uiNetworkService,
+		ContainerService:    uiServices.container,
+		ImageService:        uiServices.image,
+		VolumeService:       uiServices.volume,
+		NetworkService:      uiServices.network,
 		DockerInfoService:   dockerInfoService,
 		LogsService:         logs.NewLogsService(containerService),
-		SwarmServiceService: swarmServiceService,
-		SwarmNodeService:    swarmNodeService,
+		SwarmServiceService: swarmServices.service,
+		SwarmNodeService:    swarmServices.node,
 		currentService:      "container", // Default to container service
+	}
+}
+
+// createEmptyServiceFactory creates a service factory with nil services
+func createEmptyServiceFactory() *ServiceFactory {
+	return &ServiceFactory{
+		ContainerService:  nil,
+		ImageService:      nil,
+		VolumeService:     nil,
+		NetworkService:    nil,
+		DockerInfoService: nil,
+		LogsService:       nil,
+		currentService:    "container", // Default to container service
+	}
+}
+
+// uiServices holds the UI service adapters
+type uiServices struct {
+	container *containerServiceAdapter
+	image     *imageServiceAdapter
+	volume    *volumeServiceAdapter
+	network   *networkServiceAdapter
+}
+
+// createUIServices creates the UI service adapters
+func createUIServices(
+	client *docker.Client,
+	containerService sharedInterfaces.ContainerService,
+) uiServices {
+	return uiServices{
+		container: &containerServiceAdapter{service: containerService},
+		image:     &imageServiceAdapter{service: image.NewImageService(client)},
+		volume:    &volumeServiceAdapter{service: volume.NewVolumeService(client)},
+		network:   &networkServiceAdapter{service: network.NewNetworkService(client)},
+	}
+}
+
+// swarmServices holds the swarm services
+type swarmServices struct {
+	service sharedInterfaces.SwarmServiceService
+	node    sharedInterfaces.SwarmNodeService
+}
+
+// createSwarmServices creates the swarm services
+func createSwarmServices(client *docker.Client) swarmServices {
+	return swarmServices{
+		service: swarm.NewServiceService(client),
+		node:    swarm.NewNodeService(client),
 	}
 }
 
@@ -104,15 +138,27 @@ func (a *containerServiceAdapter) StartContainer(ctx context.Context, id string)
 	return a.service.StartContainer(ctx, id)
 }
 
-func (a *containerServiceAdapter) StopContainer(ctx context.Context, id string, timeout *time.Duration) error {
+func (a *containerServiceAdapter) StopContainer(
+	ctx context.Context,
+	id string,
+	timeout *time.Duration,
+) error {
 	return a.service.StopContainer(ctx, id, timeout)
 }
 
-func (a *containerServiceAdapter) RestartContainer(ctx context.Context, id string, timeout *time.Duration) error {
+func (a *containerServiceAdapter) RestartContainer(
+	ctx context.Context,
+	id string,
+	timeout *time.Duration,
+) error {
 	return a.service.RestartContainer(ctx, id, timeout)
 }
 
-func (a *containerServiceAdapter) RemoveContainer(ctx context.Context, id string, force bool) error {
+func (a *containerServiceAdapter) RemoveContainer(
+	ctx context.Context,
+	id string,
+	force bool,
+) error {
 	return a.service.RemoveContainer(ctx, id, force)
 }
 
@@ -120,11 +166,19 @@ func (a *containerServiceAdapter) GetContainerLogs(ctx context.Context, id strin
 	return a.service.GetContainerLogs(ctx, id)
 }
 
-func (a *containerServiceAdapter) InspectContainer(ctx context.Context, id string) (map[string]any, error) {
+func (a *containerServiceAdapter) InspectContainer(
+	ctx context.Context,
+	id string,
+) (map[string]any, error) {
 	return a.service.InspectContainer(ctx, id)
 }
 
-func (a *containerServiceAdapter) ExecContainer(ctx context.Context, id string, command []string, tty bool) (string, error) {
+func (a *containerServiceAdapter) ExecContainer(
+	ctx context.Context,
+	id string,
+	command []string,
+	tty bool,
+) (string, error) {
 	return a.service.ExecContainer(ctx, id, command, tty)
 }
 
@@ -194,7 +248,10 @@ func (a *volumeServiceAdapter) RemoveVolume(ctx context.Context, name string, fo
 	return a.service.RemoveVolume(ctx, name, force)
 }
 
-func (a *volumeServiceAdapter) InspectVolume(ctx context.Context, name string) (map[string]any, error) {
+func (a *volumeServiceAdapter) InspectVolume(
+	ctx context.Context,
+	name string,
+) (map[string]any, error) {
 	return a.service.InspectVolume(ctx, name)
 }
 
@@ -223,7 +280,10 @@ func (a *networkServiceAdapter) RemoveNetwork(ctx context.Context, id string) er
 	return a.service.RemoveNetwork(ctx, id)
 }
 
-func (a *networkServiceAdapter) InspectNetwork(ctx context.Context, id string) (map[string]any, error) {
+func (a *networkServiceAdapter) InspectNetwork(
+	ctx context.Context,
+	id string,
+) (map[string]any, error) {
 	return a.service.InspectNetwork(ctx, id)
 }
 
@@ -282,7 +342,9 @@ type dockerInfoServiceWrapper struct {
 }
 
 // nolint:gocritic // Interface design requires pointer return type
-func (w *dockerInfoServiceWrapper) GetDockerInfo(ctx context.Context) (*interfaces.DockerInfo, error) {
+func (w *dockerInfoServiceWrapper) GetDockerInfo(
+	ctx context.Context,
+) (*interfaces.DockerInfo, error) {
 	sharedInfo, err := w.service.GetDockerInfo(ctx)
 	if err != nil {
 		return nil, err
@@ -364,26 +426,7 @@ func (sf *ServiceFactory) IsServiceAvailable(serviceName string) bool {
 		return false
 	}
 
-	switch serviceName {
-	case "container":
-		return sf.ContainerService != nil
-	case "image":
-		return sf.ImageService != nil
-	case "volume":
-		return sf.VolumeService != nil
-	case "network":
-		return sf.NetworkService != nil
-	case "dockerInfo":
-		return sf.DockerInfoService != nil
-	case "logs":
-		return sf.LogsService != nil
-	case "swarmService":
-		return sf.SwarmServiceService != nil
-	case "swarmNode":
-		return sf.SwarmNodeService != nil
-	default:
-		return false
-	}
+	return sf.checkServiceAvailability(serviceName)
 }
 
 // IsContainerServiceAvailable checks if the container service is available
@@ -397,7 +440,19 @@ func (sf *ServiceFactory) GetCurrentService() any {
 		return nil
 	}
 
-	switch sf.currentService {
+	return sf.getServiceByType(sf.currentService)
+}
+
+// SetCurrentService sets the currently active service
+func (sf *ServiceFactory) SetCurrentService(serviceName string) {
+	if sf != nil {
+		sf.currentService = serviceName
+	}
+}
+
+// getServiceByType returns the service based on the service type
+func (sf *ServiceFactory) getServiceByType(serviceType string) any {
+	switch serviceType {
 	case "container":
 		return sf.ContainerService
 	case "image":
@@ -419,9 +474,26 @@ func (sf *ServiceFactory) GetCurrentService() any {
 	}
 }
 
-// SetCurrentService sets the currently active service
-func (sf *ServiceFactory) SetCurrentService(serviceName string) {
-	if sf != nil {
-		sf.currentService = serviceName
+// checkServiceAvailability checks if a specific service is available
+func (sf *ServiceFactory) checkServiceAvailability(serviceName string) bool {
+	switch serviceName {
+	case "container":
+		return sf.ContainerService != nil
+	case "image":
+		return sf.ImageService != nil
+	case "volume":
+		return sf.VolumeService != nil
+	case "network":
+		return sf.NetworkService != nil
+	case "dockerInfo":
+		return sf.DockerInfoService != nil
+	case "logs":
+		return sf.LogsService != nil
+	case "swarmService":
+		return sf.SwarmServiceService != nil
+	case "swarmNode":
+		return sf.SwarmNodeService != nil
+	default:
+		return false
 	}
 }

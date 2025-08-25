@@ -37,7 +37,7 @@ func (r *Registry) GetNodesView() *NodesView {
 }
 
 // GetViewByName returns a view by name
-func (r *Registry) GetViewByName(name string) interface{} {
+func (r *Registry) GetViewByName(name string) any {
 	switch name {
 	case "services":
 		return r.servicesView
@@ -49,8 +49,8 @@ func (r *Registry) GetViewByName(name string) interface{} {
 }
 
 // GetAllViews returns all swarm views
-func (r *Registry) GetAllViews() map[string]interface{} {
-	return map[string]interface{}{
+func (r *Registry) GetAllViews() map[string]any {
+	return map[string]any{
 		"services": r.servicesView,
 		"nodes":    r.nodesView,
 	}

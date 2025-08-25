@@ -35,17 +35,30 @@ func NewContainersView(ui interfaces.UIInterface) *ContainersView {
 		log:      logger.GetLogger(),
 	}
 
-	// Set up callbacks
+	cv.setupCallbacks()
+	return cv
+}
+
+// setupCallbacks sets up all the callback functions for the containers view
+func (cv *ContainersView) setupCallbacks() {
+	cv.setupBasicCallbacks()
+	cv.setupActionCallbacks()
+}
+
+// setupBasicCallbacks sets up the basic view callbacks
+func (cv *ContainersView) setupBasicCallbacks() {
 	cv.ListItems = cv.listContainers
 	cv.FormatRow = func(c shared.Container) []string { return cv.formatContainerRow(&c) }
 	cv.GetRowColor = func(c shared.Container) tcell.Color { return cv.getStateColor(&c) }
 	cv.GetItemID = func(c shared.Container) string { return c.ID }
 	cv.GetItemName = func(c shared.Container) string { return c.Name }
+}
+
+// setupActionCallbacks sets up the action-related callbacks
+func (cv *ContainersView) setupActionCallbacks() {
 	cv.HandleKeyPress = func(key rune, c shared.Container) { cv.handleContainerKey(key, &c) }
 	cv.ShowDetails = func(c shared.Container) { cv.showContainerDetails(&c) }
 	cv.GetActions = cv.getContainerActions
-
-	return cv
 }
 
 func (cv *ContainersView) listContainers(ctx context.Context) ([]shared.Container, error) {
@@ -62,31 +75,72 @@ func (cv *ContainersView) listContainers(ctx context.Context) ([]shared.Containe
 
 	cv.log.Debug("services type", "type", fmt.Sprintf("%T", services))
 
-	// Type assertion to get the service factory
-	if serviceFactory, ok := services.(interfaces.ServiceFactoryInterface); ok {
-		cv.log.Debug("serviceFactory type assertion successful")
-		if containerService := serviceFactory.GetContainerService(); containerService != nil {
-			cv.log.Debug("containerService type", "type", fmt.Sprintf("%T", containerService))
-			// Type assertion to get the ListContainers method
-			if containerService != nil {
-				cv.log.Debug("listService type assertion successful")
-				containers, err := containerService.ListContainers(ctx)
-				if err != nil {
-					cv.log.Debug("ListContainers error", "error", err)
-					return nil, err
-				}
-				cv.log.Debug("ListContainers returned containers", "count", len(containers))
-				return containers, nil
-			}
-			cv.log.Debug("listService type assertion failed")
-		} else {
-			cv.log.Debug("containerService is nil")
-		}
-	} else {
-		cv.log.Debug("serviceFactory type assertion failed")
+	return cv.getContainersFromService(ctx, services)
+}
+
+// getContainersFromService retrieves containers from the service factory
+func (cv *ContainersView) getContainersFromService(
+	ctx context.Context,
+	services any,
+) ([]shared.Container, error) {
+	serviceFactory := cv.getServiceFactory(services)
+	if serviceFactory == nil {
+		return []shared.Container{}, nil
 	}
 
-	return []shared.Container{}, nil
+	containerService := cv.getContainerService(serviceFactory)
+	if containerService == nil {
+		return []shared.Container{}, nil
+	}
+
+	return cv.executeContainerList(ctx, containerService)
+}
+
+// getServiceFactory gets the service factory from services
+func (cv *ContainersView) getServiceFactory(services any) interfaces.ServiceFactoryInterface {
+	serviceFactory, ok := services.(interfaces.ServiceFactoryInterface)
+	if !ok {
+		cv.log.Debug("serviceFactory type assertion failed")
+		return nil
+	}
+	cv.log.Debug("serviceFactory type assertion successful")
+	return serviceFactory
+}
+
+// getContainerService gets the container service from the service factory
+func (cv *ContainersView) getContainerService(
+	serviceFactory interfaces.ServiceFactoryInterface,
+) any {
+	containerService := serviceFactory.GetContainerService()
+	if containerService == nil {
+		cv.log.Debug("containerService is nil")
+		return nil
+	}
+	cv.log.Debug("containerService type", "type", fmt.Sprintf("%T", containerService))
+	return containerService
+}
+
+// executeContainerList executes the container list operation
+func (cv *ContainersView) executeContainerList(
+	ctx context.Context,
+	containerService any,
+) ([]shared.Container, error) {
+	if containerService == nil {
+		cv.log.Debug("listService type assertion failed")
+		return []shared.Container{}, nil
+	}
+
+	cv.log.Debug("listService type assertion successful")
+	containers, err := containerService.(interface {
+		ListContainers(context.Context) ([]shared.Container, error)
+	}).ListContainers(ctx)
+	if err != nil {
+		cv.log.Debug("ListContainers error", "error", err)
+		return nil, err
+	}
+
+	cv.log.Debug("ListContainers returned containers", "count", len(containers))
+	return containers, nil
 }
 
 func (cv *ContainersView) formatContainerRow(container *shared.Container) []string {
@@ -104,30 +158,53 @@ func (cv *ContainersView) formatContainerRow(container *shared.Container) []stri
 
 func (cv *ContainersView) getContainerActions() map[rune]string {
 	services := cv.GetUI().GetServicesAny()
-	cv.log.Debug("getContainerActions called", "services_nil", services == nil, "services_type", fmt.Sprintf("%T", services))
+	cv.log.Debug(
+		"getContainerActions called",
+		"services_nil",
+		services == nil,
+		"services_type",
+		fmt.Sprintf("%T", services),
+	)
 
-	// Type assertion to get the service factory
-	if serviceFactory, ok := services.(interfaces.ServiceFactoryInterface); ok {
-		cv.log.Debug("serviceFactory type assertion successful")
-		if containerService := serviceFactory.GetContainerService(); containerService != nil {
-			cv.log.Debug("containerService retrieved", "containerService_type", fmt.Sprintf("%T", containerService))
-			// Type assertion to get the GetActions method
-			if actionService, ok := containerService.(interface{ GetActions() map[rune]string }); ok {
-				cv.log.Debug("actionService type assertion successful")
-				actions := actionService.GetActions()
-				cv.log.Debug("actions retrieved", "actions", actions)
-				return actions
-			}
-			cv.log.Debug("actionService type assertion failed")
-		} else {
-			cv.log.Debug("containerService is nil")
-		}
-	} else {
+	return cv.getActionsFromService(services)
+}
+
+// getActionsFromService retrieves actions from the service factory
+func (cv *ContainersView) getActionsFromService(services any) map[rune]string {
+	serviceFactory, ok := services.(interfaces.ServiceFactoryInterface)
+	if !ok {
 		cv.log.Debug("serviceFactory type assertion failed")
+		return make(map[rune]string)
 	}
 
-	cv.log.Debug("returning empty actions map")
-	return make(map[rune]string)
+	cv.log.Debug("serviceFactory type assertion successful")
+	containerService := serviceFactory.GetContainerService()
+	if containerService == nil {
+		cv.log.Debug("containerService is nil")
+		return make(map[rune]string)
+	}
+
+	return cv.extractActionsFromContainerService(containerService)
+}
+
+// extractActionsFromContainerService extracts actions from the container service
+func (cv *ContainersView) extractActionsFromContainerService(containerService any) map[rune]string {
+	cv.log.Debug(
+		"containerService retrieved",
+		"containerService_type",
+		fmt.Sprintf("%T", containerService),
+	)
+
+	actionService, ok := containerService.(interface{ GetActions() map[rune]string })
+	if !ok {
+		cv.log.Debug("actionService type assertion failed")
+		return make(map[rune]string)
+	}
+
+	cv.log.Debug("actionService type assertion successful")
+	actions := actionService.GetActions()
+	cv.log.Debug("actions retrieved", "actions", actions)
+	return actions
 }
 
 func (cv *ContainersView) handleContainerKey(key rune, container *shared.Container) {
@@ -136,7 +213,13 @@ func (cv *ContainersView) handleContainerKey(key rune, container *shared.Contain
 	// Type assertion to get the service factory
 	if serviceFactory, ok := services.(interfaces.ServiceFactoryInterface); ok {
 		if containerService := serviceFactory.GetContainerService(); containerService != nil {
-			cv.handlers.HandleContainerAction(key, container.ID, container.Name, containerService, func() { cv.Refresh() })
+			cv.handlers.HandleContainerAction(
+				key,
+				container.ID,
+				container.Name,
+				containerService,
+				func() { cv.Refresh() },
+			)
 		}
 	}
 }
