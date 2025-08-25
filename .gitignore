@@ -7,9 +7,6 @@
 whaletui
 whaletui.exe
 
-# Temporary ignore while in progress
-docs/
-
 # Debug logs
 .logs/
 
