@@ -492,8 +492,15 @@ func (tm *ThemeManager) validateThemePath(path string) error {
 	}
 
 	// Additional security: check for suspicious patterns
-	if strings.Contains(cleanPath, "..") || strings.Contains(cleanPath, "~") {
-		return errors.New("theme file path contains invalid patterns")
+	// Check for directory traversal attempts
+	if strings.Contains(cleanPath, "..") {
+		return errors.New("theme file path contains directory traversal attempts")
+	}
+
+	// Check for home directory expansion attempts (but allow Windows short names like ~1)
+	// Only reject paths that start with ~ or contain ~/ which could be home directory expansion
+	if strings.HasPrefix(cleanPath, "~") || strings.Contains(cleanPath, "~/") {
+		return errors.New("theme file path contains home directory expansion attempts")
 	}
 
 	// Only check directory containment if we have a theme directory set
