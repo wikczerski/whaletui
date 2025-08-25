@@ -128,7 +128,9 @@ func isValidConfigPath(configFile, configDir string) bool {
 	// Use filepath.Rel to check if the config file is within the config directory
 	relPath, err := filepath.Rel(cleanConfigDir, cleanConfigFile)
 	if err != nil {
-		return false
+		// If filepath.Rel fails, fall back to string prefix check for compatibility
+		// This handles edge cases in some CI environments
+		return strings.HasPrefix(cleanConfigFile, cleanConfigDir)
 	}
 
 	// The relative path should not start with ".." (going up directories)

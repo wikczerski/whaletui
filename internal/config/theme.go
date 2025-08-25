@@ -87,10 +87,17 @@ func NewThemeManager(configPath string) *ThemeManager {
 
 // LoadTheme loads the theme configuration from file
 func (tm *ThemeManager) LoadTheme() {
-	if tm.tryLoadFromSpecifiedPath() {
+	// If a specific path is provided, try to load from it and don't fall back
+	if tm.path != "" {
+		if tm.tryLoadFromSpecifiedPath() {
+			return
+		}
+		// If loading from specified path fails, don't fall back to other locations
+		// This ensures tests fail when they expect a specific theme file
 		return
 	}
 
+	// Only try fallback locations if no specific path was provided
 	tm.tryLoadFromFallbackLocations()
 }
 
@@ -327,7 +334,12 @@ func (tm *ThemeManager) GetCurrentThemeInfo() map[string]any {
 // tryLoadFromSpecifiedPath tries to load from the specified path first
 func (tm *ThemeManager) tryLoadFromSpecifiedPath() bool {
 	if tm.path != "" {
-		return tm.loadFromFile(tm.path) == nil
+		err := tm.loadFromFile(tm.path)
+		if err != nil {
+			// Debug: Log the error for troubleshooting
+			fmt.Printf("DEBUG: Failed to load theme from specified path %s: %v\n", tm.path, err)
+		}
+		return err == nil
 	}
 	return false
 }

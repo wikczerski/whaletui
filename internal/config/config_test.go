@@ -231,7 +231,25 @@ func TestThemeLoading(t *testing.T) {
 	tempDir := t.TempDir()
 	themePath := filepath.Join(tempDir, "test_theme.yaml")
 
+	// Debug: Log the paths being used
+	t.Logf("Temp directory: %s", tempDir)
+	t.Logf("Theme path: %s", themePath)
+	t.Logf("Theme path absolute: %s", filepath.Clean(themePath))
+
 	writeTestTheme(t, themePath)
+
+	// Debug: Verify the file was written
+	if _, err := os.Stat(themePath); os.IsNotExist(err) {
+		t.Fatalf("Theme file was not created: %s", themePath)
+	}
+
+	// Debug: Read and log the file contents
+	content, err := os.ReadFile(themePath)
+	if err != nil {
+		t.Fatalf("Failed to read theme file: %v", err)
+	}
+	t.Logf("Theme file contents: %s", string(content))
+
 	tm := NewThemeManager(themePath)
 
 	assertCustomColors(t, tm)
