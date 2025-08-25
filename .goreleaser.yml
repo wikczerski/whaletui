@@ -251,7 +251,7 @@ brews:
     homepage: "https://github.com/wikczerski/whaletui"
     description: "Docker CLI Dashboard"
     repository:
-      name: homebrew-tap
+      name: whaletui
       owner: wikczerski
     commit_author:
       name: "Goreleaser Bot"
