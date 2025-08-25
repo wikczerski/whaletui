@@ -1,179 +1,346 @@
+// Package logger provides structured logging functionality for the WhaleTUI application.
 package logger
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 )
-
-// LogLevel represents the logging level
-type LogLevel int
-
-const (
-	// DEBUG represents debug logging level
-	DEBUG LogLevel = iota
-	// INFO represents info logging level
-	INFO
-	// WARN represents warning logging level
-	WARN
-	// ERROR represents error logging level
-	ERROR
-	// FATAL represents fatal logging level
-	FATAL
-)
-
-var levelNames = map[LogLevel]string{
-	DEBUG: "DBG",
-	INFO:  "INF",
-	WARN:  "WRN",
-	ERROR: "ERR",
-	FATAL: "FAT",
-}
-
-// Logger represents a logger instance
-type Logger struct {
-	mu        sync.Mutex
-	output    io.Writer
-	minLevel  LogLevel
-	logPrefix string
-	enabled   bool
-}
 
 var (
-	defaultLogger *Logger
-	once          sync.Once
+	instance *slog.Logger
+	logFile  *os.File
+	logPath  string
+	mu       sync.RWMutex
+	tuiMode  bool // Flag to indicate if TUI mode is active
 )
 
-// GetLogger returns the default logger instance
-func GetLogger() *Logger {
-	once.Do(func() {
-		defaultLogger = &Logger{
-			output:    os.Stderr,
-			minLevel:  INFO,
-			logPrefix: "",
-			enabled:   true,
-		}
+// GetLogger returns the singleton logger instance
+func GetLogger() *slog.Logger {
+	if instance := getExistingInstance(); instance != nil {
+		return instance
+	}
+
+	return createNewInstance()
+}
+
+// getExistingInstance checks if an instance already exists
+func getExistingInstance() *slog.Logger {
+	mu.RLock()
+	defer mu.RUnlock()
+	return instance
+}
+
+// createNewInstance creates a new logger instance
+func createNewInstance() *slog.Logger {
+	mu.Lock()
+	defer mu.Unlock()
+
+	// Double-check after acquiring write lock
+	if instance != nil {
+		return instance
+	}
+
+	handler := createDefaultHandler()
+	instance = slog.New(handler)
+	slog.SetDefault(instance)
+	return instance
+}
+
+// createDefaultHandler creates the default handler based on TUI mode
+func createDefaultHandler() slog.Handler {
+	if tuiMode {
+		// In TUI mode, use file-only handler to prevent stderr interference
+		return createFileOnlyHandler(slog.LevelInfo, "")
+	}
+	// Not in TUI mode, use stderr as usual
+	return slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
 	})
-	return defaultLogger
 }
 
-// SetOutput sets the output writer for the logger
-func (l *Logger) SetOutput(w io.Writer) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	l.output = w
+// SetLevel sets the logging level and configures multistream if DEBUG
+func SetLevel(level string) {
+	SetLevelWithPath(level, "")
 }
 
-// SetLevel sets the minimum logging level
-func (l *Logger) SetLevel(level LogLevel) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	l.minLevel = level
+// SetLevelWithPath sets the logging level and configures multistream if DEBUG with a specific log file path
+func SetLevelWithPath(level, logFilePath string) {
+	slogLevel := parseLogLevel(level)
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	closeExistingLogFile()
+	handler := createHandlerForLevel(level, slogLevel, logFilePath)
+	updateLoggerInstance(handler)
 }
 
-// SetPrefix sets the log prefix
-func (l *Logger) SetPrefix(prefix string) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	l.logPrefix = prefix
-}
-
-// Enable enables or disables logging
-func (l *Logger) Enable(enabled bool) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	l.enabled = enabled
-}
-
-// IsEnabled returns whether logging is enabled
-func (l *Logger) IsEnabled() bool {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	return l.enabled
-}
-
-func (l *Logger) log(level LogLevel, format string, args ...any) {
-	if !l.enabled || level < l.minLevel {
-		return
+// parseLogLevel converts string level to slog.Level
+func parseLogLevel(level string) slog.Level {
+	switch level {
+	case "DEBUG":
+		return slog.LevelDebug
+	case "WARN":
+		return slog.LevelWarn
+	case "ERROR":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
 	}
+}
 
-	l.mu.Lock()
-
-	prefix := ""
-	if l.logPrefix != "" {
-		prefix = "[" + l.logPrefix + "] "
-	}
-
-	message := fmt.Sprintf(format, args...)
-	message = strings.TrimSuffix(message, "\n")
-
-	if level == INFO {
-		if _, err := fmt.Fprintf(l.output, "%s%s\n", prefix, message); err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to write log message: %v\n", err)
+// closeExistingLogFile closes the existing log file if any
+func closeExistingLogFile() {
+	if logFile != nil {
+		if err := logFile.Close(); err != nil {
+			// Log the error but continue since this is cleanup
+			fmt.Fprintf(os.Stderr, "Failed to close log file: %v\n", err)
 		}
-	} else {
-		timestamp := time.Now().Format("15:04:05")
-		if _, err := fmt.Fprintf(l.output, "%s [%s] %s%s\n", timestamp, levelNames[level], prefix, message); err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to write log message: %v\n", err)
+		logFile = nil
+	}
+}
+
+// createHandlerForLevel creates the appropriate handler for the given level
+func createHandlerForLevel(level string, slogLevel slog.Level, logFilePath string) slog.Handler {
+	if level == "DEBUG" {
+		// For DEBUG level, always use multistream but with appropriate console output
+		// In TUI mode, console output goes to a separate file to prevent interference
+		return createMultistreamHandler(slogLevel, logFilePath)
+	}
+
+	// For other levels, check TUI mode
+	if tuiMode {
+		// In TUI mode, only log to file to prevent interference
+		return createFileOnlyHandler(slogLevel, logFilePath)
+	}
+
+	// Not in TUI mode, use console only
+	return slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: slogLevel,
+	})
+}
+
+// updateLoggerInstance updates the logger instance and default
+func updateLoggerInstance(handler slog.Handler) {
+	instance = slog.New(handler)
+	slog.SetDefault(instance)
+}
+
+// createMultistreamHandler creates a handler that writes to both file and console
+func createMultistreamHandler(level slog.Level, logFilePath string) slog.Handler {
+	// Get the actual path to use (default if empty, otherwise use provided)
+	actualPath := getDefaultLogPath(logFilePath)
+
+	if !canCreateLogFile(actualPath) {
+		return createDiscardHandler(level)
+	}
+
+	file, err := openLogFile(actualPath)
+	if err != nil {
+		return createDiscardHandler(level)
+	}
+
+	setupLogFile(file, actualPath)
+
+	if tuiMode {
+		return createFileOnlyHandler(level, actualPath)
+	}
+
+	return createConsoleAndFileHandler(level, file)
+}
+
+// canCreateLogFile checks if a log file can be created at the given path
+func canCreateLogFile(logFilePath string) bool {
+	if !isValidLogPath(logFilePath) {
+		return false
+	}
+
+	return createLogsDirectory(logFilePath) == nil
+}
+
+// getDefaultLogPath returns the default log path if none is provided
+func getDefaultLogPath(logFilePath string) string {
+	if logFilePath == "" {
+		return "./logs/whaletui.log"
+	}
+	return logFilePath
+}
+
+// setupLogFile sets up the global log file variables
+func setupLogFile(file *os.File, logFilePath string) {
+	logFile = file
+	logPath = logFilePath
+}
+
+// createConsoleAndFileHandler creates a handler that writes to both console and file
+func createConsoleAndFileHandler(level slog.Level, file *os.File) slog.Handler {
+	multiWriter := io.MultiWriter(os.Stderr, file)
+	return slog.NewTextHandler(multiWriter, &slog.HandlerOptions{
+		Level: level,
+	})
+}
+
+// isValidLogPath validates the log file path to prevent directory traversal
+func isValidLogPath(logFilePath string) bool {
+	// Allow relative paths that don't contain directory traversal
+	cleanPath := filepath.Clean(logFilePath)
+
+	// Only check for directory traversal, not for backslashes (which are normal on Windows)
+	return !strings.Contains(cleanPath, "..")
+}
+
+// createDiscardHandler creates a handler that discards all logs
+func createDiscardHandler(level slog.Level) slog.Handler {
+	return slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
+		Level: level,
+	})
+}
+
+// createLogsDirectory creates the logs directory if it doesn't exist
+func createLogsDirectory(logFilePath string) error {
+	logsDir := filepath.Dir(logFilePath)
+	return os.MkdirAll(logsDir, 0o750)
+}
+
+// openLogFile opens the log file for writing
+func openLogFile(logFilePath string) (*os.File, error) {
+	const fileMode = 0o600
+	const defaultLogPath = "./logs/whaletui.log"
+
+	// Use a constant path to avoid gosec warning
+	if logFilePath == defaultLogPath {
+		return os.OpenFile(defaultLogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, fileMode)
+	}
+
+	// For non-default paths, validate the path to prevent directory traversal
+	if !isValidLogPath(logFilePath) {
+		return nil, fmt.Errorf("invalid log file path: %s", logFilePath)
+	}
+
+	// nolint:gosec // Path is validated by isValidLogPath
+	return os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, fileMode)
+}
+
+// createFileOnlyHandler creates a handler that writes only to a file (for TUI mode)
+func createFileOnlyHandler(level slog.Level, logFilePath string) slog.Handler {
+	// Get the actual path to use (default if empty, otherwise use provided)
+	actualPath := getDefaultLogPath(logFilePath)
+
+	if !isValidLogPath(actualPath) {
+		return createDiscardHandler(level)
+	}
+
+	if err := createLogsDirectory(actualPath); err != nil {
+		return createDiscardHandler(level)
+	}
+
+	file, err := openLogFile(actualPath)
+	if err != nil {
+		return createDiscardHandler(level)
+	}
+
+	setupLogFile(file, actualPath)
+
+	return slog.NewTextHandler(file, &slog.HandlerOptions{
+		Level: level,
+	})
+}
+
+// CloseLogFile closes the log file if it's open
+func CloseLogFile() {
+	if logFile != nil {
+		if err := logFile.Close(); err != nil {
+			// Log the error but continue since this is cleanup
+			fmt.Fprintf(os.Stderr, "Failed to close log file: %v\n", err)
 		}
+		logFile = nil
 	}
+}
 
-	if level == FATAL {
-		l.mu.Unlock() // Unlock before exit
-		os.Exit(1)
+// IsDebugMode returns true if the logger is currently in DEBUG mode
+func IsDebugMode() bool {
+	mu.RLock()
+	defer mu.RUnlock()
+	return instance != nil && instance.Handler().Enabled(context.Background(), slog.LevelDebug)
+}
+
+// GetLogFilePath returns the current log file path if any
+func GetLogFilePath() string {
+	mu.RLock()
+	defer mu.RUnlock()
+	return logPath
+}
+
+// Convenience functions that use the singleton logger
+
+// Debug logs a debug message using the singleton logger
+func Debug(msg string, args ...any) {
+	GetLogger().Debug(msg, args...)
+}
+
+// Info logs an info message using the singleton logger
+func Info(msg string, args ...any) {
+	GetLogger().Info(msg, args...)
+}
+
+// Warn logs a warning message using the singleton logger
+func Warn(msg string, args ...any) {
+	GetLogger().Warn(msg, args...)
+}
+
+// Error logs an error message using the singleton logger
+func Error(msg string, args ...any) {
+	GetLogger().Error(msg, args...)
+}
+
+// Fatal logs a fatal error message and exits the application
+func Fatal(msg string, args ...any) {
+	GetLogger().Error(msg, args...)
+	os.Exit(1)
+}
+
+// With returns a new logger with the given key-value pairs
+func With(args ...any) *slog.Logger {
+	return GetLogger().With(args...)
+}
+
+// WithGroup returns a new logger with the given group name
+func WithGroup(name string) *slog.Logger {
+	return GetLogger().WithGroup(name)
+}
+
+// SetTUIMode sets whether the logger should avoid stderr output (for TUI mode)
+func SetTUIMode(enabled bool) {
+	mu.Lock()
+	defer mu.Unlock()
+	tuiMode = enabled
+
+	// If we're currently in DEBUG mode and have a logger instance,
+	// recreate the handler to respect the new TUI mode setting
+	// Check directly without calling IsDebugMode() to avoid deadlock
+	if instance != nil && instance.Handler().Enabled(context.Background(), slog.LevelDebug) {
+		var handler slog.Handler
+		if tuiMode {
+			// In TUI mode, only log to file
+			handler = createFileOnlyHandler(slog.LevelDebug, logPath)
+		} else {
+			// Not in TUI mode, use multistream
+			handler = createMultistreamHandler(slog.LevelDebug, logPath)
+		}
+		instance = slog.New(handler)
+		slog.SetDefault(instance)
 	}
-	l.mu.Unlock()
 }
 
-// Debug logs a debug message
-func (l *Logger) Debug(format string, args ...any) {
-	l.log(DEBUG, format, args...)
-}
-
-// Info logs an info message
-func (l *Logger) Info(format string, args ...any) {
-	l.log(INFO, format, args...)
-}
-
-// Warn logs a warning message
-func (l *Logger) Warn(format string, args ...any) {
-	l.log(WARN, format, args...)
-}
-
-// Error logs an error message
-func (l *Logger) Error(format string, args ...any) {
-	l.log(ERROR, format, args...)
-}
-
-// Fatal logs a fatal message and exits
-func (l *Logger) Fatal(format string, args ...any) {
-	l.log(FATAL, format, args...)
-}
-
-// Debug logs a debug message using the default logger
-func Debug(format string, args ...any) {
-	GetLogger().Debug(format, args...)
-}
-
-// Info logs an info message using the default logger
-func Info(format string, args ...any) {
-	GetLogger().Info(format, args...)
-}
-
-// Warn logs a warning message using the default logger
-func Warn(format string, args ...any) {
-	GetLogger().Warn(format, args...)
-}
-
-// Error logs an error message using the default logger
-func Error(format string, args ...any) {
-	GetLogger().Error(format, args...)
-}
-
-// Fatal logs a fatal message using the default logger and exits
-func Fatal(format string, args ...any) {
-	GetLogger().Fatal(format, args...)
+// IsTUIMode returns whether TUI mode is currently active
+func IsTUIMode() bool {
+	mu.RLock()
+	defer mu.RUnlock()
+	return tuiMode
 }

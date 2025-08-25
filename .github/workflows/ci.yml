@@ -91,45 +91,76 @@ jobs:
 
       - name: Install and verify golangci-lint
         run: |
-          echo "Installing golangci-lint on Linux system..."
+          echo "Installing golangci-lint v2.4.0 on Linux system..."
 
-          # Method 1: Try direct installation with retry
-          for i in {1..3}; do
-            echo "Attempt $i: Installing golangci-lint via go install..."
-            if go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; then
-              echo "Successfully installed golangci-lint via go install"
-              break
-            fi
-            echo "Attempt $i failed, waiting $((i*10)) seconds before retry..."
-            sleep $((i*10))
-          done
-
-          # Method 2: If go install fails, try downloading pre-built binary
-          if ! command -v golangci-lint &> /dev/null; then
-            echo "go install failed, trying pre-built binary..."
-            # Get latest version
-            LATEST_VERSION=$(curl -s https://api.github.com/repos/golangci/golangci-lint/releases/latest | grep '"tag_name":' | cut -d'"' -f4)
-            echo "Latest version: $LATEST_VERSION"
-
-            # Download and install binary
-            curl -L -o golangci-lint.tar.gz "https://github.com/golangci/golangci-lint/releases/download/${LATEST_VERSION}/golangci-lint-${LATEST_VERSION}-linux-amd64.tar.gz"
-            tar -xzf golangci-lint.tar.gz
-            chmod +x golangci-lint-${LATEST_VERSION}-linux-amd64/golangci-lint
-            sudo mv golangci-lint-${LATEST_VERSION}-linux-amd64/golangci-lint /usr/local/bin/
-            rm -rf golangci-lint.tar.gz golangci-lint-${LATEST_VERSION}-linux-amd64
-          fi
+          # Install golangci-lint v2.4.0 using the official install script
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.4.0
 
           # Verify installation
           if command -v golangci-lint &> /dev/null; then
             echo "golangci-lint version: $(golangci-lint --version)"
-            echo "Go version used to build golangci-lint: $(golangci-lint --version | grep -o 'go[0-9.]*')"
+            echo "✓ Successfully installed golangci-lint v2.4.0"
           else
-            echo "ERROR: Failed to install golangci-lint after all attempts"
+            echo "ERROR: Failed to install golangci-lint v2.4.0"
             exit 1
           fi
 
       - name: Run linter
         run: golangci-lint run --timeout=5m
+
+  format-check:
+    name: Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.25.0'
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download Go modules
+        run: go mod download
+
+      - name: Install gofumpt
+        run: go install mvdan.cc/gofumpt@latest
+
+      - name: Check formatting with gofumpt
+        run: |
+          echo "Checking Go code formatting with gofumpt..."
+          if [ "$(gofumpt -d . | wc -l)" -gt 0 ]; then
+            echo "ERROR: Code is not properly formatted with gofumpt"
+            echo "The following files need formatting:"
+            gofumpt -d .
+            echo ""
+            echo "To fix formatting, run: gofumpt -w ."
+            exit 1
+          else
+            echo "✓ All Go files are properly formatted with gofumpt"
+          fi
+
+      - name: Check imports with goimports
+        run: |
+          echo "Checking Go imports with goimports..."
+          if [ "$(goimports -d . | wc -l)" -gt 0 ]; then
+            echo "ERROR: Go imports are not properly formatted"
+            echo "The following files need import formatting:"
+            goimports -d .
+            echo ""
+            echo "To fix imports, run: goimports -w ."
+            exit 1
+          else
+            echo "✓ All Go imports are properly formatted"
+          fi
 
   security:
     name: Security Scan

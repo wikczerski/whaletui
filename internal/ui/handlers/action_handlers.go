@@ -1,15 +1,16 @@
+// Package handlers provides UI event handlers for WhaleTUI.
 package handlers
 
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/wikczerski/whaletui/internal/config"
-	"github.com/wikczerski/whaletui/internal/services"
 	"github.com/wikczerski/whaletui/internal/ui/builders"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 )
@@ -49,17 +50,156 @@ func (ah *ActionHandlers) HandleInspectAction(
 	ah.loadInspectDataAsync(resourceType, resourceID, inspectView, inspectFunc)
 }
 
+// HandleResourceAction provides generic resource action handling (for images, volumes, networks)
+func (ah *ActionHandlers) HandleResourceAction(
+	action rune,
+	resourceType, resourceID, resourceName string,
+	inspectFunc func(context.Context, string) (map[string]any, error),
+	deleteFunc func(context.Context, string, bool) error,
+	onRefresh func(),
+) {
+	switch action {
+	case 'd':
+		if deleteFunc != nil {
+			ah.HandleDeleteAction(resourceType, resourceID, resourceName, deleteFunc, onRefresh)
+		}
+	case 'i':
+		if inspectFunc != nil {
+			ah.HandleInspectAction(resourceType, resourceID, inspectFunc)
+		}
+	}
+}
+
+// HandleContainerAction provides container-specific action handling
+func (ah *ActionHandlers) HandleContainerAction(
+	action rune,
+	containerID, containerName string,
+	containerService any,
+	onRefresh func(),
+) {
+	if ah.handleContainerLifecycleAction(action, containerID, containerService, onRefresh) {
+		return
+	}
+
+	if ah.handleContainerManagementAction(
+		action,
+		containerID,
+		containerName,
+		containerService,
+		onRefresh,
+	) {
+		return
+	}
+
+	ah.handleContainerAccessAction(action, containerID, containerName, containerService)
+}
+
+// HandleContainerLifecycleAction handles container lifecycle operations (start, stop, restart)
+func (ah *ActionHandlers) HandleContainerLifecycleAction(
+	action rune,
+	containerID string,
+	containerService any,
+	onRefresh func(),
+) {
+	switch action {
+	case 's':
+		if cs, ok := containerService.(interfaces.ContainerService); ok {
+			ah.executor.StartOperation("container", containerID, cs.StartContainer, onRefresh)
+		}
+	case 'S':
+		if cs, ok := containerService.(interfaces.ContainerService); ok {
+			ah.executor.StopOperation("container", containerID, cs.StopContainer, onRefresh)
+		}
+	case 'r':
+		if cs, ok := containerService.(interfaces.ContainerService); ok {
+			ah.executor.RestartOperation("container", containerID, cs.RestartContainer, onRefresh)
+		}
+	}
+}
+
+// HandleContainerManagementAction handles container management operations (delete, inspect)
+func (ah *ActionHandlers) HandleContainerManagementAction(
+	action rune,
+	containerID, containerName string,
+	containerService any,
+	onRefresh func(),
+) {
+	switch action {
+	case 'd':
+		if cs, ok := containerService.(interfaces.ContainerService); ok {
+			ah.HandleDeleteAction(
+				"container",
+				containerID,
+				containerName,
+				cs.RemoveContainer,
+				onRefresh,
+			)
+		}
+	case 'i':
+		if cs, ok := containerService.(interfaces.ContainerService); ok {
+			ah.HandleInspectAction("container", containerID, cs.InspectContainer)
+		}
+	}
+}
+
+// HandleContainerAccessAction handles container access operations (attach, logs, exec)
+func (ah *ActionHandlers) HandleContainerAccessAction(
+	action rune,
+	containerID, containerName string,
+	containerService any,
+) {
+	switch action {
+	case 'a':
+		ah.HandleAttachAction(containerID, containerName)
+	case 'l':
+		ah.ui.ShowLogs(containerID, containerName)
+	case 'e':
+		if cs, ok := containerService.(interfaces.ContainerService); ok {
+			ah.HandleExecAction(containerID, containerName, cs.ExecContainer)
+		}
+	}
+}
+
+// HandleAttachAction handles container attach action
+func (ah *ActionHandlers) HandleAttachAction(containerID, containerName string) {
+	ah.ui.ShowShell(containerID, containerName)
+}
+
+// HandleExecAction handles container exec action
+func (ah *ActionHandlers) HandleExecAction(
+	containerID, containerName string,
+	execFunc func(context.Context, string, []string, bool) (string, error),
+) {
+	mainFlex, ok := ah.ui.GetMainFlex().(*tview.Flex)
+	if !ok {
+		ah.ui.ShowError(errors.New("failed to get main flex container"))
+		return
+	}
+	execInput := ah.createExecInput(containerName)
+
+	ah.setupExecInputHandlers(execInput, mainFlex, containerID, containerName, execFunc)
+	ah.addExecInputToUI(execInput, mainFlex)
+}
+
 // setupInspectCloseButton configures the close button for the inspect view
 func (ah *ActionHandlers) setupInspectCloseButton(inspectFlex *tview.Flex) {
 	inspectFlex.GetItem(1).(*tview.Button).SetSelectedFunc(func() {
-		pages := ah.ui.GetPages().(*tview.Pages)
+		pages, ok := ah.ui.GetPages().(*tview.Pages)
+		if !ok {
+			ah.ui.ShowError(errors.New("failed to get pages container"))
+			return
+		}
 		pages.RemovePage("inspect")
 	})
 }
 
 // addInspectPage adds the inspect page to the UI
 func (ah *ActionHandlers) addInspectPage(inspectFlex *tview.Flex) {
-	pages := ah.ui.GetPages().(*tview.Pages)
+	pages, ok := ah.ui.GetPages().(*tview.Pages)
+	if !ok {
+		ah.ui.ShowError(errors.New("failed to get pages container"))
+		return
+	}
 	pages.AddPage("inspect", inspectFlex, true, true)
 }
 
@@ -71,7 +211,11 @@ func (ah *ActionHandlers) loadInspectDataAsync(
 ) {
 	go func() {
 		inspectData, err := inspectFunc(context.Background(), resourceID)
-		app := ah.ui.GetApp().(*tview.Application)
+		app, ok := ah.ui.GetApp().(*tview.Application)
+		if !ok {
+			ah.ui.ShowError(errors.New("failed to get application instance"))
+			return
+		}
 		app.QueueUpdateDraw(func() {
 			ah.updateInspectView(resourceType, inspectView, inspectData, err)
 		})
@@ -99,58 +243,83 @@ func (ah *ActionHandlers) updateInspectView(
 	inspectView.SetText(string(data))
 }
 
-// HandleContainerAction provides container-specific action handling
-func (ah *ActionHandlers) HandleContainerAction(
-	action rune,
-	containerID, containerName string,
-	containerService services.ContainerService,
-	onRefresh func(),
-) {
-	if ah.handleContainerLifecycleAction(action, containerID, containerService, onRefresh) {
-		return
-	}
-
-	if ah.handleContainerManagementAction(action, containerID, containerName, containerService, onRefresh) {
-		return
-	}
-
-	ah.handleContainerAccessAction(action, containerID, containerName, containerService)
-}
-
 // handleContainerLifecycleAction handles container lifecycle operations (start, stop, restart)
 func (ah *ActionHandlers) handleContainerLifecycleAction(
 	action rune,
 	containerID string,
-	containerService services.ContainerService,
+	containerService any,
 	onRefresh func(),
 ) bool {
 	switch action {
 	case 's':
-		ah.executor.StartOperation("container", containerID, containerService.StartContainer, onRefresh)
-		return true
+		return ah.handleStartContainer(containerID, containerService, onRefresh)
 	case 'S':
-		ah.executor.StopOperation("container", containerID, containerService.StopContainer, onRefresh)
-		return true
+		return ah.handleStopContainer(containerID, containerService, onRefresh)
 	case 'r':
-		ah.executor.RestartOperation("container", containerID, containerService.RestartContainer, onRefresh)
-		return true
+		return ah.handleRestartContainer(containerID, containerService, onRefresh)
 	}
 	return false
+}
+
+// handleStartContainer handles starting a container
+func (ah *ActionHandlers) handleStartContainer(
+	containerID string,
+	containerService any,
+	onRefresh func(),
+) bool {
+	if cs, ok := containerService.(interfaces.ContainerService); ok {
+		ah.executor.StartOperation("container", containerID, cs.StartContainer, onRefresh)
+	}
+	return true
+}
+
+// handleStopContainer handles stopping a container
+func (ah *ActionHandlers) handleStopContainer(
+	containerID string,
+	containerService any,
+	onRefresh func(),
+) bool {
+	if cs, ok := containerService.(interfaces.ContainerService); ok {
+		ah.executor.StopOperation("container", containerID, cs.StopContainer, onRefresh)
+	}
+	return true
+}
+
+// handleRestartContainer handles restarting a container
+func (ah *ActionHandlers) handleRestartContainer(
+	containerID string,
+	containerService any,
+	onRefresh func(),
+) bool {
+	if cs, ok := containerService.(interfaces.ContainerService); ok {
+		ah.executor.RestartOperation("container", containerID, cs.RestartContainer, onRefresh)
+	}
+	return true
 }
 
 // handleContainerManagementAction handles container management operations (delete, inspect)
 func (ah *ActionHandlers) handleContainerManagementAction(
 	action rune,
 	containerID, containerName string,
-	containerService services.ContainerService,
+	containerService any,
 	onRefresh func(),
 ) bool {
 	switch action {
 	case 'd':
-		ah.HandleDeleteAction("container", containerID, containerName, containerService.RemoveContainer, onRefresh)
+		if cs, ok := containerService.(interfaces.ContainerService); ok {
+			ah.HandleDeleteAction(
+				"container",
+				containerID,
+				containerName,
+				cs.RemoveContainer,
+				onRefresh,
+			)
+		}
 		return true
 	case 'i':
-		ah.HandleInspectAction("container", containerID, containerService.InspectContainer)
+		if cs, ok := containerService.(interfaces.ContainerService); ok {
+			ah.HandleInspectAction("container", containerID, cs.InspectContainer)
+		}
 		return true
 	}
 	return false
@@ -160,7 +329,7 @@ func (ah *ActionHandlers) handleContainerManagementAction(
 func (ah *ActionHandlers) handleContainerAccessAction(
 	action rune,
 	containerID, containerName string,
-	containerService services.ContainerService,
+	containerService any,
 ) bool {
 	switch action {
 	case 'a':
@@ -170,75 +339,12 @@ func (ah *ActionHandlers) handleContainerAccessAction(
 		ah.ui.ShowLogs(containerID, containerName)
 		return true
 	case 'e':
-		ah.HandleExecAction(containerID, containerName, containerService.ExecContainer)
+		if cs, ok := containerService.(interfaces.ContainerService); ok {
+			ah.HandleExecAction(containerID, containerName, cs.ExecContainer)
+		}
 		return true
 	}
 	return false
-}
-
-// HandleContainerLifecycleAction handles container lifecycle operations (start, stop, restart)
-func (ah *ActionHandlers) HandleContainerLifecycleAction(
-	action rune,
-	containerID string,
-	containerService services.ContainerService,
-	onRefresh func(),
-) {
-	switch action {
-	case 's':
-		ah.executor.StartOperation("container", containerID, containerService.StartContainer, onRefresh)
-	case 'S':
-		ah.executor.StopOperation("container", containerID, containerService.StopContainer, onRefresh)
-	case 'r':
-		ah.executor.RestartOperation("container", containerID, containerService.RestartContainer, onRefresh)
-	}
-}
-
-// HandleContainerManagementAction handles container management operations (delete, inspect)
-func (ah *ActionHandlers) HandleContainerManagementAction(
-	action rune,
-	containerID, containerName string,
-	containerService services.ContainerService,
-	onRefresh func(),
-) {
-	switch action {
-	case 'd':
-		ah.HandleDeleteAction("container", containerID, containerName, containerService.RemoveContainer, onRefresh)
-	case 'i':
-		ah.HandleInspectAction("container", containerID, containerService.InspectContainer)
-	}
-}
-
-// HandleContainerAccessAction handles container access operations (attach, logs, exec)
-func (ah *ActionHandlers) HandleContainerAccessAction(
-	action rune,
-	containerID, containerName string,
-	containerService services.ContainerService,
-) {
-	switch action {
-	case 'a':
-		ah.HandleAttachAction(containerID, containerName)
-	case 'l':
-		ah.ui.ShowLogs(containerID, containerName)
-	case 'e':
-		ah.HandleExecAction(containerID, containerName, containerService.ExecContainer)
-	}
-}
-
-// HandleAttachAction handles container attach action
-func (ah *ActionHandlers) HandleAttachAction(containerID, containerName string) {
-	ah.ui.ShowShell(containerID, containerName)
-}
-
-// HandleExecAction handles container exec action
-func (ah *ActionHandlers) HandleExecAction(
-	containerID, containerName string,
-	execFunc func(context.Context, string, []string, bool) (string, error),
-) {
-	mainFlex := ah.ui.GetMainFlex().(*tview.Flex)
-	execInput := ah.createExecInput(containerName)
-
-	ah.setupExecInputHandlers(execInput, mainFlex, containerID, containerName, execFunc)
-	ah.addExecInputToUI(execInput, mainFlex)
 }
 
 // createExecInput creates and configures the exec command input field
@@ -253,7 +359,11 @@ func (ah *ActionHandlers) createExecInput(containerName string) *tview.InputFiel
 }
 
 // configureExecInputStyling configures the visual styling of the exec input
-func (ah *ActionHandlers) configureExecInputStyling(execInput *tview.InputField, themeManager *config.ThemeManager, containerName string) {
+func (ah *ActionHandlers) configureExecInputStyling(
+	execInput *tview.InputField,
+	themeManager *config.ThemeManager,
+	containerName string,
+) {
 	execInput.SetLabel(" Exec Command: ")
 	execInput.SetLabelColor(themeManager.GetContainerExecLabelColor())
 	execInput.SetFieldTextColor(themeManager.GetContainerExecTextColor())
@@ -265,7 +375,10 @@ func (ah *ActionHandlers) configureExecInputStyling(execInput *tview.InputField,
 }
 
 // configureExecInputBehavior configures the behavior of the exec input
-func (ah *ActionHandlers) configureExecInputBehavior(execInput *tview.InputField, themeManager *config.ThemeManager) {
+func (ah *ActionHandlers) configureExecInputBehavior(
+	execInput *tview.InputField,
+	themeManager *config.ThemeManager,
+) {
 	execInput.SetPlaceholder("Type command to execute (e.g., ls -la, pwd, whoami)")
 	execInput.SetPlaceholderTextColor(themeManager.GetContainerExecPlaceholderColor())
 	execInput.SetFieldWidth(80)
@@ -294,13 +407,13 @@ func (ah *ActionHandlers) handleExecCommand(
 ) {
 	command := execInput.GetText()
 	if command == "" {
-		ah.ui.ShowError(fmt.Errorf("command cannot be empty"))
+		ah.ui.ShowError(errors.New("command cannot be empty"))
 		return
 	}
 
 	args := ah.parseExecCommand(command)
 	if len(args) == 0 {
-		ah.ui.ShowError(fmt.Errorf("invalid command"))
+		ah.ui.ShowError(errors.New("invalid command"))
 		return
 	}
 
@@ -347,7 +460,11 @@ func (ah *ActionHandlers) executeCommand(
 func (ah *ActionHandlers) addExecInputToUI(execInput *tview.InputField, mainFlex *tview.Flex) {
 	mainFlex.AddItem(execInput, 3, 0, true)
 
-	app := ah.ui.GetApp().(*tview.Application)
+	app, ok := ah.ui.GetApp().(*tview.Application)
+	if !ok {
+		ah.ui.ShowError(errors.New("failed to get application instance"))
+		return
+	}
 	app.SetFocus(execInput)
 }
 
@@ -360,7 +477,9 @@ func (ah *ActionHandlers) showExecOutput(containerName, command, output string) 
 }
 
 // createExecOutputModal creates the exec output modal with content
-func (ah *ActionHandlers) createExecOutputModal(containerName, command, output string) *tview.Modal {
+func (ah *ActionHandlers) createExecOutputModal(
+	containerName, command, output string,
+) *tview.Modal {
 	return tview.NewModal().
 		SetText(fmt.Sprintf("Command Output: %s\n\nContainer: %s\nCommand: %s\n\nOutput:\n%s",
 			containerName, containerName, command, output)).
@@ -377,7 +496,11 @@ func (ah *ActionHandlers) setupExecOutputModalHandlers(outputModal *tview.Modal)
 
 // closeExecOutputModal removes the exec output modal from the UI
 func (ah *ActionHandlers) closeExecOutputModal() {
-	pages := ah.ui.GetPages().(*tview.Pages)
+	pages, ok := ah.ui.GetPages().(*tview.Pages)
+	if !ok {
+		ah.ui.ShowError(errors.New("failed to get pages container"))
+		return
+	}
 	pages.RemovePage("exec_output_modal")
 }
 
@@ -393,35 +516,32 @@ func (ah *ActionHandlers) returnFocusToViewContainer() {
 		return
 	}
 
-	app := ah.ui.GetApp().(*tview.Application)
+	ah.setFocusToViewContainer(vc)
+}
+
+// setFocusToViewContainer sets focus to the specified view container
+func (ah *ActionHandlers) setFocusToViewContainer(vc *tview.Flex) {
+	app, ok := ah.ui.GetApp().(*tview.Application)
+	if !ok {
+		ah.ui.ShowError(errors.New("failed to get application instance"))
+		return
+	}
 	app.SetFocus(vc)
 }
 
 // addExecOutputModalToUI adds the exec output modal to the UI and sets focus
 func (ah *ActionHandlers) addExecOutputModalToUI(outputModal *tview.Modal) {
-	pages := ah.ui.GetPages().(*tview.Pages)
+	pages, ok := ah.ui.GetPages().(*tview.Pages)
+	if !ok {
+		ah.ui.ShowError(errors.New("failed to get pages container"))
+		return
+	}
 	pages.AddPage("exec_output_modal", outputModal, true, true)
 
-	app := ah.ui.GetApp().(*tview.Application)
-	app.SetFocus(outputModal)
-}
-
-// HandleResourceAction provides generic resource action handling (for images, volumes, networks)
-func (ah *ActionHandlers) HandleResourceAction(
-	action rune,
-	resourceType, resourceID, resourceName string,
-	inspectFunc func(context.Context, string) (map[string]any, error),
-	deleteFunc func(context.Context, string, bool) error,
-	onRefresh func(),
-) {
-	switch action {
-	case 'd':
-		if deleteFunc != nil {
-			ah.HandleDeleteAction(resourceType, resourceID, resourceName, deleteFunc, onRefresh)
-		}
-	case 'i':
-		if inspectFunc != nil {
-			ah.HandleInspectAction(resourceType, resourceID, inspectFunc)
-		}
+	app, ok := ah.ui.GetApp().(*tview.Application)
+	if !ok {
+		ah.ui.ShowError(errors.New("failed to get application instance"))
+		return
 	}
+	app.SetFocus(outputModal)
 }

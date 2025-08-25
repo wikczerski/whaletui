@@ -13,6 +13,43 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// testEnvVars holds the original environment variables for restoration
+type testEnvVars struct {
+	home        string
+	userProfile string
+}
+
+// setupTestEnvironment sets up the test environment variables
+func setupTestEnvironment(t *testing.T, tempHome string) testEnvVars {
+	t.Helper()
+
+	envVars := testEnvVars{
+		home:        os.Getenv("HOME"),
+		userProfile: os.Getenv("USERPROFILE"),
+	}
+
+	if err := os.Setenv("HOME", tempHome); err != nil {
+		t.Fatalf("Failed to set HOME env var: %v", err)
+	}
+	if err := os.Setenv("USERPROFILE", tempHome); err != nil {
+		t.Fatalf("Failed to set USERPROFILE env var: %v", err)
+	}
+
+	return envVars
+}
+
+// restoreTestEnvironment restores the original environment variables
+func restoreTestEnvironment(t *testing.T, envVars testEnvVars) {
+	t.Helper()
+
+	if err := os.Setenv("HOME", envVars.home); err != nil {
+		t.Errorf("Failed to restore HOME env var: %v", err)
+	}
+	if err := os.Setenv("USERPROFILE", envVars.userProfile); err != nil {
+		t.Errorf("Failed to restore USERPROFILE env var: %v", err)
+	}
+}
+
 func TestDefaultConfig(t *testing.T) {
 	cfg := DefaultConfig()
 
@@ -30,23 +67,8 @@ func TestDefaultConfig(t *testing.T) {
 
 func TestLoad_NewConfig(t *testing.T) {
 	tempHome := t.TempDir()
-	originalHome := os.Getenv("HOME")
-	originalUserProfile := os.Getenv("USERPROFILE")
-
-	if err := os.Setenv("HOME", tempHome); err != nil {
-		t.Fatalf("Failed to set HOME env var: %v", err)
-	}
-	if err := os.Setenv("USERPROFILE", tempHome); err != nil {
-		t.Fatalf("Failed to set USERPROFILE env var: %v", err)
-	}
-	defer func() {
-		if err := os.Setenv("HOME", originalHome); err != nil {
-			t.Errorf("Failed to restore HOME env var: %v", err)
-		}
-		if err := os.Setenv("USERPROFILE", originalUserProfile); err != nil {
-			t.Errorf("Failed to restore USERPROFILE env var: %v", err)
-		}
-	}()
+	envVars := setupTestEnvironment(t, tempHome)
+	defer restoreTestEnvironment(t, envVars)
 
 	cfg, err := Load()
 	require.NoError(t, err)
@@ -61,38 +83,15 @@ func TestLoad_NewConfig(t *testing.T) {
 
 func TestLoad_ExistingConfig(t *testing.T) {
 	tempHome := t.TempDir()
-	originalHome := os.Getenv("HOME")
-	originalUserProfile := os.Getenv("USERPROFILE")
-
-	if err := os.Setenv("HOME", tempHome); err != nil {
-		t.Fatalf("Failed to set HOME env var: %v", err)
-	}
-	if err := os.Setenv("USERPROFILE", tempHome); err != nil {
-		t.Fatalf("Failed to set USERPROFILE env var: %v", err)
-	}
-	defer func() {
-		if err := os.Setenv("HOME", originalHome); err != nil {
-			t.Errorf("Failed to restore HOME env var: %v", err)
-		}
-		if err := os.Setenv("USERPROFILE", originalUserProfile); err != nil {
-			t.Errorf("Failed to restore USERPROFILE env var: %v", err)
-		}
-	}()
+	envVars := setupTestEnvironment(t, tempHome)
+	defer restoreTestEnvironment(t, envVars)
 
 	configDir := filepath.Join(tempHome, ".dockerk9s")
-	err := os.MkdirAll(configDir, 0o755)
+	err := os.MkdirAll(configDir, 0o750)
 	require.NoError(t, err)
 
 	configFile := filepath.Join(configDir, "config.json")
-
-	testConfig := `{
-		"refresh_interval": 10,
-		"log_level": "DEBUG",
-		"docker_host": "tcp://localhost:2375",
-		"theme": "dark"
-	}`
-	err = os.WriteFile(configFile, []byte(testConfig), 0o644)
-	require.NoError(t, err)
+	writeTestConfig(t, configFile)
 
 	cfg, err := Load()
 	require.NoError(t, err)
@@ -104,38 +103,31 @@ func TestLoad_ExistingConfig(t *testing.T) {
 	assert.Equal(t, "dark", cfg.Theme)
 }
 
+// writeTestConfig writes a test configuration to the specified file
+func writeTestConfig(t *testing.T, configFile string) {
+	t.Helper()
+
+	testConfig := `{
+		"refresh_interval": 10,
+		"log_level": "DEBUG",
+		"docker_host": "tcp://localhost:2375",
+		"theme": "dark"
+	}`
+	err := os.WriteFile(configFile, []byte(testConfig), 0o600)
+	require.NoError(t, err)
+}
+
 func TestLoad_InvalidConfig(t *testing.T) {
 	tempHome := t.TempDir()
-	originalHome := os.Getenv("HOME")
-	originalUserProfile := os.Getenv("USERPROFILE")
-
-	if err := os.Setenv("HOME", tempHome); err != nil {
-		t.Fatalf("Failed to set HOME env var: %v", err)
-	}
-	if err := os.Setenv("USERPROFILE", tempHome); err != nil {
-		t.Fatalf("Failed to set USERPROFILE env var: %v", err)
-	}
-	defer func() {
-		if err := os.Setenv("HOME", originalHome); err != nil {
-			t.Errorf("Failed to restore HOME env var: %v", err)
-		}
-		if err := os.Setenv("USERPROFILE", originalUserProfile); err != nil {
-			t.Errorf("Failed to restore USERPROFILE env var: %v", err)
-		}
-	}()
+	envVars := setupTestEnvironment(t, tempHome)
+	defer restoreTestEnvironment(t, envVars)
 
 	configDir := filepath.Join(tempHome, ".dockerk9s")
-	err := os.MkdirAll(configDir, 0o755)
+	err := os.MkdirAll(configDir, 0o750)
 	require.NoError(t, err)
 
 	configFile := filepath.Join(configDir, "config.json")
-
-	invalidConfig := `{
-		"refresh_interval": "invalid",
-		"log_level": "DEBUG"
-	`
-	err = os.WriteFile(configFile, []byte(invalidConfig), 0o644)
-	require.NoError(t, err)
+	writeInvalidTestConfig(t, configFile)
 
 	cfg, err := Load()
 	assert.Error(t, err)
@@ -143,6 +135,18 @@ func TestLoad_InvalidConfig(t *testing.T) {
 	assert.Contains(t, err.Error(), "config parse failed")
 
 	assert.FileExists(t, configFile)
+}
+
+// writeInvalidTestConfig writes an invalid test configuration to the specified file
+func writeInvalidTestConfig(t *testing.T, configFile string) {
+	t.Helper()
+
+	invalidConfig := `{
+		"refresh_interval": "invalid",
+		"log_level": "DEBUG"
+	`
+	err := os.WriteFile(configFile, []byte(invalidConfig), 0o600)
+	require.NoError(t, err)
 }
 
 func TestSave(t *testing.T) {
@@ -155,11 +159,14 @@ func TestSave(t *testing.T) {
 
 	err := cfg.Save()
 	if err != nil {
-		assert.True(t,
+		assert.True(
+			t,
 			strings.Contains(err.Error(), "home directory access failed") ||
 				strings.Contains(err.Error(), "config write failed") ||
 				strings.Contains(err.Error(), "config directory creation failed"),
-			"Expected error about home directory, config write, or directory creation, got: %s", err.Error())
+			"Expected error about home directory, config write, or directory creation, got: %s",
+			err.Error(),
+		)
 	}
 }
 
@@ -177,34 +184,80 @@ func TestSave_InvalidHomeDir(t *testing.T) {
 }
 
 func TestConfig_JSONTags(t *testing.T) {
-	cfg := &Config{
+	cfg := createTestConfig()
+
+	data, err := json.Marshal(cfg)
+	require.NoError(t, err)
+
+	assertJSONFields(t, data)
+	assertUnmarshal(t, data, cfg)
+}
+
+// createTestConfig creates a test configuration
+func createTestConfig() *Config {
+	return &Config{
 		RefreshInterval: 20,
 		LogLevel:        "ERROR",
 		DockerHost:      "tcp://localhost:2377",
 		Theme:           "minimal",
 	}
+}
 
-	data, err := json.Marshal(cfg)
-	require.NoError(t, err)
+// assertJSONFields asserts that the JSON contains expected fields
+func assertJSONFields(t *testing.T, data []byte) {
+	t.Helper()
 
 	assert.Contains(t, string(data), `"refresh_interval"`)
 	assert.Contains(t, string(data), `"log_level"`)
 	assert.Contains(t, string(data), `"docker_host"`)
 	assert.Contains(t, string(data), `"theme"`)
+}
+
+// assertUnmarshal asserts that the JSON can be unmarshaled correctly
+func assertUnmarshal(t *testing.T, data []byte, expected *Config) {
+	t.Helper()
 
 	var unmarshaled Config
-	err = json.Unmarshal(data, &unmarshaled)
+	err := json.Unmarshal(data, &unmarshaled)
 	require.NoError(t, err)
 
-	assert.Equal(t, cfg.RefreshInterval, unmarshaled.RefreshInterval)
-	assert.Equal(t, cfg.LogLevel, unmarshaled.LogLevel)
-	assert.Equal(t, cfg.DockerHost, unmarshaled.DockerHost)
-	assert.Equal(t, cfg.Theme, unmarshaled.Theme)
+	assert.Equal(t, expected.RefreshInterval, unmarshaled.RefreshInterval)
+	assert.Equal(t, expected.LogLevel, unmarshaled.LogLevel)
+	assert.Equal(t, expected.DockerHost, unmarshaled.DockerHost)
+	assert.Equal(t, expected.Theme, unmarshaled.Theme)
 }
 
 func TestThemeLoading(t *testing.T) {
 	tempDir := t.TempDir()
 	themePath := filepath.Join(tempDir, "test_theme.yaml")
+
+	// Debug: Log the paths being used
+	t.Logf("Temp directory: %s", tempDir)
+	t.Logf("Theme path: %s", themePath)
+	t.Logf("Theme path absolute: %s", filepath.Clean(themePath))
+
+	writeTestTheme(t, themePath)
+
+	// Debug: Verify the file was written
+	if _, err := os.Stat(themePath); os.IsNotExist(err) {
+		t.Fatalf("Theme file was not created: %s", themePath)
+	}
+
+	// Debug: Read and log the file contents
+	content, err := os.ReadFile(themePath)
+	if err != nil {
+		t.Fatalf("Failed to read theme file: %v", err)
+	}
+	t.Logf("Theme file contents: %s", string(content))
+
+	tm := NewThemeManager(themePath)
+
+	assertCustomColors(t, tm)
+}
+
+// writeTestTheme writes a test theme file
+func writeTestTheme(t *testing.T, themePath string) {
+	t.Helper()
 
 	themeContent := `colors:
   header: "red"
@@ -216,10 +269,13 @@ func TestThemeLoading(t *testing.T) {
   error: "red"
   info: "cyan"`
 
-	err := os.WriteFile(themePath, []byte(themeContent), 0o644)
+	err := os.WriteFile(themePath, []byte(themeContent), 0o600)
 	require.NoError(t, err)
+}
 
-	tm := NewThemeManager(themePath)
+// assertCustomColors asserts that custom colors are loaded
+func assertCustomColors(t *testing.T, tm *ThemeManager) {
+	t.Helper()
 
 	headerColor := tm.GetHeaderColor()
 	borderColor := tm.GetBorderColor()

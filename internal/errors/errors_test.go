@@ -5,6 +5,24 @@ import (
 	"testing"
 )
 
+// assertDockerError is a helper function to assert DockerError properties
+func assertDockerError(t *testing.T, err error, expectedOp string, originalErr error) {
+	t.Helper()
+
+	dockerErr, ok := err.(*DockerError)
+	if !ok {
+		t.Fatal("Error should return *DockerError")
+	}
+
+	if dockerErr.Operation != expectedOp {
+		t.Errorf("operation = %v, want %v", dockerErr.Operation, expectedOp)
+	}
+
+	if dockerErr.Err != originalErr {
+		t.Errorf("error = %v, want %v", dockerErr.Err, originalErr)
+	}
+}
+
 func TestDockerError_Error(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -74,108 +92,48 @@ func TestNewDockerError(t *testing.T) {
 func TestConnectionError(t *testing.T) {
 	originalErr := errors.New("connection refused")
 	host := "localhost:2375"
+	expectedOp := "connection to localhost:2375"
 
 	err := ConnectionError(host, originalErr)
-
-	dockerErr, ok := err.(*DockerError)
-	if !ok {
-		t.Fatal("ConnectionError() should return *DockerError")
-	}
-
-	expectedOp := "connection to localhost:2375"
-	if dockerErr.Operation != expectedOp {
-		t.Errorf("ConnectionError() operation = %v, want %v", dockerErr.Operation, expectedOp)
-	}
-
-	if dockerErr.Err != originalErr {
-		t.Errorf("ConnectionError() error = %v, want %v", dockerErr.Err, originalErr)
-	}
+	assertDockerError(t, err, expectedOp, originalErr)
 }
 
 func TestContainerError(t *testing.T) {
 	originalErr := errors.New("container not found")
 	operation := "start"
 	id := "abc123"
+	expectedOp := "start container abc123"
 
 	err := ContainerError(operation, id, originalErr)
-
-	dockerErr, ok := err.(*DockerError)
-	if !ok {
-		t.Fatal("ContainerError() should return *DockerError")
-	}
-
-	expectedOp := "start container abc123"
-	if dockerErr.Operation != expectedOp {
-		t.Errorf("ContainerError() operation = %v, want %v", dockerErr.Operation, expectedOp)
-	}
-
-	if dockerErr.Err != originalErr {
-		t.Errorf("ContainerError() error = %v, want %v", dockerErr.Err, originalErr)
-	}
+	assertDockerError(t, err, expectedOp, originalErr)
 }
 
 func TestImageError(t *testing.T) {
 	originalErr := errors.New("image not found")
 	operation := "pull"
 	id := "nginx:latest"
+	expectedOp := "pull image nginx:latest"
 
 	err := ImageError(operation, id, originalErr)
-
-	dockerErr, ok := err.(*DockerError)
-	if !ok {
-		t.Fatal("ImageError() should return *DockerError")
-	}
-
-	expectedOp := "pull image nginx:latest"
-	if dockerErr.Operation != expectedOp {
-		t.Errorf("ImageError() operation = %v, want %v", dockerErr.Operation, expectedOp)
-	}
-
-	if dockerErr.Err != originalErr {
-		t.Errorf("ImageError() error = %v, want %v", dockerErr.Err, originalErr)
-	}
+	assertDockerError(t, err, expectedOp, originalErr)
 }
 
 func TestVolumeError(t *testing.T) {
 	originalErr := errors.New("volume not found")
 	operation := "create"
 	name := "my-volume"
+	expectedOp := "create volume my-volume"
 
 	err := VolumeError(operation, name, originalErr)
-
-	dockerErr, ok := err.(*DockerError)
-	if !ok {
-		t.Fatal("VolumeError() should return *DockerError")
-	}
-
-	expectedOp := "create volume my-volume"
-	if dockerErr.Operation != expectedOp {
-		t.Errorf("VolumeError() operation = %v, want %v", dockerErr.Operation, expectedOp)
-	}
-
-	if dockerErr.Err != originalErr {
-		t.Errorf("VolumeError() error = %v, want %v", dockerErr.Err, originalErr)
-	}
+	assertDockerError(t, err, expectedOp, originalErr)
 }
 
 func TestNetworkError(t *testing.T) {
 	originalErr := errors.New("network not found")
 	operation := "connect"
 	id := "bridge"
+	expectedOp := "connect network bridge"
 
 	err := NetworkError(operation, id, originalErr)
-
-	dockerErr, ok := err.(*DockerError)
-	if !ok {
-		t.Fatal("NetworkError() should return *DockerError")
-	}
-
-	expectedOp := "connect network bridge"
-	if dockerErr.Operation != expectedOp {
-		t.Errorf("NetworkError() operation = %v, want %v", dockerErr.Operation, expectedOp)
-	}
-
-	if dockerErr.Err != originalErr {
-		t.Errorf("NetworkError() error = %v, want %v", dockerErr.Err, originalErr)
-	}
+	assertDockerError(t, err, expectedOp, originalErr)
 }

@@ -28,7 +28,12 @@ type View struct {
 }
 
 // NewView creates a new shell view for the specified container
-func NewView(ui interfaces.UIInterface, containerID, containerName string, onExit func(), execFunc func(context.Context, string, []string, bool) (string, error)) *View {
+func NewView(
+	ui interfaces.UIInterface,
+	containerID, containerName string,
+	onExit func(),
+	execFunc func(context.Context, string, []string, bool) (string, error),
+) *View {
 	sv := &View{
 		containerID:   containerID,
 		containerName: containerName,

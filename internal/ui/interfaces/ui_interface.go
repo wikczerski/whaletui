@@ -1,45 +1,49 @@
+//nolint:revive // Package name "interfaces" is for interface-only package
 package interfaces
 
 import (
 	"github.com/wikczerski/whaletui/internal/config"
-	"github.com/wikczerski/whaletui/internal/services"
 )
 
 // UIInterface defines the interface that views need from the UI
 type UIInterface interface {
 	// Services
-	GetServices() services.ServiceFactoryInterface
+	GetServices() ServiceFactoryInterface
 
 	// UI methods
 	ShowError(error)
-	ShowSuccess(string)
+	ShowInfo(string)
 	ShowDetails(any)
 	ShowCurrentView()
 	ShowConfirm(string, func(bool))
+	ShowServiceScaleModal(string, uint64, func(int))
+	ShowNodeAvailabilityModal(string, string, func(string))
+	ShowContextualHelp(string, string)
+	ShowRetryDialog(string, error, func() error, func())
+	ShowFallbackDialog(string, error, []string, func(string))
 
 	// App methods
 	GetApp() any
-
-	// Status methods
-	UpdateStatusBar(string)
 
 	// State methods
 	IsInLogsMode() bool
 	IsInDetailsMode() bool
 	IsModalActive() bool
+	IsRefreshing() bool
 	GetCurrentActions() map[rune]string
 	GetCurrentViewActions() string
+	GetCurrentViewNavigation() string
 	GetViewRegistry() any
 
 	// Additional methods needed by managers
 	GetMainFlex() any
-	GetLog() any
 	SwitchView(string)
 	ShowHelp()
 
 	// Additional methods needed by handlers
 	GetPages() any
 	ShowLogs(string, string)
+	ShowLogsForResource(string, string, string)
 	ShowShell(string, string)
 
 	// Additional methods needed by modal manager
@@ -50,6 +54,10 @@ type UIInterface interface {
 	GetImageService() any
 	GetVolumeService() any
 	GetNetworkService() any
+	GetServicesAny() any
+	GetSwarmServiceService() any
+	GetSwarmNodeService() any
+	IsContainerServiceAvailable() bool
 
 	// Theme management
 	GetThemeManager() *config.ThemeManager

@@ -12,48 +12,62 @@ func (sv *View) handleTabCompletion() {
 		return
 	}
 
-	endsWithSpace := strings.HasSuffix(currentText, " ")
-
 	words := strings.Fields(currentText)
 	if len(words) == 0 {
 		return
 	}
 
-	if endsWithSpace {
-		completions := sv.getCompletions(".", "")
-
-		if len(completions) == 0 {
-			return
-		}
-
-		if len(completions) == 1 {
-			completion := completions[0]
-			sv.inputField.SetText(currentText + completion)
-
-			if strings.HasSuffix(completion, "/") {
-				sv.inputField.SetText(sv.inputField.GetText() + "/")
-			} else {
-				sv.inputField.SetText(sv.inputField.GetText() + " ")
-			}
-		} else {
-			sv.showCompletions(completions)
-		}
+	if sv.handleSpaceCompletion(currentText) {
 		return
 	}
 
+	sv.handleWordCompletion(currentText, words)
+}
+
+// handleSpaceCompletion handles completion when the input ends with a space
+func (sv *View) handleSpaceCompletion(currentText string) bool {
+	if !strings.HasSuffix(currentText, " ") {
+		return false
+	}
+
+	completions := sv.getCompletions(".", "")
+	if len(completions) == 0 {
+		return true
+	}
+
+	if len(completions) == 1 {
+		sv.applySingleCompletion(currentText, completions[0])
+	} else {
+		sv.showCompletions(completions)
+	}
+	return true
+}
+
+// handleWordCompletion handles completion for the last word in the input
+func (sv *View) handleWordCompletion(currentText string, words []string) {
 	lastWord := words[len(words)-1]
 	if lastWord == "" {
 		return
 	}
 
 	if len(words) == 1 {
-		completions := sv.getCommandCompletions(lastWord)
-		if len(completions) > 0 {
-			sv.handleCommandCompletion(currentText, lastWord, completions)
-			return
-		}
+		sv.handleCommandCompletionForWords(currentText, lastWord)
+		return
 	}
 
+	sv.handlePathCompletion(currentText, lastWord)
+}
+
+// handleCommandCompletionForWords handles completion for command names
+func (sv *View) handleCommandCompletionForWords(currentText, lastWord string) {
+	completions := sv.getCommandCompletions(lastWord)
+	if len(completions) > 0 {
+		sv.handleCommandCompletionResults(currentText, lastWord, completions)
+	}
+}
+
+// handlePathCompletion handles completion for file/directory paths
+func (sv *View) handlePathCompletion(currentText, lastWord string) {
 	dirPath, partialName := sv.parsePathForCompletion(lastWord)
 	completions := sv.getCompletions(dirPath, partialName)
 
@@ -63,24 +77,36 @@ func (sv *View) handleTabCompletion() {
 	}
 
 	if len(completions) == 1 {
-		completion := completions[0]
-		newText := strings.TrimSuffix(currentText, partialName) + completion
-		sv.inputField.SetText(newText)
-
-		if strings.HasSuffix(completion, "/") {
-			sv.inputField.SetText(sv.inputField.GetText() + "/")
-		} else {
-			sv.inputField.SetText(sv.inputField.GetText() + " ")
-		}
+		sv.applySingleCompletion(currentText, completions[0])
 	} else {
-		commonPrefix := sv.findCommonPrefix(completions)
-		if commonPrefix != "" && commonPrefix != partialName {
-			newText := strings.TrimSuffix(currentText, partialName) + commonPrefix
-			sv.inputField.SetText(newText)
-		} else {
-			sv.showCompletions(completions)
-		}
+		sv.handleMultipleCompletions(currentText, partialName, completions)
 	}
+}
+
+// applySingleCompletion applies a single completion to the input
+func (sv *View) applySingleCompletion(currentText, completion string) {
+	sv.inputField.SetText(currentText + completion)
+	if strings.HasSuffix(completion, "/") {
+		sv.inputField.SetText(sv.inputField.GetText() + "/")
+	} else {
+		sv.inputField.SetText(sv.inputField.GetText() + " ")
+	}
+}
+
+// handleMultipleCompletions handles multiple completion options
+func (sv *View) handleMultipleCompletions(currentText, partialName string, completions []string) {
+	commonPrefix := sv.findCommonPrefix(completions)
+	if commonPrefix != "" && commonPrefix != partialName {
+		newText := strings.TrimSuffix(currentText, partialName) + commonPrefix
+		sv.inputField.SetText(newText)
+	} else {
+		sv.showCompletions(completions)
+	}
+}
+
+// handleCommandCompletionResults handles the results of command completion
+func (sv *View) handleCommandCompletionResults(currentText, lastWord string, completions []string) {
+	sv.handleCommandCompletion(currentText, lastWord, completions)
 }
 
 // parsePathForCompletion parses a path to extract directory and partial filename
@@ -90,18 +116,29 @@ func (sv *View) parsePathForCompletion(path string) (dir, partial string) {
 	}
 
 	if strings.HasPrefix(path, "/") {
-		lastSlash := strings.LastIndex(path, "/")
-		if lastSlash == 0 {
-			return "/", ""
-		}
-		dir = path[:lastSlash]
-		if dir == "" {
-			dir = "/"
-		}
-		partial = path[lastSlash+1:]
-		return dir, partial
+		return sv.parseAbsolutePath(path)
 	}
 
+	return sv.parseRelativePath(path)
+}
+
+// parseAbsolutePath parses an absolute path
+func (sv *View) parseAbsolutePath(path string) (dir, partial string) {
+	lastSlash := strings.LastIndex(path, "/")
+	if lastSlash == 0 {
+		return "/", ""
+	}
+
+	dir = path[:lastSlash]
+	if dir == "" {
+		dir = "/"
+	}
+	partial = path[lastSlash+1:]
+	return dir, partial
+}
+
+// parseRelativePath parses a relative path
+func (sv *View) parseRelativePath(path string) (dir, partial string) {
 	path = strings.TrimPrefix(path, "./")
 
 	lastSlash := strings.LastIndex(path, "/")
@@ -123,14 +160,23 @@ func (sv *View) getCompletions(dirPath, partialName string) []string {
 		return nil
 	}
 
-	lsArgs := []string{"ls", "-1", dirPath}
-
-	ctx := context.Background()
-	output, err := sv.execFunc(ctx, sv.containerID, lsArgs, false)
+	output, err := sv.executeLsCommand(dirPath)
 	if err != nil {
 		return nil
 	}
 
+	return sv.processLsOutput(output, dirPath, partialName)
+}
+
+// executeLsCommand executes the ls command to get directory contents
+func (sv *View) executeLsCommand(dirPath string) (string, error) {
+	lsArgs := []string{"ls", "-1", dirPath}
+	ctx := context.Background()
+	return sv.execFunc(ctx, sv.containerID, lsArgs, false)
+}
+
+// processLsOutput processes the output of the ls command
+func (sv *View) processLsOutput(output, dirPath, partialName string) []string {
 	lines := strings.Split(strings.TrimSpace(output), "\n")
 	var completions []string
 
@@ -140,16 +186,26 @@ func (sv *View) getCompletions(dirPath, partialName string) []string {
 			continue
 		}
 
-		if partialName == "" || strings.HasPrefix(line, partialName) {
-			if sv.isDirectory(dirPath, line) {
-				completions = append(completions, line+"/")
-			} else {
-				completions = append(completions, line)
-			}
+		if sv.shouldIncludeCompletion(line, partialName) {
+			completion := sv.formatCompletion(line, dirPath)
+			completions = append(completions, completion)
 		}
 	}
 
 	return completions
+}
+
+// shouldIncludeCompletion checks if a completion should be included
+func (sv *View) shouldIncludeCompletion(line, partialName string) bool {
+	return partialName == "" || strings.HasPrefix(line, partialName)
+}
+
+// formatCompletion formats a completion line
+func (sv *View) formatCompletion(line, dirPath string) string {
+	if sv.isDirectory(dirPath, line) {
+		return line + "/"
+	}
+	return line
 }
 
 // isDirectory checks if a path is a directory
@@ -182,32 +238,55 @@ func (sv *View) findCommonPrefix(strings []string) string {
 		return strings[0]
 	}
 
+	minLen := sv.findMinimumLength(strings)
+	return sv.buildCommonPrefix(strings, minLen)
+}
+
+// findMinimumLength finds the minimum length among all strings
+func (sv *View) findMinimumLength(strings []string) int {
 	minLen := len(strings[0])
 	for _, s := range strings {
 		if len(s) < minLen {
 			minLen = len(s)
 		}
 	}
+	return minLen
+}
 
+// buildCommonPrefix builds the common prefix by comparing characters
+func (sv *View) buildCommonPrefix(strings []string, minLen int) string {
 	commonPrefix := ""
 	for i := 0; i < minLen; i++ {
-		char := strings[0][i]
-		for _, s := range strings {
-			if s[i] != char {
-				return commonPrefix
-			}
+		if !sv.allStringsHaveSameChar(strings, i) {
+			break
 		}
-		commonPrefix += string(char)
+		commonPrefix += string(strings[0][i])
 	}
-
 	return commonPrefix
+}
+
+// allStringsHaveSameChar checks if all strings have the same character at the given index
+func (sv *View) allStringsHaveSameChar(strings []string, index int) bool {
+	char := strings[0][index]
+	for _, s := range strings {
+		if s[index] != char {
+			return false
+		}
+	}
+	return true
 }
 
 // showCompletions displays available completions to the user
 func (sv *View) showCompletions(completions []string) {
 	sv.addOutput("\nAvailable completions:\n")
 
-	var dirs, files []string
+	dirs, files := sv.categorizeCompletions(completions)
+	sv.displayCompletionsByCategory(dirs, files)
+	sv.addOutput("\n")
+}
+
+// categorizeCompletions separates completions into directories and files
+func (sv *View) categorizeCompletions(completions []string) (dirs, files []string) {
 	for _, comp := range completions {
 		if strings.HasSuffix(comp, "/") {
 			dirs = append(dirs, comp)
@@ -215,22 +294,33 @@ func (sv *View) showCompletions(completions []string) {
 			files = append(files, comp)
 		}
 	}
+	return dirs, files
+}
 
+// displayCompletionsByCategory displays completions grouped by category
+func (sv *View) displayCompletionsByCategory(dirs, files []string) {
+	sv.displayDirectories(dirs)
+	sv.displayFiles(files)
+}
+
+// displayDirectories displays directory completions
+func (sv *View) displayDirectories(dirs []string) {
 	if len(dirs) > 0 {
 		sv.addOutput("Directories:\n")
 		for _, dir := range dirs {
 			sv.addOutput("  " + dir + "\n")
 		}
 	}
+}
 
+// displayFiles displays file completions
+func (sv *View) displayFiles(files []string) {
 	if len(files) > 0 {
 		sv.addOutput("Files:\n")
 		for _, file := range files {
 			sv.addOutput("  " + file + "\n")
 		}
 	}
-
-	sv.addOutput("\n")
 }
 
 // getCommandCompletions gets available command completions
@@ -239,8 +329,17 @@ func (sv *View) getCommandCompletions(partial string) []string {
 		return nil
 	}
 
-	// Common commands that are usually available
-	commonCommands := []string{
+	commonCommands := sv.getCommonCommands()
+	completions := sv.filterCommandsByPartial(commonCommands, partial)
+	pathCompletions := sv.getPathCommandCompletions(partial)
+	completions = append(completions, pathCompletions...)
+
+	return sv.removeDuplicates(completions)
+}
+
+// getCommonCommands returns the list of common commands
+func (sv *View) getCommonCommands() []string {
+	return []string{
 		"ls", "cd", "pwd", "cat", "less", "more", "head", "tail",
 		"grep", "find", "which", "whereis", "type", "command",
 		"echo", "printf", "date", "whoami", "id", "groups",
@@ -270,18 +369,17 @@ func (sv *View) getCommandCompletions(partial string) []string {
 		"tcpdump", "wireshark", "nmap", "netcat", "socat",
 		"strace", "ltrace", "gdb", "valgrind", "perf",
 	}
+}
 
+// filterCommandsByPartial filters commands that start with the given partial
+func (sv *View) filterCommandsByPartial(commands []string, partial string) []string {
 	var completions []string
-	for _, cmd := range commonCommands {
+	for _, cmd := range commands {
 		if strings.HasPrefix(cmd, partial) {
 			completions = append(completions, cmd)
 		}
 	}
-
-	pathCompletions := sv.getPathCommandCompletions(partial)
-	completions = append(completions, pathCompletions...)
-
-	return sv.removeDuplicates(completions)
+	return completions
 }
 
 // getPathCommandCompletions gets commands from PATH
@@ -290,23 +388,47 @@ func (sv *View) getPathCommandCompletions(partial string) []string {
 		return nil
 	}
 
-	// Try to get commands from common PATH locations
-	commonPaths := []string{"/usr/bin", "/usr/sbin", "/bin", "/sbin", "/usr/local/bin", "/usr/local/sbin"}
+	commonPaths := sv.getCommonPaths()
+	return sv.searchPathsForCommands(partial, commonPaths)
+}
+
+// getCommonPaths returns the common PATH locations to search
+func (sv *View) getCommonPaths() []string {
+	return []string{"/usr/bin", "/usr/sbin", "/bin", "/sbin", "/usr/local/bin", "/usr/local/sbin"}
+}
+
+// searchPathsForCommands searches the given paths for commands matching the partial
+func (sv *View) searchPathsForCommands(partial string, paths []string) []string {
 	var completions []string
 
-	for _, path := range commonPaths {
-		ctx := context.Background()
-		output, err := sv.execFunc(ctx, sv.containerID, []string{"ls", "-1", path}, false)
-		if err != nil {
-			continue
-		}
+	for _, path := range paths {
+		pathCompletions := sv.searchPathForCommands(partial, path)
+		completions = append(completions, pathCompletions...)
+	}
 
-		lines := strings.Split(strings.TrimSpace(output), "\n")
-		for _, line := range lines {
-			line = strings.TrimSpace(line)
-			if line != "" && strings.HasPrefix(line, partial) {
-				completions = append(completions, line)
-			}
+	return completions
+}
+
+// searchPathForCommands searches a single path for commands matching the partial
+func (sv *View) searchPathForCommands(partial, path string) []string {
+	ctx := context.Background()
+	output, err := sv.execFunc(ctx, sv.containerID, []string{"ls", "-1", path}, false)
+	if err != nil {
+		return nil
+	}
+
+	return sv.processCommandOutput(output, partial)
+}
+
+// processCommandOutput processes the command output to find matching completions
+func (sv *View) processCommandOutput(output, partial string) []string {
+	var completions []string
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" && strings.HasPrefix(line, partial) {
+			completions = append(completions, line)
 		}
 	}
 
@@ -316,22 +438,39 @@ func (sv *View) getPathCommandCompletions(partial string) []string {
 // handleCommandCompletion handles command name completion
 func (sv *View) handleCommandCompletion(currentText, partial string, completions []string) {
 	if len(completions) == 0 {
-		sv.inputField.SetText(currentText + " ")
+		sv.handleEmptyCompletions(currentText)
 		return
 	}
 
 	if len(completions) == 1 {
-		completion := completions[0]
-		newText := strings.TrimSuffix(currentText, partial) + completion
-		sv.inputField.SetText(newText + " ")
+		sv.handleSingleCompletion(currentText, partial, completions[0])
 	} else {
-		commonPrefix := sv.findCommonPrefix(completions)
-		if commonPrefix != "" && commonPrefix != partial {
-			newText := strings.TrimSuffix(currentText, partial) + commonPrefix
-			sv.inputField.SetText(newText)
-		} else {
-			sv.showCommandCompletions(completions)
-		}
+		sv.handleMultipleCompletionsForCommands(currentText, partial, completions)
+	}
+}
+
+// handleEmptyCompletions handles the case when there are no completions
+func (sv *View) handleEmptyCompletions(currentText string) {
+	sv.inputField.SetText(currentText + " ")
+}
+
+// handleSingleCompletion handles the case when there is exactly one completion
+func (sv *View) handleSingleCompletion(currentText, partial, completion string) {
+	newText := strings.TrimSuffix(currentText, partial) + completion
+	sv.inputField.SetText(newText + " ")
+}
+
+// handleMultipleCompletionsForCommands handles the case when there are multiple command completions
+func (sv *View) handleMultipleCompletionsForCommands(
+	currentText, partial string,
+	completions []string,
+) {
+	commonPrefix := sv.findCommonPrefix(completions)
+	if commonPrefix != "" && commonPrefix != partial {
+		newText := strings.TrimSuffix(currentText, partial) + commonPrefix
+		sv.inputField.SetText(newText)
+	} else {
+		sv.showCommandCompletions(completions)
 	}
 }
 

@@ -1,12 +1,12 @@
 package cmd
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/wikczerski/whaletui/internal/config"
-	"github.com/wikczerski/whaletui/internal/logger"
 )
 
 func TestRootCmd(t *testing.T) {
@@ -14,10 +14,8 @@ func TestRootCmd(t *testing.T) {
 	assert.NotNil(t, rootCmd)
 	assert.Equal(t, "whaletui", rootCmd.Use)
 	assert.Equal(t, "whaletui - Docker CLI Dashboard", rootCmd.Short)
-	assert.Contains(t, rootCmd.Long, "Container Management")
-	assert.Contains(t, rootCmd.Long, "Image Management")
-	assert.Contains(t, rootCmd.Long, "Volume Management")
-	assert.Contains(t, rootCmd.Long, "Network Management")
+	assert.Contains(t, rootCmd.Long, "Docker containers")
+	assert.Contains(t, rootCmd.Long, "images, volumes, and networks")
 }
 
 func TestThemeCmd(t *testing.T) {
@@ -76,28 +74,24 @@ func TestApplyFlagOverrides(t *testing.T) {
 }
 
 func TestSetLogLevel(t *testing.T) {
-	// Test log level setting - verify functions don't panic
-	log := logger.GetLogger()
-
-	// Test that setting different log levels doesn't panic
 	assert.NotPanics(t, func() {
-		setLogLevel(log, "DEBUG")
+		setLogLevel("DEBUG")
 	})
 
 	assert.NotPanics(t, func() {
-		setLogLevel(log, "WARN")
+		setLogLevel("WARN")
 	})
 
 	assert.NotPanics(t, func() {
-		setLogLevel(log, "ERROR")
+		setLogLevel("ERROR")
 	})
 
 	assert.NotPanics(t, func() {
-		setLogLevel(log, "INFO")
+		setLogLevel("INFO")
 	})
 
 	assert.NotPanics(t, func() {
-		setLogLevel(log, "INVALID")
+		setLogLevel("INVALID")
 	})
 }
 
@@ -143,4 +137,51 @@ func TestRootCmdIntegration(t *testing.T) {
 	assert.NotNil(t, cmd.Commands())
 	assert.Len(t, cmd.Commands(), 1)
 	assert.Equal(t, "whaletui", cmd.Commands()[0].Use)
+}
+
+func TestIsDockerConnectionError(t *testing.T) {
+	// Test various Docker connection error patterns
+	tests := []struct {
+		name     string
+		err      error
+		expected bool
+	}{
+		{
+			name:     "docker client creation failed",
+			err:      assert.AnError,
+			expected: false, // assert.AnError doesn't contain our patterns
+		},
+		{
+			name:     "connection refused error",
+			err:      errors.New("connection refused"),
+			expected: true,
+		},
+		{
+			name:     "permission denied error",
+			err:      errors.New("permission denied"),
+			expected: true,
+		},
+		{
+			name:     "timeout error",
+			err:      errors.New("timeout"),
+			expected: true,
+		},
+		{
+			name:     "docker client creation failed error",
+			err:      errors.New("docker client creation failed"),
+			expected: true,
+		},
+		{
+			name:     "non-docker error",
+			err:      errors.New("some other error"),
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isDockerConnectionError(tt.err)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
 }

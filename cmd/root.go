@@ -1,46 +1,81 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"log/slog"
 	"os"
+	"os/exec"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/spf13/cobra"
 	"github.com/wikczerski/whaletui/internal/app"
 	"github.com/wikczerski/whaletui/internal/config"
-	"github.com/wikczerski/whaletui/internal/docker"
+
+	"github.com/wikczerski/whaletui/internal/docker/dockerssh"
 	"github.com/wikczerski/whaletui/internal/logger"
+	"github.com/wikczerski/whaletui/internal/ui/constants"
 )
 
 var (
-	refresh  int
-	logLevel string
-	theme    string
+	refresh     int
+	logLevel    string
+	logFilePath string
+	theme       string
 )
+
+var dockerErrorPatterns = []string{
+	"docker client creation failed",
+	"failed to create Docker client",
+	"failed to connect to Docker",
+	"failed to connect to Docker via SSH",
+	"failed to connect to Docker via SSH proxy",
+	"connection refused",
+	"no such host",
+	"timeout",
+	"permission denied",
+	"dial tcp",
+	"dial unix",
+	"connection reset by peer",
+	"no route to host",
+	"network is unreachable",
+	"host is down",
+	"connection timed out",
+	"broken pipe",
+	"file not found",
+	"access denied",
+	"operation not permitted",
+}
 
 // connectCmd represents the connect command for remote Docker hosts
 var connectCmd = &cobra.Command{
 	Use:   "connect [flags]",
 	Short: "Connect to a remote Docker host via SSH",
-	Long: `Connect to a remote Docker host using SSH fallback when direct connection fails.
-This command establishes an SSH connection to the remote host and sets up a Docker proxy.
+	Long: `Connect to a remote Docker host using SSH or TCP connections.
+This command supports both direct TCP connections and SSH connections to remote Docker hosts.
 
-Example:
-  whaletui connect --host 192.168.1.100 --user admin --port 2375`,
-	RunE: runConnectCommand,
-	// Disable automatic help display on errors
+Examples:
+  # Connect using SSH (recommended for security)
+  whaletui connect --host ssh://admin@192.168.1.100
+
+  # Connect using separate host and user parameters
+  whaletui connect --host 192.168.1.100 --user admin
+
+  # Connect using TCP
+  whaletui connect --host tcp://192.168.1.100:2375`,
+	RunE:          runConnectCommand,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 }
 
 // themeCmd represents the theme command
 var themeCmd = &cobra.Command{
-	Use:   "theme",
-	Short: "Manage theme configuration",
-	Long:  `Manage theme configuration for the whaletui UI.`,
-	RunE:  runThemeCommand,
-	// Disable automatic help display on errors
+	Use:           "theme",
+	Short:         "Manage theme configuration",
+	Long:          `Manage theme configuration for the whaletui UI.`,
+	RunE:          runThemeCommand,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 }
@@ -49,62 +84,73 @@ var themeCmd = &cobra.Command{
 var rootCmd = &cobra.Command{
 	Use:   "whaletui",
 	Short: "whaletui - Docker CLI Dashboard",
-	Long: `whaletui is a terminal-based Docker management tool inspired by k9s,
+	Long: `
+Whaletui is a terminal-based Docker management tool inspired by k9s,
 providing an intuitive and powerful interface for managing Docker containers,
-images, volumes, and networks with a modern, responsive TUI.
+images, volumes, and networks with a modern, responsive TUI.`,
+	PersistentPreRun: func(_ *cobra.Command, _ []string) {
+		if logLevel != "INFO" {
+			cfg, err := config.Load()
+			if err != nil {
+				logger.SetLevelWithPath(logLevel, "")
+				return
+			}
 
-Features:
-  • Container Management: View, start, stop, restart, delete, and manage containers
-  • Image Management: Browse, inspect, and remove Docker images
-  • Volume Management: Manage Docker volumes with ease
-  • Network Management: View and manage Docker networks
-  • Remote Host Support: Connect to Docker hosts on different machines with SSH fallback
-  • SSH Fallback: Automatic SSH connection when direct Docker connection fails
-  • Configurable Ports: Customize SSH fallback proxy ports to avoid conflicts
-  • Theme Support: Customizable color schemes via YAML/JSON configuration
-
-Commands:
-  connect  - Connect to a remote Docker host via SSH
-  theme    - Manage theme configuration
-
-Examples:
-  whaletui                    - Start with local Docker instance
-  whaletui connect --host 192.168.1.100 --user admin  - Connect to remote host
-  whaletui theme             - Manage theme configuration`,
-	RunE: runApp,
-	// Disable automatic help display on errors
+			logPath := cfg.LogFilePath
+			if logFilePath != "" {
+				logPath = logFilePath
+			}
+			logger.SetLevelWithPath(logLevel, logPath)
+		}
+	},
+	RunE:          runApp,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 func Execute() {
-	// Set up the command to not show help on errors
 	rootCmd.SilenceUsage = true
 	rootCmd.SilenceErrors = true
 
 	err := rootCmd.Execute()
 	if err != nil {
-		// Log the error and exit without showing help
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		logger.Error("Command execution failed", "error", err)
+		logger.CloseLogFile()
 		os.Exit(1)
 	}
 }
 
 func init() {
-	rootCmd.PersistentFlags().IntVar(&refresh, "refresh", 5, "Refresh interval in seconds")
-	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "INFO", "Log level (DEBUG, INFO, WARN, ERROR)")
-	rootCmd.PersistentFlags().StringVar(&theme, "theme", "", "Path to theme configuration file (YAML/JSON)")
+	constants.SetAppVersion(Version)
+	logger.SetTUIMode(true)
 
-	// Connect command flags
-	connectCmd.Flags().String("host", "", "Remote Docker host (e.g., 192.168.1.100 or tcp://192.168.1.100)")
-	connectCmd.Flags().String("user", "", "SSH username for remote host connection")
+	setupRootFlags()
+	setupConnectFlags()
+	addSubcommands()
+}
+
+func setupRootFlags() {
+	rootCmd.PersistentFlags().IntVar(&refresh, "refresh", 5, "Refresh interval in seconds")
+	rootCmd.PersistentFlags().
+		StringVar(&logLevel, "log-level", "INFO", "Log level (DEBUG, INFO, WARN, ERROR)")
+	rootCmd.PersistentFlags().
+		StringVar(&logFilePath, "log-file", "", "Path to log file (used when --log-level DEBUG is set)")
+	rootCmd.PersistentFlags().
+		StringVar(&theme, "theme", "", "Path to theme configuration file (YAML/JSON)")
+}
+
+func setupConnectFlags() {
+	connectCmd.Flags().
+		String("host", "", "Remote Docker host (e.g., 192.168.1.100, tcp://192.168.1.100, or ssh://user@host)")
+	connectCmd.Flags().
+		String("user", "", "SSH username for remote host connection (not needed if host includes ssh:// scheme)")
 	connectCmd.Flags().Int("port", 2375, "Port for SSH fallback Docker proxy (default: 2375)")
 	connectCmd.Flags().Bool("diagnose", false, "Run SSH connection diagnostics before connecting")
 	_ = connectCmd.MarkFlagRequired("host")
-	_ = connectCmd.MarkFlagRequired("user")
+}
 
-	// Add subcommands
+func addSubcommands() {
 	rootCmd.AddCommand(connectCmd)
 	rootCmd.AddCommand(themeCmd)
 }
@@ -112,81 +158,109 @@ func init() {
 // runConnectCommand handles the connect subcommand for remote Docker hosts
 func runConnectCommand(cmd *cobra.Command, _ []string) error {
 	log := logger.GetLogger()
-	log.SetPrefix("Connect")
 
-	// Get flags from the connect command
-	host, _ := cmd.Flags().GetString("host")
-	user, _ := cmd.Flags().GetString("user")
-	port, _ := cmd.Flags().GetInt("port")
-	diagnose, _ := cmd.Flags().GetBool("diagnose")
+	host, user, port, diagnose := extractConnectFlags(cmd)
 
-	cfg, err := config.Load()
-	if err != nil {
-		log.Error("Config load failed: %v", err)
+	if err := validateConnectParameters(host, user); err != nil {
 		return err
 	}
 
-	// Set remote connection parameters
-	cfg.RemoteHost = host
-	cfg.RemoteUser = user
-	cfg.RemotePort = port
-	cfg.DockerHost = host
-
-	setLogLevel(log, cfg.LogLevel)
-
-	// Run diagnostics if requested
-	if diagnose {
-		log.Info("Running SSH connection diagnostics...")
-		if err := runSSHDiagnostics(host, user, port); err != nil {
-			log.Error("SSH diagnostics failed: %v", err)
-			log.Info("Continuing with connection attempt...")
-		} else {
-			log.Info("SSH diagnostics passed successfully")
-		}
+	cfg, err := loadAndConfigureConnection(host, user, port)
+	if err != nil {
+		return err
 	}
 
-	log.Info("Connecting to remote Docker host: %s as user: %s", host, user)
+	if diagnose {
+		runDiagnosticsIfRequested(host, user, port, log)
+	}
+
+	return connectToRemoteHost(host, user, cfg, log)
+}
+
+// connectToRemoteHost connects to the remote host
+func connectToRemoteHost(host, user string, cfg *config.Config, log *slog.Logger) error {
+	log.Info("Connecting to remote Docker host", "host", host, "user", user)
 
 	application, err := app.New(cfg)
 	if err != nil {
-		log.Error("App init failed: %v", err)
+		log.Error("App init failed", "error", err)
+
+		// Check if this is a Docker connection error and provide helpful guidance
+		if isDockerConnectionError(err) {
+			return handleDockerConnectionError(err, cfg)
+		}
+
 		return err
 	}
 
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	return runApplicationWithShutdown(application, log)
+}
 
-	uiShutdownCh := application.GetUI().GetShutdownChan()
+func extractConnectFlags(cmd *cobra.Command) (host, user string, port int, diagnose bool) {
+	host, _ = cmd.Flags().GetString("host")
+	user, _ = cmd.Flags().GetString("user")
+	port, _ = cmd.Flags().GetInt("port")
+	diagnose, _ = cmd.Flags().GetBool("diagnose")
+	return host, user, port, diagnose
+}
 
-	go func() {
-		if err := application.Run(); err != nil {
-			log.Error("App run failed: %v", err)
-		}
-	}()
-
-	select {
-	case <-sigCh:
-		log.Info("Received shutdown signal, shutting down gracefully...")
-	case <-uiShutdownCh:
-		log.Info("Received UI shutdown signal, shutting down gracefully...")
+func validateConnectParameters(host, user string) error {
+	if strings.HasPrefix(host, "ssh://") {
+		return nil
 	}
 
-	defer cleanupTerminal()
+	if user == "" {
+		return errors.New("--user flag is required when not using ssh:// URL format")
+	}
 
-	application.Shutdown()
 	return nil
+}
+
+func loadAndConfigureConnection(host, user string, port int) (*config.Config, error) {
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, err
+	}
+
+	configureRemoteConnection(cfg, host, user, port)
+	applyFlagOverrides(cfg)
+	setLogLevel(cfg.LogLevel)
+
+	return cfg, nil
+}
+
+func configureRemoteConnection(cfg *config.Config, host, user string, port int) {
+	if strings.HasPrefix(host, "ssh://") {
+		cfg.RemoteHost = host
+		cfg.DockerHost = host
+	} else {
+		sshURL := fmt.Sprintf("ssh://%s@%s", user, host)
+		cfg.RemoteHost = sshURL
+		cfg.DockerHost = sshURL
+	}
+	cfg.RemoteUser = user
+	cfg.RemotePort = port
+}
+
+func runDiagnosticsIfRequested(host, user string, port int, log *slog.Logger) {
+	log.Info("Running SSH connection diagnostics...")
+	if err := runSSHDiagnostics(host, user, port); err != nil {
+		log.Error("SSH diagnostics failed", "error", err)
+		log.Info("Continuing with connection attempt...")
+	} else {
+		log.Info("SSH diagnostics passed successfully")
+	}
 }
 
 // runSSHDiagnostics runs SSH connection diagnostics
 func runSSHDiagnostics(host, user string, _ int) error {
-	// Create SSH client for diagnostics
-	sshHost := fmt.Sprintf("%s@%s", user, host)
-	sshClient, err := docker.NewSSHClient(sshHost, 22) // Default SSH port
+	sshHost := extractSSHHost(host, user)
+
+	sshClient, err := dockerssh.NewSSHClient(sshHost, 22)
 	if err != nil {
 		return fmt.Errorf("failed to create SSH client for diagnostics: %w", err)
 	}
 
-	// Run diagnostics
 	if err := sshClient.DiagnoseConnection(); err != nil {
 		return fmt.Errorf("SSH diagnostics failed: %w", err)
 	}
@@ -194,33 +268,90 @@ func runSSHDiagnostics(host, user string, _ int) error {
 	return nil
 }
 
+func extractSSHHost(host, user string) string {
+	if strings.HasPrefix(host, "ssh://") {
+		return host[6:]
+	}
+
+	if user == "" {
+		return ""
+	}
+
+	return fmt.Sprintf("%s@%s", user, host)
+}
+
 // runApp runs the main application with the provided configuration
 func runApp(_ *cobra.Command, _ []string) error {
 	log := logger.GetLogger()
-	log.SetPrefix("whaletui")
 
 	cfg, err := config.Load()
 	if err != nil {
-		log.Error("Config load failed: %v", err)
+		log.Error("Config load failed", "error", err)
 		return err
 	}
 
 	applyFlagOverrides(cfg)
-	setLogLevel(log, cfg.LogLevel)
+	setLogLevel(cfg.LogLevel)
 
-	// Validate that --user is provided when --host is specified
-	if cfg.RemoteHost != "" {
-		log.Info("Connecting to remote Docker host: %s", cfg.RemoteHost)
-	} else {
-		log.Info("Connecting to local Docker instance")
-	}
+	logConnectionInfo(cfg, log)
 
+	return createAndRunApplication(cfg, log)
+}
+
+// createAndRunApplication creates and runs the application
+func createAndRunApplication(cfg *config.Config, log *slog.Logger) error {
 	application, err := app.New(cfg)
 	if err != nil {
-		log.Error("App init failed: %v", err)
+		log.Error("App init failed", "error", err)
+
+		// Check if this is a Docker connection error and provide helpful guidance
+		if isDockerConnectionError(err) {
+			return handleDockerConnectionError(err, cfg)
+		}
+
 		return err
 	}
 
+	return runApplicationWithShutdown(application, log)
+}
+
+// isDockerConnectionError checks if the error is related to Docker connection issues
+func isDockerConnectionError(err error) bool {
+	errStr := err.Error()
+
+	for _, pattern := range dockerErrorPatterns {
+		if strings.Contains(errStr, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
+// handleDockerConnectionError provides user-friendly error handling for Docker connection issues
+func handleDockerConnectionError(err error, cfg *config.Config) error {
+	errorHandler := newDockerErrorHandler(err, cfg)
+	return errorHandler.handle()
+}
+
+// isDockerRunning checks if Docker is running on the local system
+func isDockerRunning() bool {
+	// Try to run a simple Docker command to check if it's accessible
+	cmd := exec.Command("docker", "version", "--format", "{{.Server.Version}}")
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+
+	return cmd.Run() == nil
+}
+
+func logConnectionInfo(cfg *config.Config, log *slog.Logger) {
+	if cfg.RemoteHost != "" {
+		log.Info("Connecting to remote Docker host", "host", cfg.RemoteHost)
+	} else {
+		log.Info("Connecting to local Docker instance")
+	}
+}
+
+func runApplicationWithShutdown(application *app.App, log *slog.Logger) error {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
@@ -228,64 +359,86 @@ func runApp(_ *cobra.Command, _ []string) error {
 
 	go func() {
 		if err := application.Run(); err != nil {
-			log.Error("App run failed: %v", err)
+			log.Error("App run failed", "error", err)
 		}
 	}()
 
+	waitForShutdownSignal(sigCh, uiShutdownCh, log)
+	cleanupAndShutdown(application)
+
+	return nil
+}
+
+// waitForShutdownSignal waits for shutdown signals
+func waitForShutdownSignal(sigCh chan os.Signal, uiShutdownCh chan struct{}, log *slog.Logger) {
 	select {
 	case <-sigCh:
 		log.Info("Received shutdown signal, shutting down gracefully...")
 	case <-uiShutdownCh:
 		log.Info("Received UI shutdown signal, shutting down gracefully...")
 	}
+}
 
+// cleanupAndShutdown performs cleanup and shutdown
+func cleanupAndShutdown(application *app.App) {
 	defer cleanupTerminal()
+	defer logger.CloseLogFile()
+	defer logger.SetTUIMode(false)
 
 	application.Shutdown()
-	return nil
 }
 
 // cleanupTerminal performs additional terminal cleanup operations
 func cleanupTerminal() {
-	cleanupTerminalClearScreen()
-	cleanupTerminalResetColors()
-	cleanupTerminalShowCursor()
-	cleanupTerminalMoveCursorToTop()
-	cleanupTerminalSyncStdout()
+	if logger.IsTUIMode() {
+		return
+	}
+
+	cleanupOperations := []func(){
+		cleanupTerminalClearScreen,
+		cleanupTerminalResetColors,
+		cleanupTerminalShowCursor,
+		cleanupTerminalMoveCursorToTop,
+		cleanupTerminalSyncStdout,
+	}
+
+	for _, operation := range cleanupOperations {
+		operation()
+	}
 }
 
 // cleanupTerminalClearScreen clears the terminal screen
 func cleanupTerminalClearScreen() {
 	if _, err := fmt.Fprint(os.Stdout, "\033[2J"); err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: failed to clear screen: %v\n", err)
+		logger.Warn("Failed to clear screen", "error", err)
 	}
 }
 
 // cleanupTerminalResetColors resets terminal colors
 func cleanupTerminalResetColors() {
 	if _, err := fmt.Fprint(os.Stdout, "\033[0m"); err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: failed to reset colors: %v\n", err)
+		logger.Warn("Failed to reset colors", "error", err)
 	}
 }
 
 // cleanupTerminalShowCursor shows the terminal cursor
 func cleanupTerminalShowCursor() {
 	if _, err := fmt.Fprint(os.Stdout, "\033[?25h"); err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: failed to show cursor: %v\n", err)
+		logger.Warn("Failed to show cursor", "error", err)
 	}
 }
 
 // cleanupTerminalMoveCursorToTop moves the cursor to the top of the terminal
 func cleanupTerminalMoveCursorToTop() {
 	if _, err := fmt.Fprint(os.Stdout, "\033[H"); err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: failed to move cursor: %v\n", err)
+		logger.Warn("Failed to move cursor", "error", err)
 	}
 }
 
 // cleanupTerminalSyncStdout synchronizes stdout
 func cleanupTerminalSyncStdout() {
 	if err := os.Stdout.Sync(); err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: failed to sync stdout: %v\n", err)
+		logger.Debug("Failed to sync stdout", "error", err)
 	}
 }
 
@@ -299,43 +452,52 @@ func applyFlagOverrides(cfg *config.Config) {
 		cfg.LogLevel = logLevel
 	}
 
-	// Handle theme configuration
+	if logFilePath != "" {
+		cfg.LogFilePath = logFilePath
+	}
+
 	if theme != "" {
 		cfg.Theme = theme
 	}
 }
 
 // setLogLevel sets the log level based on the configuration
-func setLogLevel(log *logger.Logger, level string) {
-	switch level {
-	case "DEBUG":
-		log.SetLevel(logger.DEBUG)
-	case "WARN":
-		log.SetLevel(logger.WARN)
-	case "ERROR":
-		log.SetLevel(logger.ERROR)
-	default:
-		log.SetLevel(logger.INFO)
+func setLogLevel(level string) {
+	cfg, err := config.Load()
+	if err != nil {
+		logger.SetLevelWithPath(level, "")
+		return
 	}
+
+	logger.SetLevelWithPath(level, cfg.LogFilePath)
 }
 
 // runThemeCommand handles theme-related commands
 func runThemeCommand(_ *cobra.Command, _ []string) error {
 	log := logger.GetLogger()
-	log.SetPrefix("Theme")
 
-	// Create a default theme manager
+	log.Debug(
+		"Theme command started",
+		"debug_mode",
+		logger.IsDebugMode(),
+		"log_file_path",
+		logger.GetLogFilePath(),
+	)
+
 	themeManager := config.NewThemeManager("")
 
-	// Save the current theme to the default location
 	defaultPath := "./config/theme.yaml"
 	if err := themeManager.SaveTheme(defaultPath); err != nil {
-		log.Error("Failed to save theme: %v", err)
+		log.Error("Failed to save theme", "error", err)
 		return err
 	}
 
-	log.Info("Theme configuration saved to: %s", defaultPath)
-	log.Info("You can now customize the colors in this file and restart whaletui with --theme %s", defaultPath)
+	log.Info("Theme configuration saved", "path", defaultPath)
+	log.Info(
+		"You can now customize the colors in this file and restart whaletui with --theme",
+		"path",
+		defaultPath,
+	)
 
 	return nil
 }

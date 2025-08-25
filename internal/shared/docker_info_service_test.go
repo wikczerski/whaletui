@@ -1,0 +1,72 @@
+package shared
+
+import (
+	"context"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/wikczerski/whaletui/internal/config"
+	"github.com/wikczerski/whaletui/internal/docker"
+)
+
+func TestNewDockerInfoService(t *testing.T) {
+	service := NewDockerInfoService(nil)
+	assert.Nil(t, service)
+
+	client := setupTestDockerClient(t)
+	if client == nil {
+		return
+	}
+	defer cleanupTestDockerClient(t, client)
+
+	service = NewDockerInfoService(client)
+	assert.NotNil(t, service)
+}
+
+// setupTestDockerClient creates a test Docker client
+func setupTestDockerClient(t *testing.T) *docker.Client {
+	cfg := &config.Config{DockerHost: "unix:///var/run/docker/sock"}
+	client, err := docker.New(cfg)
+	if err != nil {
+		t.Skipf("Docker not available: %v", err)
+		return nil
+	}
+	return client
+}
+
+// cleanupTestDockerClient closes the test Docker client
+func cleanupTestDockerClient(t *testing.T, client *docker.Client) {
+	if err := client.Close(); err != nil {
+		t.Logf("Warning: failed to close client: %v", err)
+	}
+}
+
+func TestDockerInfoService_GetDockerInfo_Integration(t *testing.T) {
+	cfg := &config.Config{DockerHost: "unix:///var/run/docker.sock"}
+	client, err := docker.New(cfg)
+	if err != nil {
+		t.Skipf("Docker not available: %v", err)
+	}
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Logf("Warning: failed to close client: %v", err)
+		}
+	}()
+
+	service := NewDockerInfoService(client)
+	ctx := context.Background()
+	result, err := service.GetDockerInfo(ctx)
+
+	require.NoError(t, err)
+	// Result can be nil - that's valid if Docker info is not available
+	if result != nil {
+		assert.IsType(t, &DockerInfo{}, result)
+		// Don't require specific fields as they might be empty in CI
+	}
+}
+
+func TestDockerInfoService_GetDockerInfo_NilClient(t *testing.T) {
+	service := NewDockerInfoService(nil)
+	assert.Nil(t, service)
+}

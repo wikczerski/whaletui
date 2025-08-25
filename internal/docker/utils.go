@@ -1,13 +1,21 @@
 package docker
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
+	"log/slog"
 	"runtime"
+	"sort"
+	"strings"
+	"time"
+
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/client"
 )
 
+// marshalToMap converts any value to a map[string]any using JSON marshaling
 func marshalToMap(v any) (map[string]any, error) {
 	data, err := json.Marshal(v)
 	if err != nil {
@@ -22,7 +30,20 @@ func marshalToMap(v any) (map[string]any, error) {
 	return result, nil
 }
 
+// formatSize formats a size in bytes to a human-readable string
 func formatSize(size int64) string {
+	sizeInfo := getSizeInfo(size)
+	return fmt.Sprintf("%.2f %s", sizeInfo.value, sizeInfo.unit)
+}
+
+// sizeInfo holds size formatting information
+type sizeInfo struct {
+	unit  string
+	value float64
+}
+
+// getSizeInfo determines the appropriate unit and value for size formatting
+func getSizeInfo(size int64) sizeInfo {
 	const (
 		KB int64 = 1024
 		MB int64 = KB * 1024
@@ -30,118 +51,153 @@ func formatSize(size int64) string {
 		TB int64 = GB * 1024
 	)
 
-	var (
-		unit  string
-		value float64
-	)
-
 	switch {
 	case size >= TB:
-		unit = "TB"
-		value = float64(size) / float64(TB)
+		return sizeInfo{unit: "TB", value: float64(size) / float64(TB)}
 	case size >= GB:
-		unit = "GB"
-		value = float64(size) / float64(GB)
+		return sizeInfo{unit: "GB", value: float64(size) / float64(GB)}
 	case size >= MB:
-		unit = "MB"
-		value = float64(size) / float64(MB)
+		return sizeInfo{unit: "MB", value: float64(size) / float64(MB)}
 	case size >= KB:
-		unit = "KB"
-		value = float64(size) / float64(KB)
+		return sizeInfo{unit: "KB", value: float64(size) / float64(KB)}
 	default:
-		unit = "B"
-		value = float64(size)
+		return sizeInfo{unit: "B", value: float64(size)}
 	}
-
-	return fmt.Sprintf("%.2f %s", value, unit)
 }
 
-// SuggestConfigUpdate suggests updating the configuration file with a working Docker host
-func SuggestConfigUpdate(detectedHost string) error {
+// detectWindowsDockerHost attempts to find the correct Docker host on Windows
+func detectWindowsDockerHost(log *slog.Logger) (string, error) {
 	if runtime.GOOS != "windows" {
-		return fmt.Errorf("config update suggestion only available on Windows")
+		return "", errors.New("not on Windows")
 	}
 
-	config, err := readExistingConfig()
-	if err != nil {
-		return err
-	}
-
-	updateConfigWithHost(config, detectedHost)
-	ensureRequiredFields(config)
-
-	return writeUpdatedConfig(config)
-}
-
-// readExistingConfig reads the existing configuration file
-func readExistingConfig() (map[string]any, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return nil, fmt.Errorf("home directory access failed: %w", err)
-	}
-
-	configDir := filepath.Join(homeDir, ".dockerk9s")
-	configFile := filepath.Join(configDir, "config.json")
-
-	var config map[string]any
-	if _, err := os.Stat(configFile); err == nil {
-		data, err := os.ReadFile(configFile)
-		if err == nil {
-			if unmarshalErr := json.Unmarshal(data, &config); unmarshalErr != nil {
-				fmt.Printf("Warning: failed to parse config file: %v\n", unmarshalErr)
-			}
+	possibleHosts := getWindowsDockerHosts()
+	for _, host := range possibleHosts {
+		if isHostWorking(host, log) {
+			return host, nil
 		}
 	}
 
-	if config == nil {
-		config = make(map[string]any)
-	}
-
-	return config, nil
+	return "", errors.New("no working Docker host found")
 }
 
-// updateConfigWithHost updates the configuration with the detected Docker host
-func updateConfigWithHost(config map[string]any, detectedHost string) {
-	config["docker_host"] = detectedHost
-}
-
-// ensureRequiredFields ensures that all required configuration fields exist
-func ensureRequiredFields(config map[string]any) {
-	if _, exists := config["refresh_interval"]; !exists {
-		config["refresh_interval"] = 5
-	}
-	if _, exists := config["log_level"]; !exists {
-		config["log_level"] = "INFO"
-	}
-	if _, exists := config["theme"]; !exists {
-		config["theme"] = "default"
+// getWindowsDockerHosts returns the list of possible Windows Docker host paths
+func getWindowsDockerHosts() []string {
+	return []string{
+		"npipe:////./pipe/dockerDesktopLinuxEngine", // Linux containers
+		"npipe:////./pipe/docker_engine",            // Windows containers
+		"npipe:////./pipe/dockerDesktopEngine",      // Legacy Docker Desktop
 	}
 }
 
-// writeUpdatedConfig writes the updated configuration to file
-func writeUpdatedConfig(config map[string]any) error {
-	homeDir, err := os.UserHomeDir()
+// isHostWorking tests if a Docker host is working
+func isHostWorking(host string, log *slog.Logger) bool {
+	cli, err := createTestClient(host)
 	if err != nil {
-		return fmt.Errorf("home directory access failed: %w", err)
+		return false
+	}
+	defer closeClientSafely(cli, log)
+
+	return testClientConnection(cli)
+}
+
+// createTestClient creates a Docker client for testing host connectivity
+func createTestClient(host string) (*client.Client, error) {
+	opts := []client.Opt{
+		client.WithHost(host),
+		client.WithAPIVersionNegotiation(),
+		client.WithTimeout(5 * time.Second),
 	}
 
-	configDir := filepath.Join(homeDir, ".dockerk9s")
-	configFile := filepath.Join(configDir, "config.json")
+	return client.NewClientWithOpts(opts...)
+}
 
-	// Create config directory if it doesn't exist
-	if err := os.MkdirAll(configDir, 0o755); err != nil {
-		return fmt.Errorf("config directory creation failed: %w", err)
+// testClientConnection tests if the Docker client can connect successfully
+func testClientConnection(cli *client.Client) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := cli.Ping(ctx)
+	return err == nil
+}
+
+// closeClientSafely closes a Docker client and logs any errors
+func closeClientSafely(cli *client.Client, log *slog.Logger) {
+	if err := cli.Close(); err != nil {
+		log.Warn("Failed to close Docker client during host detection", "error", err)
+	}
+}
+
+// formatContainerPorts formats container ports into a readable string
+func formatContainerPorts(ports []container.Port) string {
+	if len(ports) == 0 {
+		return ""
 	}
 
-	// Write updated config
-	data, err := json.MarshalIndent(config, "", "  ")
-	if err != nil {
-		return fmt.Errorf("config marshal failed: %w", err)
+	var formattedPorts []string
+	for _, p := range ports {
+		if p.PublicPort > 0 {
+			formattedPorts = append(
+				formattedPorts,
+				fmt.Sprintf("%d:%d/%s", p.PublicPort, p.PrivatePort, p.Type),
+			)
+		} else if p.PrivatePort > 0 {
+			formattedPorts = append(formattedPorts, fmt.Sprintf("%d/%s", p.PrivatePort, p.Type))
+		}
 	}
 
-	if err := os.WriteFile(configFile, data, 0o600); err != nil {
-		return fmt.Errorf("config write failed: %w", err)
+	return strings.Join(formattedPorts, ", ")
+}
+
+// sortContainersByCreationTime sorts containers by creation time (newest first)
+func sortContainersByCreationTime(containers []Container) {
+	sort.Slice(containers, func(i, j int) bool {
+		return containers[i].Created.After(containers[j].Created)
+	})
+}
+
+// parseImageRepository parses repository and tag from image repoTags
+func parseImageRepository(repoTags []string) (repository, tag string) {
+	if len(repoTags) == 0 || repoTags[0] == "<none>:<none>" {
+		return "<none>", "<none>"
 	}
 
+	parts := strings.Split(repoTags[0], ":")
+	if len(parts) >= 2 {
+		return parts[0], parts[1]
+	}
+	return repoTags[0], "<none>"
+}
+
+// sortImagesByCreationTime sorts images by creation time (newest first)
+func sortImagesByCreationTime(images []Image) {
+	sort.Slice(images, func(i, j int) bool {
+		return images[i].Created.After(images[j].Created)
+	})
+}
+
+// sortVolumesByName sorts volumes by name
+func sortVolumesByName(volumes []Volume) {
+	sort.Slice(volumes, func(i, j int) bool {
+		return volumes[i].Name < volumes[j].Name
+	})
+}
+
+// buildStopOptions builds stop options with optional timeout
+func buildStopOptions(timeout *time.Duration) container.StopOptions {
+	opts := container.StopOptions{}
+	if timeout != nil {
+		opts.Signal = "SIGTERM"
+		seconds := int(timeout.Seconds())
+		opts.Timeout = &seconds
+	}
+	return opts
+}
+
+// validateID validates that an ID is not empty
+func validateID(id, idType string) error {
+	if id == "" {
+		return fmt.Errorf("%s cannot be empty", idType)
+	}
 	return nil
 }

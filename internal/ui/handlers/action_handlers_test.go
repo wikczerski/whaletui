@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	uimocks "github.com/wikczerski/whaletui/internal/ui/interfaces/mocks"
+	uimocks "github.com/wikczerski/whaletui/internal/mocks/ui"
 )
 
 func TestNewActionHandlers(t *testing.T) {

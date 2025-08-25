@@ -1,3 +1,4 @@
+// Package cmd provides command-line interface functionality for WhaleTUI.
 package cmd
 
 import (
@@ -6,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/wikczerski/whaletui/internal/config"
+	"github.com/wikczerski/whaletui/internal/logger"
 )
 
 // configCmd represents the config command
@@ -29,17 +31,32 @@ func init() {
 
 // showConfig displays the current configuration
 func showConfig() {
+	cfg := loadConfig()
+	homeDir := getHomeDirectory()
+	displayConfigInfo(cfg, homeDir)
+}
+
+// loadConfig loads the configuration
+func loadConfig() *config.Config {
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Printf("Error loading config: %v\n", err)
+		logger.Error("Error loading config", "error", err)
 		os.Exit(1)
 	}
+	return cfg
+}
 
+// getHomeDirectory gets the user's home directory
+func getHomeDirectory() string {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		homeDir = "unknown"
+		return "unknown"
 	}
+	return homeDir
+}
 
+// displayConfigInfo displays the configuration information
+func displayConfigInfo(cfg *config.Config, homeDir string) {
 	fmt.Printf("whaletui Configuration\n")
 	fmt.Printf("==================\n\n")
 

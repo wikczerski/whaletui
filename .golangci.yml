@@ -1,37 +1,164 @@
+version: "2"
+
 run:
   timeout: 5m
   go: "1.25"
 
-linters:
+formatters:
   enable:
     - gofmt
+    - gofumpt
+    - golines
     - goimports
+  settings:
+    golines:
+      tab-len: 4
+    gofmt:
+      rewrite-rules:
+        - pattern: "interface{}"
+          replacement: "any"
+
+linters:
+  enable:
     - govet
     - errcheck
     - staticcheck
-    - gosimple
     - ineffassign
     - unused
     - misspell
     - gosec
     - prealloc
-    - gocritic
     - revive
-    - gofumpt
-    - stylecheck
+    - funcorder
 
-linters-settings:
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - opinionated
-      - performance
-      - style
-
-issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - errcheck
-        - gosec
+  settings:
+    iface:
+      enable:
+        - identical # Identifies interfaces in the same package that have identical method sets.
+        - unused # Identifies interfaces that are not used anywhere in the same package where the interface is defined.
+        - opaque # Identifies functions that return interfaces, but the actual returned value is always a single concrete implementation.
+        - unexported # Identifies interfaces that are not exported but are used in exported functions or methods.
+      settings:
+        unused:
+          exclude:
+            - internal/mocks
+    gocognit:
+      min-complexity: 10
+    nestif:
+      min-complexity: 4
+    gocyclo:
+      min-complexity: 10
+    goconst:
+      min-len: 3
+      min-occurrences: 3
+    dupl:
+      threshold: 100
+    revive:
+      rules:
+        - name: indent-error-flow
+          severity: warning
+          disabled: false
+          exclude: [""]
+          arguments:
+            - "preserve-scope"
+        - name: function-length
+          severity: warning
+          disabled: false
+          exclude: ["TEST"]
+          arguments: [20, 40]
+        - name: if-return
+          severity: warning
+          disabled: false
+          exclude: [""]
+        - name: increment-decrement
+          severity: warning
+          disabled: false
+          exclude: [""]
+        - name: line-length-limit
+          severity: warning
+          disabled: false
+          exclude: [""]
+          arguments: [120]
+        - name: max-control-nesting
+          severity: warning
+          disabled: false
+          exclude: [""]
+          arguments: [3]
+        - name: max-public-structs
+          severity: warning
+          disabled: false
+          exclude: [""]
+          arguments: [3]
+        - name: optimize-operands-order
+          severity: warning
+          disabled: false
+          exclude: [""]
+        - name: range-val-address
+          severity: warning
+          disabled: false
+          exclude: [""]
+        - name: range-val-in-closure
+          severity: warning
+          disabled: false
+          exclude: [""]
+        - name: redefines-builtin-id
+          severity: warning
+          disabled: false
+          exclude: [""]
+        - name: redundant-import-alias
+          severity: warning
+          disabled: false
+          exclude: [""]
+        - name: string-of-int
+          severity: warning
+          disabled: false
+          exclude: [""]
+        - name: superfluous-else
+          severity: warning
+          disabled: false
+          exclude: [""]
+          arguments:
+            - "preserve-scope"
+        - name: struct-tag
+          severity: warning
+          disabled: false
+          exclude: [""]
+          arguments:
+            - "json,inline"
+            - "bson,outline,gnu"
+        - name: unchecked-type-assertion
+          severity: warning
+          disabled: false
+          exclude: [""]
+          arguments:
+            - accept-ignored-assertion-result: true
+        - name: unreachable-code
+          severity: warning
+          disabled: false
+          exclude: [""]
+        - name: use-errors-new
+          severity: warning
+          disabled: false
+          exclude: [""]
+        - name: useless-break
+          severity: warning
+          disabled: false
+          exclude: [""]
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
+          - gosec
+          - funlen
+      - path: internal/ui/interfaces/.*\.go
+        linters: [revive]
+        text: "max-public-structs"
+      - path: .*types\.go
+        linters: [revive]
+        text: "max-public-structs"
+      - path: internal/domains/container/container\.go
+        linters: [revive]
+        text: "max-public-structs"
+    paths:
+      - internal/mocks

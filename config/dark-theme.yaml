@@ -35,3 +35,6 @@ commandMode:
   background: "#222222" # Very dark gray background
   placeholder: "#666666" # Medium gray placeholder (matching shell)
   title: "#00FF00"      # Bright green title (matching header)
+
+headerLayout:
+  spacerWidth: 2  # Only spacer width is configurable, content columns are dynamic

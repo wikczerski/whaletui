@@ -6,6 +6,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"github.com/wikczerski/whaletui/internal/config"
 	"github.com/wikczerski/whaletui/internal/ui/constants"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 )
@@ -31,21 +32,86 @@ func (ch *CommandHandler) CreateCommandInput() *tview.InputField {
 	return ch.commandInput
 }
 
+// Enter activates command mode
+func (ch *CommandHandler) Enter() {
+	ch.isActive = true
+	ch.showCommandInput()
+	mainFlex, ok := ch.ui.GetMainFlex().(*tview.Flex)
+	if !ok {
+		return
+	}
+	mainFlex.AddItem(ch.commandInput, 3, 1, true)
+	app, ok := ch.ui.GetApp().(*tview.Application)
+	if !ok {
+		return
+	}
+	app.SetFocus(ch.commandInput)
+}
+
+// Exit deactivates command mode
+func (ch *CommandHandler) Exit() {
+	ch.isActive = false
+	ch.clearError()
+	ch.cleanupCommandInput()
+	ch.restoreFocus()
+}
+
+// IsActive returns whether command mode is currently active
+func (ch *CommandHandler) IsActive() bool {
+	return ch.isActive
+}
+
+// GetInput returns the command input widget
+func (ch *CommandHandler) GetInput() *tview.InputField {
+	return ch.commandInput
+}
+
+// HandleInput processes command input
+func (ch *CommandHandler) HandleInput(key tcell.Key) {
+	switch key {
+	case tcell.KeyEnter:
+		command := ch.commandInput.GetText()
+		if ch.processCommand(command) {
+			ch.Exit()
+		}
+		// If processCommand returns false, don't exit - let the error message show
+	case tcell.KeyEscape:
+		ch.Exit()
+	case tcell.KeyRune:
+		// User is typing - clear any error message
+		ch.clearError()
+	}
+}
+
 // configureCommandInput sets up the command input styling and behavior
 func (ch *CommandHandler) configureCommandInput() {
-	// Get theme manager for styling
 	themeManager := ch.ui.GetThemeManager()
+	ch.setupBasicStyling(themeManager)
+	ch.setupAdvancedStyling(themeManager)
+	ch.setupBehavior()
+}
 
+// setupBasicStyling sets up the basic styling for the command input
+func (ch *CommandHandler) setupBasicStyling(themeManager *config.ThemeManager) {
 	ch.commandInput.SetLabel(": ")
 	ch.commandInput.SetLabelColor(themeManager.GetCommandModeLabelColor())
 	ch.commandInput.SetFieldTextColor(themeManager.GetCommandModeTextColor())
 	ch.commandInput.SetBorder(true)
 	ch.commandInput.SetBorderColor(themeManager.GetCommandModeBorderColor())
+}
+
+// setupAdvancedStyling sets up the advanced styling for the command input
+func (ch *CommandHandler) setupAdvancedStyling(themeManager *config.ThemeManager) {
 	ch.commandInput.SetTitle(" Command Mode ")
 	ch.commandInput.SetTitleColor(themeManager.GetCommandModeTitleColor())
 	ch.commandInput.SetBackgroundColor(themeManager.GetCommandModeBackgroundColor())
-	ch.commandInput.SetPlaceholder("Type view name (containers, images, volumes, networks)")
+	placeholder := "Type view name (containers, images, volumes, networks, swarm services, swarm nodes)"
+	ch.commandInput.SetPlaceholder(placeholder)
 	ch.commandInput.SetPlaceholderTextColor(themeManager.GetCommandModePlaceholderColor())
+}
+
+// setupBehavior sets up the behavior for the command input
+func (ch *CommandHandler) setupBehavior() {
 	ch.commandInput.SetDoneFunc(ch.HandleInput)
 	ch.commandInput.SetAutocompleteFunc(ch.getAutocomplete)
 }
@@ -78,75 +144,27 @@ func (ch *CommandHandler) showCommandInput() {
 	ch.commandInput.SetPlaceholderTextColor(themeManager.GetCommandModePlaceholderColor())
 }
 
-// Enter activates command mode
-func (ch *CommandHandler) Enter() {
-	ch.isActive = true
-	ch.showCommandInput()
-	mainFlex := ch.ui.GetMainFlex().(*tview.Flex)
-	mainFlex.AddItem(ch.commandInput, 3, 1, true)
-	app := ch.ui.GetApp().(*tview.Application)
-	app.SetFocus(ch.commandInput)
-}
-
-// Exit deactivates command mode
-func (ch *CommandHandler) Exit() {
-	ch.isActive = false
-
-	// Clear any error timer
-	ch.clearError()
-
-	// Only hide command input if it's been initialized
-	if ch.commandInput != nil {
-		ch.hideCommandInput()
-		mainFlex := ch.ui.GetMainFlex().(*tview.Flex)
-		mainFlex.RemoveItem(ch.commandInput)
-		ch.commandInput.SetText("")
-	}
-
-	if viewContainer := ch.ui.GetViewContainer(); viewContainer != nil {
-		if vc, ok := viewContainer.(*tview.Flex); ok {
-			app := ch.ui.GetApp().(*tview.Application)
-			app.SetFocus(vc)
-		}
-	}
-}
-
-// IsActive returns whether command mode is currently active
-func (ch *CommandHandler) IsActive() bool {
-	return ch.isActive
-}
-
-// GetInput returns the command input widget
-func (ch *CommandHandler) GetInput() *tview.InputField {
-	return ch.commandInput
-}
-
-// HandleInput processes command input
-func (ch *CommandHandler) HandleInput(key tcell.Key) {
-	switch key {
-	case tcell.KeyEnter:
-		command := ch.commandInput.GetText()
-		if ch.processCommand(command) {
-			ch.Exit()
-		}
-		// If processCommand returns false, don't exit - let the error message show
-	case tcell.KeyEscape:
-		ch.Exit()
-	case tcell.KeyRune:
-		// User is typing - clear any error message
-		ch.clearError()
-	}
-}
-
 // processCommand executes the given command
 // Returns true if the command was successfully processed and the input should close
 func (ch *CommandHandler) processCommand(command string) bool {
-	// Handle empty command - just clear and stay open
-	if strings.TrimSpace(command) == "" {
-		ch.commandInput.SetText("")
+	if ch.isEmptyCommand(command) {
 		return false
 	}
 
+	return ch.processCommandTypes(command)
+}
+
+// isEmptyCommand checks if the command is empty
+func (ch *CommandHandler) isEmptyCommand(command string) bool {
+	if strings.TrimSpace(command) == "" {
+		ch.commandInput.SetText("")
+		return true
+	}
+	return false
+}
+
+// processCommandTypes processes different types of commands
+func (ch *CommandHandler) processCommandTypes(command string) bool {
 	if ch.handleViewSwitchCommand(command) {
 		return true
 	}
@@ -159,32 +177,41 @@ func (ch *CommandHandler) processCommand(command string) bool {
 		return true
 	}
 
-	// Handle unknown command
 	ch.handleUnknownCommand(command)
-	return false // Don't close input for unknown commands
+	return false
 }
 
 // handleViewSwitchCommand handles view switching commands
 func (ch *CommandHandler) handleViewSwitchCommand(command string) bool {
-	switch command {
-	case "containers", "c":
-		ch.ui.SwitchView("containers")
-		ch.Exit()
-		return true
-	case "images", "i":
-		ch.ui.SwitchView("images")
-		ch.Exit()
-		return true
-	case "volumes", "v":
-		ch.ui.SwitchView("volumes")
-		ch.Exit()
-		return true
-	case "networks", "n":
-		ch.ui.SwitchView("networks")
+	viewMappings := ch.getViewMappings()
+
+	if viewName, exists := viewMappings[command]; exists {
+		ch.ui.SwitchView(viewName)
 		ch.Exit()
 		return true
 	}
 	return false
+}
+
+// getViewMappings returns the mapping of command aliases to view names
+func (ch *CommandHandler) getViewMappings() map[string]string {
+	return map[string]string{
+		"containers":     "containers",
+		"c":              "containers",
+		"images":         "images",
+		"i":              "images",
+		"volumes":        "volumes",
+		"v":              "volumes",
+		"networks":       "networks",
+		"n":              "networks",
+		"swarm services": "swarmServices",
+		"swarm":          "swarmServices",
+		"services":       "swarmServices",
+		"s":              "swarmServices",
+		"swarm nodes":    "swarmNodes",
+		"nodes":          "swarmNodes",
+		"w":              "swarmNodes",
+	}
 }
 
 // handleSystemCommand handles system-level commands
@@ -250,7 +277,10 @@ func (ch *CommandHandler) showCommandError(message string) {
 	ch.errorTimer = time.AfterFunc(3*time.Second, func() {
 		// Use the UI's app to schedule the update on the main thread
 		if ch.isActive && ch.commandInput != nil {
-			app := ch.ui.GetApp().(*tview.Application)
+			app, ok := ch.ui.GetApp().(*tview.Application)
+			if !ok {
+				return
+			}
 			app.QueueUpdateDraw(func() {
 				if ch.isActive && ch.commandInput != nil {
 					ch.commandInput.SetText("")
@@ -279,6 +309,7 @@ func (ch *CommandHandler) clearError() {
 func (ch *CommandHandler) getAutocomplete(currentText string) []string {
 	suggestions := []string{
 		"containers", "images", "volumes", "networks",
+		"swarm services", "swarm nodes", "services", "nodes",
 		"quit", "q", "exit", "help", "?",
 	}
 
@@ -289,4 +320,32 @@ func (ch *CommandHandler) getAutocomplete(currentText string) []string {
 		}
 	}
 	return matches
+}
+
+// cleanupCommandInput cleans up the command input widget
+func (ch *CommandHandler) cleanupCommandInput() {
+	if ch.commandInput == nil {
+		return
+	}
+
+	ch.hideCommandInput()
+	mainFlex, ok := ch.ui.GetMainFlex().(*tview.Flex)
+	if !ok {
+		return
+	}
+	mainFlex.RemoveItem(ch.commandInput)
+	ch.commandInput.SetText("")
+}
+
+// restoreFocus restores focus to the main view
+func (ch *CommandHandler) restoreFocus() {
+	if viewContainer := ch.ui.GetViewContainer(); viewContainer != nil {
+		if vc, ok := viewContainer.(*tview.Flex); ok {
+			app, ok := ch.ui.GetApp().(*tview.Application)
+			if !ok {
+				return
+			}
+			app.SetFocus(vc)
+		}
+	}
 }

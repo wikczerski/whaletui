@@ -2,7 +2,8 @@ package shell
 
 // addToHistory adds a command to the history
 func (sv *View) addToHistory(command string) {
-	if command == "" || (len(sv.commandHistory) > 0 && sv.commandHistory[len(sv.commandHistory)-1] == command) {
+	if command == "" ||
+		(len(sv.commandHistory) > 0 && sv.commandHistory[len(sv.commandHistory)-1] == command) {
 		return
 	}
 
