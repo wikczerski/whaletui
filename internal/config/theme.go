@@ -473,7 +473,6 @@ func (tm *ThemeManager) loadFromFile(path string) error {
 func (tm *ThemeManager) validateThemePath(path string) error {
 	// Clean the path to remove any directory traversal attempts
 	cleanPath := filepath.Clean(path)
-	cleanThemeDir := filepath.Clean(filepath.Dir(tm.path))
 
 	// Ensure the path is absolute
 	if !filepath.IsAbs(cleanPath) {
@@ -485,9 +484,12 @@ func (tm *ThemeManager) validateThemePath(path string) error {
 		return errors.New("theme file path contains invalid patterns")
 	}
 
-	// Ensure the theme file is within the theme directory
-	if !strings.HasPrefix(cleanPath, cleanThemeDir) {
-		return errors.New("theme file path is outside the theme directory")
+	// Only check directory containment if we have a theme directory set
+	if tm.path != "" {
+		cleanThemeDir := filepath.Clean(filepath.Dir(tm.path))
+		if !strings.HasPrefix(cleanPath, cleanThemeDir) {
+			return errors.New("theme file path is outside the theme directory")
+		}
 	}
 
 	return nil
