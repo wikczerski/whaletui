@@ -120,7 +120,14 @@ func isValidConfigPath(configFile, configDir string) bool {
 	}
 
 	// Additional security: check for suspicious patterns
-	if strings.Contains(cleanConfigFile, "..") || strings.Contains(cleanConfigFile, "~") {
+	// Check for directory traversal attempts
+	if strings.Contains(cleanConfigFile, "..") {
+		return false
+	}
+
+	// Check for home directory expansion attempts (but allow Windows short names like ~1)
+	// Only reject paths that start with ~ or contain ~/ which could be home directory expansion
+	if strings.HasPrefix(cleanConfigFile, "~") || strings.Contains(cleanConfigFile, "~/") {
 		return false
 	}
 
