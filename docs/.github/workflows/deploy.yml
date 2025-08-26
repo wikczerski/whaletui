@@ -34,6 +34,18 @@ jobs:
       - name: Build Docusaurus
         run: npm run build
 
+      - name: Verify build output
+        run: |
+          echo "Build directory contents:"
+          ls -la build/
+          echo "Checking for index.html:"
+          if [ -f "build/index.html" ]; then
+            echo "✅ index.html found"
+          else
+            echo "❌ index.html not found"
+            exit 1
+          fi
+
       - name: Add .nojekyll file
         run: touch build/.nojekyll
 
