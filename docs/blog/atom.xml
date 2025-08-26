@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://wikczerski.github.io/whaletui/blog</id>
+    <title>WhaleTUI Documentation Blog</title>
+    <updated>2025-08-26T00:00:00.000Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://wikczerski.github.io/whaletui/blog"/>
+    <subtitle>WhaleTUI Documentation Blog</subtitle>
+    <icon>https://wikczerski.github.io/whaletui/img/favicon.ico</icon>
+    <entry>
+        <title type="html"><![CDATA[Welcome to WhaleTUI Documentation]]></title>
+        <id>https://wikczerski.github.io/whaletui/blog/welcome</id>
+        <link href="https://wikczerski.github.io/whaletui/blog/welcome"/>
+        <updated>2025-08-26T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[Welcome to the comprehensive documentation for WhaleTUI, a powerful terminal user interface (TUI) for managing Docker containers, images, networks, and more.]]></summary>
+        <content type="html"><![CDATA[<p>Welcome to the comprehensive documentation for WhaleTUI, a powerful terminal user interface (TUI) for managing Docker containers, images, networks, and more.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="what-is-whaletui">What is WhaleTUI?<a href="https://wikczerski.github.io/whaletui/blog/welcome#what-is-whaletui" class="hash-link" aria-label="Direct link to What is WhaleTUI?" title="Direct link to What is WhaleTUI?">​</a></h2>
+<p>WhaleTUI is a feature-rich terminal application that provides an intuitive interface for Docker management. Whether you're a developer, DevOps engineer, or system administrator, WhaleTUI makes Docker operations simple and efficient.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="key-features">Key Features<a href="https://wikczerski.github.io/whaletui/blog/welcome#key-features" class="hash-link" aria-label="Direct link to Key Features" title="Direct link to Key Features">​</a></h2>
+<ul>
+<li><strong>Container Management</strong>: Start, stop, restart, and manage containers with ease</li>
+<li><strong>Image Operations</strong>: Pull, build, tag, and remove Docker images</li>
+<li><strong>Network Configuration</strong>: Create and manage Docker networks</li>
+<li><strong>Volume Management</strong>: Handle persistent data storage</li>
+<li><strong>Swarm Support</strong>: Manage Docker Swarm clusters and services</li>
+<li><strong>Keyboard-Driven Interface</strong>: Fully keyboard-dependent TUI for efficiency</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="getting-started">Getting Started<a href="https://wikczerski.github.io/whaletui/blog/welcome#getting-started" class="hash-link" aria-label="Direct link to Getting Started" title="Direct link to Getting Started">​</a></h2>
+<ol>
+<li><strong>Installation</strong>: Follow our <a href="https://wikczerski.github.io/whaletui/docs/installation">installation guide</a> to get WhaleTUI running</li>
+<li><strong>Quick Start</strong>: Use our <a href="https://wikczerski.github.io/whaletui/docs/quick-start">quick start guide</a> to learn the basics</li>
+<li><strong>Concepts</strong>: Explore Docker concepts and how they work with WhaleTUI</li>
+<li><strong>Development</strong>: Set up your development environment and contribute to WhaleTUI</li>
+</ol>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="why-choose-whaletui">Why Choose WhaleTUI?<a href="https://wikczerski.github.io/whaletui/blog/welcome#why-choose-whaletui" class="hash-link" aria-label="Direct link to Why Choose WhaleTUI?" title="Direct link to Why Choose WhaleTUI?">​</a></h2>
+<ul>
+<li><strong>Lightweight</strong>: Minimal resource usage compared to GUI alternatives</li>
+<li><strong>Fast</strong>: Instant response times for Docker operations</li>
+<li><strong>Accessible</strong>: Works over SSH connections and in headless environments</li>
+<li><strong>Customizable</strong>: Theme support and keyboard shortcut customization</li>
+<li><strong>Cross-Platform</strong>: Works on Linux, macOS, and Windows</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="community-and-support">Community and Support<a href="https://wikczerski.github.io/whaletui/blog/welcome#community-and-support" class="hash-link" aria-label="Direct link to Community and Support" title="Direct link to Community and Support">​</a></h2>
+<ul>
+<li><strong>GitHub</strong>: <a href="https://github.com/wikczerski/whaletui" target="_blank" rel="noopener noreferrer">https://github.com/wikczerski/whaletui</a></li>
+<li><strong>Issues</strong>: Report bugs and request features on GitHub</li>
+<li><strong>Contributions</strong>: We welcome contributions from the community</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="stay-updated">Stay Updated<a href="https://wikczerski.github.io/whaletui/blog/welcome#stay-updated" class="hash-link" aria-label="Direct link to Stay Updated" title="Direct link to Stay Updated">​</a></h2>
+<p>This documentation is actively maintained and updated with each new release. Bookmark this site and check back regularly for new features, improvements, and best practices.</p>
+<p>Happy containerizing with WhaleTUI! 🐳✨</p>]]></content>
+        <category label="welcome" term="welcome"/>
+        <category label="introduction" term="introduction"/>
+        <category label="whaletui" term="whaletui"/>
+    </entry>
+</feed>

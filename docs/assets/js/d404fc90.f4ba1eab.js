@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkwhaletui_docs=self.webpackChunkwhaletui_docs||[]).push([[329],{6888:e=>{e.exports=JSON.parse('{"tags":[{"label":"welcome","permalink":"/whaletui/blog/tags/welcome","count":1},{"label":"introduction","permalink":"/whaletui/blog/tags/introduction","count":1},{"label":"whaletui","permalink":"/whaletui/blog/tags/whaletui","count":1}]}')}}]);
