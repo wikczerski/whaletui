@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkwhaletui_docs=self.webpackChunkwhaletui_docs||[]).push([[472],{5513:e=>{e.exports=JSON.parse('{"title":"Recent posts","items":[{"title":"Welcome to WhaleTUI Documentation","permalink":"/whaletui/blog/welcome","unlisted":false,"date":"2025-08-26T00:00:00.000Z"}]}')}}]);

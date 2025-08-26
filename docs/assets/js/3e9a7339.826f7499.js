@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkwhaletui_docs=self.webpackChunkwhaletui_docs||[]).push([[383],{4254:e=>{e.exports=JSON.parse('{"metadata":{"permalink":"/whaletui/blog","page":1,"postsPerPage":10,"totalPages":1,"totalCount":1,"blogDescription":"Blog","blogTitle":"Blog"}}')}}]);
