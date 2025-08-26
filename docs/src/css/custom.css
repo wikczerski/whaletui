@@ -1,0 +1,388 @@
+/* Custom CSS for WhaleTUI Documentation */
+
+:root {
+  --ifm-color-primary: #60a5fa;
+  --ifm-color-primary-dark: #3b82f6;
+  --ifm-color-primary-darker: #2563eb;
+  --ifm-color-primary-darkest: #1d4ed8;
+  --ifm-color-primary-light: #93c5fd;
+  --ifm-color-primary-lighter: #bfdbfe;
+  --ifm-color-primary-lightest: #dbeafe;
+  --ifm-code-font-size: 95%;
+  --ifm-font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Dark theme colors with #191c1d background */
+  --ifm-background-color: #191c1d;
+  --ifm-background-surface-color: #2a2f30;
+  --ifm-color-emphasis-0: #f8fafc;
+  --ifm-color-emphasis-100: #f1f5f9;
+  --ifm-color-emphasis-200: #e2e8f0;
+  --ifm-color-emphasis-300: #cbd5e1;
+  --ifm-color-emphasis-400: #94a3b8;
+  --ifm-color-emphasis-500: #64748b;
+  --ifm-color-emphasis-600: #475569;
+  --ifm-color-emphasis-700: #334155;
+  --ifm-color-emphasis-800: #2a2f30;
+  --ifm-color-emphasis-900: #191c1d;
+
+  /* Text colors for dark theme */
+  --ifm-color-content: #f1f5f9;
+  --ifm-color-content-secondary: #cbd5e1;
+  --ifm-color-content-inverse: #191c1d;
+
+  /* Navbar colors */
+  --ifm-navbar-background-color: #2a2f30;
+  --ifm-navbar-link-color: #e2e8f0;
+  --ifm-navbar-link-hover-color: #60a5fa;
+  --ifm-navbar-brand-color: #f8fafc;
+}
+
+/* Navbar styling for dark theme */
+.navbar {
+  background: #2a2f30 !important;
+  border-bottom: 1px solid #475569;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.navbar__brand {
+  color: #f8fafc !important;
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+
+.navbar__logo {
+  margin-right: 0.5rem;
+  height: 32px;
+  width: auto;
+}
+
+.navbar__logo img {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+}
+
+.navbar__item {
+  color: #e2e8f0 !important;
+}
+
+.navbar__item:hover {
+  color: #60a5fa !important;
+}
+
+.navbar__link {
+  color: #e2e8f0 !important;
+  font-weight: 500;
+}
+
+.navbar__link:hover {
+  color: #60a5fa !important;
+}
+
+/* Ensure navbar title is visible */
+.navbar__title {
+  color: #f8fafc !important;
+  font-weight: 700;
+}
+
+/* Force dark theme for all elements */
+html[data-theme='light'] {
+  --ifm-background-color: #191c1d;
+  --ifm-background-surface-color: #2a2f30;
+  --ifm-color-content: #f1f5f9;
+  --ifm-color-content-secondary: #cbd5e1;
+}
+
+/* Button styling */
+.button {
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  z-index: 10;
+  pointer-events: auto;
+  user-select: none;
+  position: relative;
+}
+
+.button--primary {
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 15px rgba(96, 165, 250, 0.4);
+}
+
+.button--primary:hover {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(96, 165, 250, 0.6);
+}
+
+.button--secondary {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+}
+
+.button--secondary:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
+}
+
+.button--outline {
+  background: transparent;
+  color: #60a5fa;
+  border: 2px solid #60a5fa;
+  box-shadow: 0 4px 15px rgba(96, 165, 250, 0.2);
+}
+
+.button--outline:hover {
+  background: #60a5fa;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(96, 165, 250, 0.4);
+}
+
+/* Force button visibility on dark backgrounds */
+.button--outline {
+  background: transparent !important;
+  color: #60a5fa !important;
+  border: 2px solid #60a5fa !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  font-weight: 700 !important;
+  letter-spacing: 0.5px;
+}
+
+.button--outline:hover {
+  background: #60a5fa !important;
+  color: #ffffff !important;
+}
+
+/* Ensure all buttons have proper contrast */
+.button {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+/* Additional button visibility fixes */
+.button--outline,
+.button--outline:visited,
+.button--outline:active {
+  color: #60a5fa !important;
+  border-color: #60a5fa !important;
+  background: transparent !important;
+}
+
+.button--outline:hover,
+.button--outline:focus {
+  color: #ffffff !important;
+  background: #60a5fa !important;
+}
+
+/* GitHub button specific styling */
+.button[href*="github"],
+.button[href*="GitHub"] {
+  background: #24292e !important;
+  color: #ffffff !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+}
+
+.button[href*="github"]:hover,
+.button[href*="GitHub"]:hover {
+  background: #ffffff !important;
+  color: #24292e !important;
+  border-color: #ffffff !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.3);
+}
+
+/* Stats section styling */
+.stats {
+  background: linear-gradient(135deg, #2a2f30 0%, #191c1d 100%);
+  color: #f1f5f9;
+}
+
+.statItem {
+  background: #2a2f30;
+  border: 1px solid #475569;
+  color: #f1f5f9;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.statLabel {
+  color: #60a5fa;
+}
+
+.statDesc {
+  color: #cbd5e1;
+}
+
+/* Code example styling */
+.codeExample {
+  background: #2a2f30;
+  color: #f1f5f9;
+}
+
+.codeExample p {
+  color: #e2e8f0;
+}
+
+.codeBlock {
+  background: #191c1d;
+  border: 1px solid #475569;
+}
+
+/* CTA section styling */
+.cta {
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+  color: #ffffff;
+}
+
+/* CTA button styling */
+.cta .button {
+  min-width: 180px;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.cta .button--outline {
+  background: transparent !important;
+  color: #ffffff !important;
+  border: 2px solid #ffffff !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+}
+
+.cta .button--outline:hover {
+  background: #ffffff !important;
+  color: #3b82f6 !important;
+  border-color: #ffffff !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.3);
+}
+
+/* CTA button container */
+.ctaButtons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+/* Ensure all text is readable in dark theme */
+p, .description, .subtitle {
+  color: #e2e8f0;
+}
+
+.text--secondary, .text--muted {
+  color: #cbd5e1;
+}
+
+.text--light {
+  color: #94a3b8;
+}
+
+/* Code note styling */
+.codeNote {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(96, 165, 250, 0.1);
+  border-left: 4px solid #60a5fa;
+  border-radius: 0 8px 8px 0;
+}
+
+.codeNote small {
+  color: #cbd5e1;
+  font-size: 0.85rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .navbar__brand {
+    font-size: 1.25rem;
+  }
+
+  .button {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Ensure all buttons are visible on dark backgrounds */
+.button {
+  position: relative;
+  z-index: 10;
+  pointer-events: auto;
+  user-select: none;
+}
+
+/* Force button visibility */
+.hero .button,
+.hero .button:hover,
+.hero .button:active,
+.hero .button:focus {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* Ensure hero text is visible */
+.hero__title,
+.hero__subtitle {
+  color: #ffffff !important;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Force dark theme for any remaining light elements */
+* {
+  color-scheme: dark;
+}
+
+/* Hero section button styling */
+.hero .button {
+  min-width: 160px;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0.5px;
+}
+
+.hero .button--outline {
+  background: transparent !important;
+  color: #ffffff !important;
+  border: 2px solid #ffffff !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+}
+
+.hero .button--outline:hover {
+  background: #ffffff !important;
+  color: #191c1d !important;
+  border-color: #ffffff !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.3);
+}
+
+/* Ensure button container is properly styled */
+.hero .buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+  position: relative;
+  z-index: 100;
+}
