@@ -41,6 +41,7 @@ jobs:
           echo "Checking for index.html:"
           if [ -f "build/index.html" ]; then
             echo "✅ index.html found"
+            cat build/index.html | head -20
           else
             echo "❌ index.html not found"
             exit 1
