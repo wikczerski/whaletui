@@ -1,7 +1,7 @@
 # whaletui - Docker CLI Dashboard
 
 [![Go Version](https://img.shields.io/badge/Go-1.25.0+-blue.svg)](https://golang.org)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-GNU%20AGPL%20v3-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Cross--Platform-blue.svg)]()
 [![Docker](https://img.shields.io/badge/Docker-Required-blue.svg)](https://docker.com)
 
@@ -179,7 +179,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU Affero General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 ## Acknowledgments
 
 - Inspired by [k9s](https://k9scli.io/) for Kubernetes management
