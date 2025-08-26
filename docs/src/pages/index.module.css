@@ -1,0 +1,314 @@
+/**
+ * CSS files with the .module.css suffix will be treated as CSS modules
+ * and scoped locally.
+ */
+
+.heroBanner {
+  padding: 4rem 0;
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+}
+
+.heroTitleMain {
+  display: block;
+  font-size: 4rem;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  margin-bottom: 0.5rem;
+  line-height: 1.1;
+}
+
+.heroTitleSub {
+  display: block;
+  font-size: 1.8rem;
+  font-weight: 400;
+  color: #e6e6e6;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+  margin-bottom: 2rem;
+  opacity: 0.9;
+}
+
+.hero__subtitle {
+  font-size: 1.3rem;
+  color: #e6e6e6;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.buttons {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.heroImage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  max-width: 540px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.logo {
+  width: 150px;
+  height: 150px;
+  margin-bottom: 0.75rem;
+  filter: drop-shadow(0 4px 8px rgba(255, 255, 255, 0.3));
+  transition: transform 0.3s ease, filter 0.3s ease;
+  object-fit: contain;
+}
+
+.logo:hover {
+  transform: translateY(-3px);
+  filter: drop-shadow(0 6px 16px rgba(255, 255, 255, 0.4));
+}
+
+.terminalMockup {
+  background: #1e1e1e;
+  border-radius: 8px;
+  padding: 0.5rem;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  border: 1px solid #333;
+}
+
+.terminalHeader {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.terminalDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ff5f56;
+}
+
+.terminalDot:nth-child(2) {
+  background: #ffbd2e;
+}
+
+.terminalDot:nth-child(3) {
+  background: #27ca3f;
+}
+
+.terminalContent {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #f8f8f2;
+}
+
+/* Responsive sizing for heroImage */
+@media (max-width: 768px) {
+  .logo {
+    width: 120px;
+    height: 120px;
+  }
+
+  .heroImage {
+    max-width: 420px;
+    padding: 0.5rem;
+  }
+
+  .terminalMockup {
+    max-width: 360px;
+    padding: 0.4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .heroImage {
+    max-width: 360px;
+    padding: 0.25rem;
+  }
+
+  .terminalMockup {
+    max-width: 300px;
+    padding: 0.3rem;
+  }
+}
+
+.prompt {
+  color: #f8f8f2;
+  margin-right: 0.5rem;
+}
+
+.success {
+  color: #a6e22e;
+  margin-right: 0.5rem;
+}
+
+.info {
+  color: #66d9ef;
+  margin-right: 0.5rem;
+}
+
+/* Stats Section */
+.stats {
+  padding: 4rem 0;
+  background: linear-gradient(135deg, #2a2f30 0%, #191c1d 100%);
+}
+
+.statItem {
+  text-align: center;
+  padding: 2rem 1rem;
+  background: #2a2f30;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid #475569;
+}
+
+.statItem:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.statNumber {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.statLabel {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #60a5fa;
+  margin-bottom: 0.5rem;
+}
+
+.statDesc {
+  color: #cbd5e1;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* Code Example Section */
+.codeExample {
+  padding: 4rem 0;
+  background: #2a2f30;
+}
+
+.codeExample h2 {
+  color: #60a5fa;
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.codeExample p {
+  color: #e2e8f0;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+}
+
+.codeBlock {
+  margin-bottom: 2rem;
+  background: #191c1d;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #475569;
+}
+
+.codeHeader {
+  background: #60a5fa;
+  color: #ffffff;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.code {
+  margin: 0;
+  padding: 1.5rem;
+  background: #191c1d;
+  color: #e2e8f0;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  overflow-x: auto;
+  border: 1px solid #475569;
+}
+
+.code code {
+  background: none;
+  padding: 0;
+  color: inherit;
+}
+
+/* CTA Section */
+.cta {
+  padding: 4rem 0;
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+  color: #ffffff;
+}
+
+.cta h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: #ffffff;
+}
+
+.cta p {
+  font-size: 1.2rem;
+  line-height: 1.6;
+  margin-bottom: 2.5rem;
+  opacity: 0.9;
+}
+
+.ctaButtons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .heroTitleMain {
+    font-size: 3rem;
+  }
+
+  .heroTitleSub {
+    font-size: 1.4rem;
+  }
+
+  .hero__subtitle {
+    font-size: 1.1rem;
+  }
+
+  .buttons {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dockerIcon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+  }
+
+  .statItem {
+    margin-bottom: 1rem;
+  }
+
+  .cta h2 {
+    font-size: 2rem;
+  }
+
+  .ctaButtons {
+    flex-direction: column;
+    align-items: center;
+  }
+}

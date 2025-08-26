@@ -29,25 +29,20 @@ A terminal-based Docker management tool inspired by k9s, providing an intuitive 
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/wikczerski/whaletui.git
-   cd whaletui
-   ```
+For detailed installation instructions, visit our [Installation Guide](https://wikczerski.github.io/whaletui/docs/installation).
 
-2. **Build the application**
-   ```bash
-   go build -o whaletui
-   ```
+**Quick commands:**
+```bash
+# Clone and build
+git clone https://github.com/wikczerski/whaletui.git
+cd whaletui
+go build -o whaletui
 
-3. **Run whaletui**
-   ```bash
-   ./whaletui
-   ```
+# Run
+./whaletui
+```
 
-### Pre-built Binaries
-
-Visit the [Releases](https://github.com/wikczerski/whaletui/releases) page to download the latest pre-built binary for your platform.
+**Pre-built binaries:** Available on the [Releases](https://github.com/wikczerski/whaletui/releases) page.
 
 ## Usage
 
