@@ -11,6 +11,18 @@ function HomepageHeader() {
   const {siteConfig} = useDocusaurusContext();
   return (
     <header className={clsx('hero hero--primary', styles.heroBanner)}>
+      {/* GitHub Star Button - Top Right */}
+      <div className={styles.githubStarButton}>
+        <iframe
+          src="https://ghbtns.com/github-btn.html?user=wikczerski&repo=whaletui&type=star&count=true&size=large"
+          frameBorder="0"
+          scrolling="0"
+          width="170"
+          height="30"
+          title="GitHub"
+        />
+      </div>
+
       <div className="container">
         <div className="row">
           <div className="col col--8">
@@ -69,6 +81,10 @@ function HomepageStats() {
   return (
     <section className={styles.stats}>
       <div className="container">
+        <div className={styles.statsHeader}>
+          <h2 className={styles.statsTitle}>Why Choose WhaleTUI?</h2>
+        </div>
+
         <div className="row">
           <div className="col col--3">
             <div className={styles.statItem}>
@@ -173,6 +189,17 @@ function HomepageCTA() {
                 to="https://github.com/wikczerski/whaletui">
                 View on GitHub
               </Link>
+              {/* GitHub Star Button - Next to View on GitHub */}
+              <div className={styles.ctaStarButton}>
+                <iframe
+                  src="https://ghbtns.com/github-btn.html?user=wikczerski&repo=whaletui&type=star&count=true&size=large"
+                  frameBorder="0"
+                  scrolling="0"
+                  width="170"
+                  height="30"
+                  title="GitHub"
+                />
+              </div>
             </div>
           </div>
         </div>

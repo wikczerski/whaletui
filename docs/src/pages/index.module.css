@@ -312,3 +312,44 @@
     align-items: center;
   }
 }
+
+/* GitHub Star Button Styles */
+.githubStarButton {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
+}
+
+.heroStarButton {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.ctaStarButton {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 1rem;
+}
+
+/* Ensure hero section has relative positioning for absolute positioning of star button */
+.heroBanner {
+  position: relative;
+}
+
+/* Stats Section Header */
+.statsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.statsTitle {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--ifm-color-content);
+}
