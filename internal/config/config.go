@@ -63,7 +63,7 @@ func getConfigPaths() (string, string, error) {
 		return "", "", fmt.Errorf("home directory access failed: %w", err)
 	}
 
-	configDir := filepath.Join(homeDir, ".dockerk9s")
+	configDir := filepath.Join(homeDir, ".whaletui")
 	if err := os.MkdirAll(configDir, 0o750); err != nil {
 		return "", "", fmt.Errorf("config directory creation failed: %w", err)
 	}
@@ -151,7 +151,7 @@ func (c *Config) Save() error {
 		return fmt.Errorf("home directory access failed: %w", err)
 	}
 
-	configDir := filepath.Join(homeDir, ".dockerk9s")
+	configDir := filepath.Join(homeDir, ".whaletui")
 	configFile := filepath.Join(configDir, "config.json")
 
 	return saveConfig(configFile, c)

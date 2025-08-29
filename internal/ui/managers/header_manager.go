@@ -44,15 +44,23 @@ func (hm *HeaderManager) CreateHeaderSection() tview.Primitive {
 
 // UpdateAll updates all header content
 func (hm *HeaderManager) UpdateAll() {
-	if hm.headerFlex == nil || hm.headerFlex.GetItemCount() < 4 {
+	if hm.headerFlex == nil {
 		return
 	}
 
-	// Update each view directly
-	hm.updateView(0, hm.getDockerInfoText())
-	hm.updateView(1, hm.getNavigationText())
-	hm.updateView(2, hm.getActionsText())
-	hm.updateView(3, constants.WhaleTuiLogo)
+	// Recreate the entire header section to ensure proper layout
+	hm.headerFlex.Clear()
+
+	// Add header views with proportions
+	dockerInfoView := hm.createHeaderView("Docker Info", hm.getDockerInfoText(), tview.AlignLeft)
+	navigationView := hm.createHeaderView("Navigation", hm.getNavigationText(), tview.AlignLeft)
+	actionsView := hm.createHeaderView("Actions", hm.getActionsText(), tview.AlignLeft)
+	logoView := hm.createHeaderView("WhaleTui", constants.WhaleTuiLogo, tview.AlignCenter)
+
+	hm.headerFlex.AddItem(dockerInfoView, 0, 1, false)
+	hm.headerFlex.AddItem(navigationView, 0, 1, false)
+	hm.headerFlex.AddItem(actionsView, 0, 3, false)
+	hm.headerFlex.AddItem(logoView, 0, 2, false)
 }
 
 // UpdateDockerInfo updates the Docker info
@@ -116,6 +124,20 @@ func (hm *HeaderManager) createTableLayout(
 		numColumns = 3
 	}
 
+	// Recalculate maxRows to ensure all items are displayed
+	if numColumns > 1 {
+		maxRows = (len(lines) + numColumns - 1) / numColumns
+		// Ensure maxRows doesn't exceed 7 for readability
+		if maxRows > 7 {
+			maxRows = 7
+			// Recalculate columns if needed
+			numColumns = (len(lines) + maxRows - 1) / maxRows
+			if numColumns > 3 {
+				numColumns = 3
+			}
+		}
+	}
+
 	flex := tview.NewFlex()
 	flex.SetDirection(tview.FlexColumn)
 	flex.SetBorder(true)
@@ -125,7 +147,7 @@ func (hm *HeaderManager) createTableLayout(
 	flex.SetBorderColor(theme.GetBorderColor())
 	flex.SetBackgroundColor(theme.GetBackgroundColor())
 
-	// Add columns
+	// Add columns with improved distribution
 	hm.addTableColumns(flex, lines, align, maxRows, numColumns)
 
 	return flex
@@ -137,8 +159,20 @@ func (hm *HeaderManager) addTableColumns(
 	lines []string,
 	align, maxRows, numColumns int,
 ) {
+	// Calculate items per column more evenly
+	itemsPerColumn := make([]int, numColumns)
+	remainingItems := len(lines)
+
 	for col := 0; col < numColumns; col++ {
-		columnText := hm.createTableColumn(lines, align, maxRows, col)
+		if col < remainingItems%numColumns {
+			itemsPerColumn[col] = remainingItems/numColumns + 1
+		} else {
+			itemsPerColumn[col] = remainingItems / numColumns
+		}
+	}
+
+	for col := 0; col < numColumns; col++ {
+		columnText := hm.createTableColumn(lines, align, maxRows, col, itemsPerColumn[col], numColumns)
 		flex.AddItem(columnText, 0, 1, false)
 	}
 }
@@ -146,7 +180,7 @@ func (hm *HeaderManager) addTableColumns(
 // createTableColumn creates a single table column
 func (hm *HeaderManager) createTableColumn(
 	lines []string,
-	align, maxRows, col int,
+	align, maxRows, col, itemsInColumn, numColumns int,
 ) *tview.TextView {
 	columnText := tview.NewTextView()
 	theme := hm.ui.GetThemeManager()
@@ -160,9 +194,14 @@ func (hm *HeaderManager) createTableColumn(
 	columnText.SetWordWrap(false)
 	columnText.SetWrap(false)
 
-	// Set column content
-	startIndex := col * maxRows
-	endIndex := startIndex + maxRows
+	// Calculate start index based on items per column
+	startIndex := 0
+	for i := 0; i < col; i++ {
+		startIndex += (len(lines) + i) / numColumns
+	}
+
+	// Calculate end index
+	endIndex := startIndex + itemsInColumn
 	if endIndex > len(lines) {
 		endIndex = len(lines)
 	}
@@ -171,17 +210,21 @@ func (hm *HeaderManager) createTableColumn(
 	for i := startIndex; i < endIndex; i++ {
 		columnLines = append(columnLines, lines[i])
 	}
+
+	// Pad the column with empty lines to maintain consistent height
+	for len(columnLines) < maxRows {
+		columnLines = append(columnLines, "")
+	}
+
 	columnText.SetText(strings.Join(columnLines, "\n"))
 
 	return columnText
 }
 
-// updateView updates a specific view with new content
+// updateView is deprecated - use UpdateAll instead to recreate the entire header
 func (hm *HeaderManager) updateView(index int, content string) {
-	item := hm.headerFlex.GetItem(index)
-	if textView, ok := item.(*tview.TextView); ok {
-		textView.SetText(content)
-	}
+	// This method is deprecated - always recreate the entire header
+	hm.UpdateAll()
 }
 
 // getDockerInfoText returns the formatted Docker info text
