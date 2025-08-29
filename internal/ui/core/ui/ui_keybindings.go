@@ -116,6 +116,9 @@ func (ui *UI) handleNormalModeKeyBindings(event *tcell.EventKey) *tcell.EventKey
 		return ui.handleGlobalRuneKeyBindings(event)
 	case tcell.KeyCtrlC:
 		return ui.handleCtrlCKeyBinding(event)
+	case tcell.KeyBackspace:
+		// Handle Backspace to go back from subviews
+		return ui.handleBackspaceKeyBinding(event)
 	}
 	return event
 }
@@ -164,6 +167,18 @@ func (ui *UI) handleCtrlCKeyBinding(_ *tcell.EventKey) *tcell.EventKey {
 	case ui.shutdownChan <- struct{}{}:
 	default:
 	}
+	return nil
+}
+
+// handleBackspaceKeyBinding handles Backspace key binding for subview navigation
+func (ui *UI) handleBackspaceKeyBinding(_ *tcell.EventKey) *tcell.EventKey {
+	// Only handle Backspace when in details mode or logs mode, but NOT in shell mode
+	if (ui.inDetailsMode || ui.inLogsMode) && !ui.isShellViewActive() {
+		ui.log.Info("Backspace pressed in subview, returning to main view")
+		ui.ShowCurrentView()
+		return nil // Consume the event
+	}
+	// If not in a subview or in shell mode, let the event pass through
 	return nil
 }
 
