@@ -140,7 +140,7 @@ func (lv *View) createBackButton(
 // handleNavigationKeys handles navigation key events
 func (lv *View) handleNavigationKeys(event *tcell.EventKey) bool {
 	switch event.Key() {
-	case tcell.KeyEscape, tcell.KeyEnter:
+	case tcell.KeyEscape, tcell.KeyEnter, tcell.KeyBackspace:
 		lv.ui.ShowCurrentView()
 		return true
 	}

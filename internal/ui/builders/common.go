@@ -93,7 +93,7 @@ func (dvb *DetailsViewBuilder) setupDetailsKeyBindings(
 ) {
 	detailsFlex.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
-		case tcell.KeyEscape, tcell.KeyEnter:
+		case tcell.KeyEscape, tcell.KeyEnter, tcell.KeyBackspace:
 			if onBack != nil {
 				onBack()
 			}
@@ -368,10 +368,10 @@ func setupInspectDetailsKeyBindings(
 	})
 }
 
-// setupInspectDetailsKeyBindingsHandleNavigationKeys handles navigation keys (Escape, Enter)
+// setupInspectDetailsKeyBindingsHandleNavigationKeys handles navigation keys (Escape, Enter, Backspace)
 func setupInspectDetailsKeyBindingsHandleNavigationKeys(event *tcell.EventKey, onBack func()) bool {
 	switch event.Key() {
-	case tcell.KeyEscape, tcell.KeyEnter:
+	case tcell.KeyEscape, tcell.KeyEnter, tcell.KeyBackspace:
 		if onBack != nil {
 			onBack()
 		}
