@@ -172,7 +172,8 @@ func (hm *HeaderManager) addTableColumns(
 	}
 
 	for col := 0; col < numColumns; col++ {
-		columnText := hm.createTableColumn(lines, align, maxRows, col, itemsPerColumn[col], numColumns)
+		columnText := hm.createTableColumn(
+			lines, align, maxRows, col, itemsPerColumn[col], numColumns)
 		flex.AddItem(columnText, 0, 1, false)
 	}
 }
@@ -182,6 +183,14 @@ func (hm *HeaderManager) createTableColumn(
 	lines []string,
 	align, maxRows, col, itemsInColumn, numColumns int,
 ) *tview.TextView {
+	columnText := hm.createTextView(align)
+	columnLines := hm.calculateColumnLines(lines, col, itemsInColumn, numColumns, maxRows)
+	columnText.SetText(strings.Join(columnLines, "\n"))
+	return columnText
+}
+
+// createTextView creates and configures a TextView with theme settings
+func (hm *HeaderManager) createTextView(align int) *tview.TextView {
 	columnText := tview.NewTextView()
 	theme := hm.ui.GetThemeManager()
 
@@ -194,13 +203,14 @@ func (hm *HeaderManager) createTableColumn(
 	columnText.SetWordWrap(false)
 	columnText.SetWrap(false)
 
-	// Calculate start index based on items per column
-	startIndex := 0
-	for i := 0; i < col; i++ {
-		startIndex += (len(lines) + i) / numColumns
-	}
+	return columnText
+}
 
-	// Calculate end index
+// calculateColumnLines calculates the lines for a specific column
+func (hm *HeaderManager) calculateColumnLines(
+	lines []string, col, itemsInColumn, numColumns, maxRows int,
+) []string {
+	startIndex := hm.calculateStartIndex(lines, col, numColumns)
 	endIndex := startIndex + itemsInColumn
 	if endIndex > len(lines) {
 		endIndex = len(lines)
@@ -216,15 +226,16 @@ func (hm *HeaderManager) createTableColumn(
 		columnLines = append(columnLines, "")
 	}
 
-	columnText.SetText(strings.Join(columnLines, "\n"))
-
-	return columnText
+	return columnLines
 }
 
-// updateView is deprecated - use UpdateAll instead to recreate the entire header
-func (hm *HeaderManager) updateView(index int, content string) {
-	// This method is deprecated - always recreate the entire header
-	hm.UpdateAll()
+// calculateStartIndex calculates the starting index for a column
+func (hm *HeaderManager) calculateStartIndex(lines []string, col, numColumns int) int {
+	startIndex := 0
+	for i := 0; i < col; i++ {
+		startIndex += (len(lines) + i) / numColumns
+	}
+	return startIndex
 }
 
 // getDockerInfoText returns the formatted Docker info text
