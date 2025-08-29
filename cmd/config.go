@@ -67,5 +67,5 @@ func displayConfigInfo(cfg *config.Config, homeDir string) {
 	fmt.Printf("Refresh Interval: %d seconds\n", cfg.RefreshInterval)
 	fmt.Printf("Log Level: %s\n", cfg.LogLevel)
 	fmt.Printf("Theme: %s\n", cfg.Theme)
-	fmt.Printf("\nConfig File: %s/.dockerk9s/config.json\n", homeDir)
+	fmt.Printf("\nConfig File: %s/.whaletui/config.json\n", homeDir)
 }

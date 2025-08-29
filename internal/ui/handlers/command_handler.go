@@ -196,7 +196,7 @@ func (ch *CommandHandler) handleViewSwitchCommand(command string) bool {
 // getViewMappings returns the mapping of command aliases to view names
 func (ch *CommandHandler) getViewMappings() map[string]string {
 	return map[string]string{
-		"containers":     "containers",
+		"containers":     constants.ViewContainers,
 		"c":              "containers",
 		"images":         "images",
 		"i":              "images",

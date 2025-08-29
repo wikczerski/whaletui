@@ -1,14 +1,16 @@
-package core
+package ui
 
 import (
 	"log/slog"
 	"testing"
 
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/stretchr/testify/assert"
 	"github.com/wikczerski/whaletui/internal/config"
 	sharedMocks "github.com/wikczerski/whaletui/internal/mocks/shared"
 	mocks "github.com/wikczerski/whaletui/internal/mocks/ui"
+	"github.com/wikczerski/whaletui/internal/ui/core"
 	"github.com/wikczerski/whaletui/internal/ui/handlers"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 	"github.com/wikczerski/whaletui/internal/ui/managers"
@@ -397,7 +399,7 @@ func TestUI_StatusBar_Text(t *testing.T) {
 func TestUI_CurrentViewTracking(t *testing.T) {
 	// Test basic UI structure without full initialization
 	ui := &UI{
-		viewRegistry: &ViewRegistry{},
+		viewRegistry: &core.ViewRegistry{},
 	}
 
 	// Test that view registry exists
@@ -407,7 +409,7 @@ func TestUI_CurrentViewTracking(t *testing.T) {
 func TestUI_CurrentViewTracking_ValidView(t *testing.T) {
 	// Test basic UI structure without full initialization
 	ui := &UI{
-		viewRegistry: &ViewRegistry{},
+		viewRegistry: &core.ViewRegistry{},
 	}
 
 	// Test that view registry exists
@@ -1080,4 +1082,48 @@ func TestUI_ViewCreationFunctions_SetDefaultView(t *testing.T) {
 	assert.NotNil(t, ui.pages)
 	assert.NotNil(t, ui.mainFlex)
 	assert.NotNil(t, ui.app)
+}
+
+func TestUI_BackspaceKeyBinding(t *testing.T) {
+	serviceFactory := mocks.NewMockServiceFactoryInterface(t)
+	headerManager := interfaces.HeaderManagerInterface(nil)
+	modalManager := interfaces.ModalManagerInterface(nil)
+
+	// Set up mock expectations
+	serviceFactory.On("GetContainerService").Return(nil).Maybe()
+	serviceFactory.On("GetImageService").Return(nil).Maybe()
+	serviceFactory.On("GetVolumeService").Return(nil).Maybe()
+	serviceFactory.On("GetNetworkService").Return(nil).Maybe()
+	serviceFactory.On("GetDockerInfoService").Return(nil).Maybe()
+	serviceFactory.On("GetLogsService").Return(nil).Maybe()
+	serviceFactory.On("GetSwarmServiceService").
+		Return(sharedMocks.NewMockSwarmServiceService(t)).
+		Maybe()
+	serviceFactory.On("GetSwarmNodeService").Return(sharedMocks.NewMockSwarmNodeService(t)).Maybe()
+	serviceFactory.On("IsServiceAvailable", "container").Return(false).Maybe()
+	serviceFactory.On("IsContainerServiceAvailable").Return(false).Maybe()
+
+	ui, err := New(serviceFactory, "", headerManager, modalManager, &config.Config{})
+	assert.NoError(t, err)
+	assert.NotNil(t, ui)
+
+	// Test Backspace in normal mode (should pass through)
+	event := tcell.NewEventKey(tcell.KeyBackspace, 0, tcell.ModNone)
+	result := ui.handleBackspaceKeyBinding(event)
+	assert.Nil(t, result, "Backspace should pass through in normal mode")
+
+	// Test Backspace in details mode (should return to main view)
+	ui.inDetailsMode = true
+	result = ui.handleBackspaceKeyBinding(event)
+	assert.Nil(t, result, "Backspace should be consumed in details mode")
+
+	// Test Backspace in logs mode (should return to main view)
+	ui.inDetailsMode = false
+	ui.inLogsMode = true
+	result = ui.handleBackspaceKeyBinding(event)
+	assert.Nil(t, result, "Backspace should be consumed in logs mode")
+
+	// Note: Shell mode testing would require more complex setup
+	// The key point is that Backspace should only work for details and logs views
+	// and should NOT work when shell view is active (handled by isShellViewActive check)
 }

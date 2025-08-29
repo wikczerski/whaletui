@@ -5,7 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+
+## [0.2.0] - 2025-08-29
+
+### Added
+- **Complete Documentation Site**: New Docusaurus-based documentation with comprehensive guides
+  - Concept documentation for containers, images, networks, nodes, swarm, and volumes
+  - Development guides including coding standards and setup instructions
+  - Installation and quick-start guides for new users
+  - Professional styling with custom CSS and components
+- **Enhanced Navigation**: Backspace and escape key support for navigating back from subviews
+- **Improved User Experience**: Better modal management and header handling
+
+### Changed
+- **UI Architecture**: Major refactoring of the monolithic `ui.go` (1,468 lines) into 8 focused modules
+  - `ui_api.go` - API interface definitions
+  - `ui_navigation.go` - Navigation logic
+  - `ui_keybindings.go` - Keyboard shortcuts
+  - `ui_modals.go` - Modal management
+  - `ui_views.go` - View handling
+  - `ui_utilities.go` - Helper functions
+- **Header Manager**: Simplified architecture with better maintainability and readability
+- **Code Quality**: Applied DRY principles, smaller focused functions, better separation of concerns
+
+### Fixed
+- **Code Maintainability**: Reduced function complexity
+- **Performance**: Optimized header manager operations
+- **Architecture**: Better separation of concerns and dependency injection
+
+## [0.1.1] - 2025-08-25
+
+### Fixed
+- **Windows Performance**: Updated tcell version improving windows performance
 
 ## [0.1.0] - 2025-08-25
 

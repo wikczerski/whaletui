@@ -74,7 +74,7 @@ func TestLoad_NewConfig(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, cfg)
 
-	configFile := filepath.Join(tempHome, ".dockerk9s", "config.json")
+	configFile := filepath.Join(tempHome, ".whaletui", "config.json")
 	assert.FileExists(t, configFile)
 
 	assert.Equal(t, 5, cfg.RefreshInterval)
@@ -86,7 +86,7 @@ func TestLoad_ExistingConfig(t *testing.T) {
 	envVars := setupTestEnvironment(t, tempHome)
 	defer restoreTestEnvironment(t, envVars)
 
-	configDir := filepath.Join(tempHome, ".dockerk9s")
+	configDir := filepath.Join(tempHome, ".whaletui")
 	err := os.MkdirAll(configDir, 0o750)
 	require.NoError(t, err)
 
@@ -122,7 +122,7 @@ func TestLoad_InvalidConfig(t *testing.T) {
 	envVars := setupTestEnvironment(t, tempHome)
 	defer restoreTestEnvironment(t, envVars)
 
-	configDir := filepath.Join(tempHome, ".dockerk9s")
+	configDir := filepath.Join(tempHome, ".whaletui")
 	err := os.MkdirAll(configDir, 0o750)
 	require.NoError(t, err)
 
