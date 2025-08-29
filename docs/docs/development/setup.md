@@ -178,7 +178,7 @@ whaletui/
 
 ### Application Configuration
 
-The application uses a JSON configuration file located at `~/.dockerk9s/config.json` with the following structure:
+The application uses a JSON configuration file located at `~/.whaletui/config.json` with the following structure:
 
 ```json
 {
@@ -208,7 +208,7 @@ The application uses a JSON configuration file located at `~/.dockerk9s/config.j
 Themes are configured using YAML or JSON files. You can create custom themes by placing them in the config directory:
 
 ```yaml
-# ~/.dockerk9s/themes/custom-theme.yaml
+# ~/.whaletui/themes/custom-theme.yaml
 colors:
   header: "#00FF00"     # Bright green header
   border: "#444444"     # Dark gray borders
@@ -234,8 +234,8 @@ shell:
 
 ### Configuration File Location
 
-- **Linux/macOS**: `~/.dockerk9s/config.json`
-- **Windows**: `%USERPROFILE%\.dockerk9s\config.json`
+- **Linux/macOS**: `~/.whaletui/config.json`
+- **Windows**: `%USERPROFILE%\.whaletui\config.json`
 
 The configuration directory is automatically created when you first run the application.
 

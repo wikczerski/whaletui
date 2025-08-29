@@ -705,7 +705,7 @@ func (mm *ModalManager) formatHelpText(helpSections []struct {
 	content []string
 },
 ) string {
-	helpText := "DockerK9s Keyboard Shortcuts\n\n"
+	helpText := "whaletui Keyboard Shortcuts\n\n"
 	for _, section := range helpSections {
 		helpText += section.title + ":\n"
 		for _, item := range section.content {
