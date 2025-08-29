@@ -1,4 +1,4 @@
-package core
+package ui
 
 import (
 	"log/slog"
@@ -9,6 +9,7 @@ import (
 	"github.com/wikczerski/whaletui/internal/config"
 	sharedMocks "github.com/wikczerski/whaletui/internal/mocks/shared"
 	mocks "github.com/wikczerski/whaletui/internal/mocks/ui"
+	"github.com/wikczerski/whaletui/internal/ui/core"
 	"github.com/wikczerski/whaletui/internal/ui/handlers"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 	"github.com/wikczerski/whaletui/internal/ui/managers"
@@ -397,7 +398,7 @@ func TestUI_StatusBar_Text(t *testing.T) {
 func TestUI_CurrentViewTracking(t *testing.T) {
 	// Test basic UI structure without full initialization
 	ui := &UI{
-		viewRegistry: &ViewRegistry{},
+		viewRegistry: &core.ViewRegistry{},
 	}
 
 	// Test that view registry exists
@@ -407,7 +408,7 @@ func TestUI_CurrentViewTracking(t *testing.T) {
 func TestUI_CurrentViewTracking_ValidView(t *testing.T) {
 	// Test basic UI structure without full initialization
 	ui := &UI{
-		viewRegistry: &ViewRegistry{},
+		viewRegistry: &core.ViewRegistry{},
 	}
 
 	// Test that view registry exists

@@ -15,6 +15,7 @@ import (
 	"github.com/wikczerski/whaletui/internal/errors"
 	"github.com/wikczerski/whaletui/internal/logger"
 	"github.com/wikczerski/whaletui/internal/ui/core"
+	"github.com/wikczerski/whaletui/internal/ui/core/ui"
 	"github.com/wikczerski/whaletui/internal/ui/managers"
 )
 
@@ -23,7 +24,7 @@ type App struct {
 	cfg      *config.Config
 	docker   *docker.Client
 	services *core.ServiceFactory
-	ui       *core.UI
+	ui       *ui.UI
 	ctx      context.Context
 	cancel   context.CancelFunc
 	log      *slog.Logger
@@ -74,7 +75,7 @@ func createAndSetupUI(
 	cfg *config.Config,
 	client *docker.Client,
 	cancel context.CancelFunc,
-) (*core.UI, error) {
+) (*ui.UI, error) {
 	ui, err := createUI(services, cfg)
 	if err != nil {
 		cleanupOnError(client, cancel)
@@ -96,7 +97,7 @@ func createAppInstance(
 	cfg *config.Config,
 	client *docker.Client,
 	services *core.ServiceFactory,
-	ui *core.UI,
+	ui *ui.UI,
 	ctx context.Context,
 	cancel context.CancelFunc,
 	log *slog.Logger,
@@ -112,19 +113,19 @@ func createAppInstance(
 	}
 }
 
-func createUI(services *core.ServiceFactory, cfg *config.Config) (*core.UI, error) {
-	ui, err := core.New(services, cfg.Theme, nil, nil, cfg)
+func createUI(services *core.ServiceFactory, cfg *config.Config) (*ui.UI, error) {
+	uiInstance, err := ui.New(services, cfg.Theme, nil, nil, cfg)
 	if err != nil {
 		return nil, errors.UIError("UI creation", err)
 	}
-	return ui, nil
+	return uiInstance, nil
 }
 
-func setupManagers(ui *core.UI) {
-	headerManager := managers.NewHeaderManager(ui)
-	modalManager := managers.NewModalManager(ui)
-	ui.SetHeaderManager(headerManager)
-	ui.SetModalManager(modalManager)
+func setupManagers(uiInstance *ui.UI) {
+	headerManager := managers.NewHeaderManager(uiInstance)
+	modalManager := managers.NewModalManager(uiInstance)
+	uiInstance.SetHeaderManager(headerManager)
+	uiInstance.SetModalManager(modalManager)
 }
 
 func cleanupOnError(client *docker.Client, cancel context.CancelFunc) {
@@ -163,7 +164,7 @@ func (a *App) Shutdown() {
 }
 
 // GetUI returns the UI instance
-func (a *App) GetUI() *core.UI {
+func (a *App) GetUI() *ui.UI {
 	return a.ui
 }
 
