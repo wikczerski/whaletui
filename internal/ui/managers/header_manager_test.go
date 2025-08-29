@@ -13,6 +13,9 @@ func newHeaderManagerWithTheme(t *testing.T) *HeaderManager {
 	mockUI := mocks.NewMockUIInterface(t)
 	mockServices := mocks.NewMockServiceFactoryInterface(t)
 
+	// Create a simple mock view registry
+	mockViewRegistry := &mockViewRegistry{currentName: ""}
+
 	// Return a real ThemeManager from the mock
 	tm := config.NewThemeManager("")
 	mockUI.On("GetThemeManager").Return(tm).Maybe()
@@ -27,6 +30,7 @@ func newHeaderManagerWithTheme(t *testing.T) *HeaderManager {
 	mockUI.On("GetServices").Return(mockServices).Maybe()
 	mockUI.On("GetCurrentViewActions").Return("").Maybe()
 	mockUI.On("GetCurrentViewNavigation").Return("").Maybe()
+	mockUI.On("GetViewRegistry").Return(mockViewRegistry).Maybe()
 
 	// Mock UI state methods
 	mockUI.On("IsInLogsMode").Return(false).Maybe()
@@ -34,6 +38,15 @@ func newHeaderManagerWithTheme(t *testing.T) *HeaderManager {
 	mockUI.On("GetCurrentActions").Return(nil).Maybe()
 
 	return NewHeaderManager(mockUI)
+}
+
+// mockViewRegistry is a simple mock for testing
+type mockViewRegistry struct {
+	currentName string
+}
+
+func (m *mockViewRegistry) GetCurrentName() string {
+	return m.currentName
 }
 
 func TestNewHeaderManager(t *testing.T) {
