@@ -48,7 +48,7 @@ func (iv *ImagesView) setupBasicCallbacks() {
 // setupActionCallbacks sets up the action-related callbacks
 func (iv *ImagesView) setupActionCallbacks() {
 	iv.HandleKeyPress = func(key rune, i shared.Image) { iv.handleImageKey(key, &i) }
-	iv.ShowDetails = func(i shared.Image) { iv.showImageDetails(&i) }
+	iv.ShowDetailsCallback = func(i shared.Image) { iv.showImageDetails(&i) }
 	iv.GetActions = iv.getImageActions
 }
 

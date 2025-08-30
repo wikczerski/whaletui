@@ -12,23 +12,6 @@ import (
 	"github.com/wikczerski/whaletui/internal/ui/constants"
 )
 
-// UIInterface defines minimal interface needed by BaseView to avoid circular dependency
-type UIInterface interface {
-	ShowError(error)
-	ShowDetails(any)
-	ShowCurrentView()
-	ShowConfirm(string, func(bool))
-	GetServicesAny() any
-	ShowInfo(string)
-	ShowNodeAvailabilityModal(string, string, func(string))
-	ShowRetryDialog(string, error, func() error, func())
-	ShowFallbackDialog(string, error, []string, func(string))
-	ShowContextualHelp(string, string)
-	ShowServiceScaleModal(string, uint64, func(int))
-	GetSwarmServiceService() any
-	GetSwarmNodeService() any
-}
-
 // ServiceFactoryInterface defines minimal interface for services
 type ServiceFactoryInterface interface {
 	GetContainerService() any
@@ -45,6 +28,28 @@ type ServiceFactoryInterface interface {
 	IsContainerServiceAvailable() bool
 }
 
+// UIInterface defines the interface that views need from the UI
+type UIInterface interface {
+	// Basic UI methods
+	ShowError(error)
+	ShowInfo(string)
+	ShowDetails(any)
+	ShowCurrentView()
+	ShowConfirm(string, func(bool))
+
+	// Advanced UI methods
+	ShowServiceScaleModal(string, uint64, func(int))
+	ShowNodeAvailabilityModal(string, string, func(string))
+	ShowContextualHelp(string, string)
+	ShowRetryDialog(string, error, func() error, func())
+	ShowFallbackDialog(string, error, []string, func(string))
+
+	// Service methods
+	GetServicesAny() any
+	GetSwarmServiceService() any
+	GetSwarmNodeService() any
+}
+
 // BaseView provides common functionality for all Docker resource views
 type BaseView[T any] struct {
 	ui       UIInterface
@@ -56,14 +61,14 @@ type BaseView[T any] struct {
 	log      *slog.Logger
 
 	// Callbacks for specific behavior
-	ListItems      func(ctx context.Context) ([]T, error)
-	FormatRow      func(item T) []string
-	GetRowColor    func(item T) tcell.Color // Optional: custom row colors
-	GetItemID      func(item T) string
-	GetItemName    func(item T) string
-	HandleKeyPress func(key rune, item T)
-	ShowDetails    func(item T)
-	GetActions     func() map[rune]string
+	ListItems           func(ctx context.Context) ([]T, error)
+	FormatRow           func(item T) []string
+	GetRowColor         func(item T) tcell.Color // Optional: custom row colors
+	GetItemID           func(item T) string
+	GetItemName         func(item T) string
+	HandleKeyPress      func(key rune, item T)
+	ShowDetailsCallback func(item T)
+	GetActions          func() map[rune]string
 }
 
 // NewBaseView creates a new base view with common functionality
@@ -156,11 +161,13 @@ func (bv *BaseView[T]) ShowItemDetails(item T, inspectData map[string]any, err e
 
 // ShowConfirmDialog displays a confirmation dialog with the given message and callback
 func (bv *BaseView[T]) ShowConfirmDialog(message string, onConfirm func()) {
-	bv.ui.ShowConfirm(message, func(confirmed bool) {
-		if confirmed {
-			onConfirm()
-		}
-	})
+	if ui, ok := bv.ui.(interface{ ShowConfirm(string, func(bool)) }); ok {
+		ui.ShowConfirm(message, func(confirmed bool) {
+			if confirmed {
+				onConfirm()
+			}
+		})
+	}
 }
 
 func (bv *BaseView[T]) setupKeyBindings() {
@@ -184,8 +191,8 @@ func (bv *BaseView[T]) setupKeyBindings() {
 
 		if event.Key() == tcell.KeyEnter {
 			bv.log.Info("Enter key pressed")
-			if bv.ShowDetails != nil {
-				bv.ShowDetails(item)
+			if bv.ShowDetailsCallback != nil {
+				bv.ShowDetailsCallback(item)
 			}
 			return nil
 		}
@@ -341,4 +348,31 @@ func (bv *BaseView[T]) handleAction(key rune) {
 
 func (bv *BaseView[T]) showTable() {
 	bv.ui.ShowCurrentView()
+}
+
+// ShowDetails shows details for the selected item
+func (bv *BaseView[T]) ShowDetails(item T) {
+	if bv.ShowDetailsCallback != nil {
+		bv.ShowDetailsCallback(item)
+	} else {
+		// Default implementation
+		detailsView := bv.createDetailsView(item)
+		bv.ui.ShowDetails(detailsView)
+	}
+}
+
+// createDetailsView creates a default details view for the item
+func (bv *BaseView[T]) createDetailsView(item T) tview.Primitive {
+	details := tview.NewTextView().
+		SetDynamicColors(true).
+		SetRegions(true).
+		SetWordWrap(true)
+
+	details.SetTitle(fmt.Sprintf("Details: %s", bv.GetItemName(item)))
+	details.SetBorder(true)
+
+	// Format the item details
+	details.SetText(fmt.Sprintf("ID: %s\nName: %s", bv.GetItemID(item), bv.GetItemName(item)))
+
+	return details
 }

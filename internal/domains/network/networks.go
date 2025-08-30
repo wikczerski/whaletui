@@ -47,7 +47,7 @@ func (nv *NetworksView) setupBasicCallbacks() {
 // setupActionCallbacks sets up the action-related callbacks
 func (nv *NetworksView) setupActionCallbacks() {
 	nv.HandleKeyPress = func(key rune, n shared.Network) { nv.handleAction(key, &n) }
-	nv.ShowDetails = func(n shared.Network) { nv.showNetworkDetails(&n) }
+	nv.ShowDetailsCallback = func(n shared.Network) { nv.showNetworkDetails(&n) }
 	nv.GetActions = nv.getNetworkActions
 }
 
@@ -66,6 +66,7 @@ func (nv *NetworksView) listNetworks(ctx context.Context) ([]shared.Network, err
 	if err != nil {
 		return nil, err
 	}
+
 	return networks, nil
 }
 

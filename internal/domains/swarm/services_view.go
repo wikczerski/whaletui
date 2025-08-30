@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/wikczerski/whaletui/internal/domains/swarm"
 	"github.com/wikczerski/whaletui/internal/logger"
 	"github.com/wikczerski/whaletui/internal/shared"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
@@ -16,7 +15,7 @@ import (
 // ServicesView represents the swarm services view
 type ServicesView struct {
 	*shared.BaseView[shared.SwarmService]
-	serviceService *swarm.ServiceService
+	serviceService *ServiceService
 	modalManager   interfaces.ModalManagerInterface
 	headerManager  interfaces.HeaderManagerInterface
 	log            *slog.Logger
@@ -25,7 +24,7 @@ type ServicesView struct {
 // NewServicesView creates a new swarm services view
 func NewServicesView(
 	ui interfaces.UIInterface,
-	serviceService *swarm.ServiceService,
+	serviceService *ServiceService,
 	modalManager interfaces.ModalManagerInterface,
 	headerManager interfaces.HeaderManagerInterface,
 ) *ServicesView {
@@ -52,7 +51,7 @@ func (v *ServicesView) handleInspect(ctx context.Context) (any, error) {
 	}
 
 	// Cast to the correct type
-	if swarmService, ok := serviceService.(*swarm.ServiceService); ok {
+	if swarmService, ok := serviceService.(*ServiceService); ok {
 		return v.performServiceInspection(ctx, selectedService, swarmService)
 	}
 
@@ -64,7 +63,7 @@ func (v *ServicesView) handleInspect(ctx context.Context) (any, error) {
 func (v *ServicesView) performServiceInspection(
 	ctx context.Context,
 	selectedService *shared.SwarmService,
-	swarmService *swarm.ServiceService,
+	swarmService *ServiceService,
 ) (any, error) {
 	serviceInfo, err := swarmService.InspectService(ctx, selectedService.ID)
 	if err != nil {
@@ -130,7 +129,7 @@ func (v *ServicesView) handleScale(ctx context.Context) (any, error) {
 	}
 
 	// Cast to the correct type
-	if swarmService, ok := serviceService.(*swarm.ServiceService); ok {
+	if swarmService, ok := serviceService.(*ServiceService); ok {
 		currentReplicas := v.getCurrentReplicas(ctx, selectedService, swarmService)
 		v.showScaleModal(ctx, selectedService, currentReplicas, swarmService)
 		return v, nil
@@ -162,7 +161,7 @@ func (v *ServicesView) validateServiceSelection() (*shared.SwarmService, any, er
 func (v *ServicesView) getCurrentReplicas(
 	ctx context.Context,
 	selectedService *shared.SwarmService,
-	swarmService *swarm.ServiceService,
+	swarmService *ServiceService,
 ) uint64 {
 	serviceInfo, err := swarmService.InspectService(ctx, selectedService.ID)
 	if err != nil {
@@ -184,7 +183,7 @@ func (v *ServicesView) showScaleModal(
 	ctx context.Context,
 	selectedService *shared.SwarmService,
 	currentReplicas uint64,
-	swarmService *swarm.ServiceService,
+	swarmService *ServiceService,
 ) {
 	v.GetUI().ShowServiceScaleModal(selectedService.Name, currentReplicas, func(newReplicas int) {
 		v.handleServiceScaling(ctx, selectedService, newReplicas, swarmService)
@@ -196,7 +195,7 @@ func (v *ServicesView) handleServiceScaling(
 	ctx context.Context,
 	selectedService *shared.SwarmService,
 	newReplicas int,
-	swarmService *swarm.ServiceService,
+	swarmService *ServiceService,
 ) {
 	if newReplicas < 0 {
 		v.GetUI().ShowError(fmt.Errorf("invalid replica count: %d", newReplicas))
@@ -219,7 +218,7 @@ func (v *ServicesView) handleScaleError(
 	service *shared.SwarmService,
 	newReplicas int,
 	err error,
-	swarmService *swarm.ServiceService,
+	swarmService *ServiceService,
 ) {
 	// Check if this is a retryable error
 	if v.isRetryableError(err) {
@@ -291,7 +290,7 @@ func (v *ServicesView) executeScaleFallback(
 	service *shared.SwarmService,
 	fallbackOption string,
 	_ int,
-	swarmService *swarm.ServiceService,
+	swarmService *ServiceService,
 ) {
 	switch fallbackOption {
 	case "Check Service Status":
@@ -309,7 +308,7 @@ func (v *ServicesView) executeScaleFallback(
 func (v *ServicesView) handleCheckServiceStatus(
 	ctx context.Context,
 	service *shared.SwarmService,
-	swarmService *swarm.ServiceService,
+	swarmService *ServiceService,
 ) {
 	serviceInfo, err := swarmService.InspectService(ctx, service.ID)
 	if err != nil {
@@ -329,7 +328,7 @@ func (v *ServicesView) handleCheckServiceStatus(
 func (v *ServicesView) handleViewServiceLogs(
 	ctx context.Context,
 	service *shared.SwarmService,
-	swarmService *swarm.ServiceService,
+	swarmService *ServiceService,
 ) {
 	logs, err := swarmService.GetServiceLogs(ctx, service.ID)
 	if err != nil {
@@ -348,7 +347,7 @@ func (v *ServicesView) handleViewServiceLogs(
 func (v *ServicesView) handleTryDifferentReplicaCount(
 	ctx context.Context,
 	service *shared.SwarmService,
-	swarmService *swarm.ServiceService,
+	swarmService *ServiceService,
 ) {
 	serviceInfo, err := swarmService.InspectService(ctx, service.ID)
 	if err != nil {
@@ -371,7 +370,7 @@ func (v *ServicesView) handleDifferentReplicaCount(
 	ctx context.Context,
 	service *shared.SwarmService,
 	differentReplicas int,
-	swarmService *swarm.ServiceService,
+	swarmService *ServiceService,
 ) {
 	if differentReplicas < 0 {
 		v.GetUI().ShowError(fmt.Errorf("invalid replica count: %d", differentReplicas))
@@ -393,7 +392,7 @@ func (v *ServicesView) handleDifferentReplicaCount(
 func (v *ServicesView) handleShowServiceDetails(
 	ctx context.Context,
 	service *shared.SwarmService,
-	swarmService *swarm.ServiceService,
+	swarmService *ServiceService,
 ) {
 	serviceInfo, err := swarmService.InspectService(ctx, service.ID)
 	if err != nil {
@@ -462,7 +461,7 @@ func (v *ServicesView) executeServiceRemoval(
 	serviceService any,
 ) {
 	// Cast to the correct type
-	if swarmService, ok := serviceService.(swarm.ServiceService); ok {
+	if swarmService, ok := serviceService.(ServiceService); ok {
 		// Remove the service
 		err := swarmService.RemoveService(ctx, selectedService.ID)
 		if err != nil {
@@ -495,7 +494,7 @@ func (v *ServicesView) handleLogs(ctx context.Context) (any, error) {
 	}
 
 	// Cast to the correct type
-	if swarmService, ok := serviceService.(*swarm.ServiceService); ok {
+	if swarmService, ok := serviceService.(*ServiceService); ok {
 		return v.performServiceLogs(ctx, selectedService, swarmService)
 	}
 
@@ -507,7 +506,7 @@ func (v *ServicesView) handleLogs(ctx context.Context) (any, error) {
 func (v *ServicesView) performServiceLogs(
 	ctx context.Context,
 	selectedService *shared.SwarmService,
-	swarmService *swarm.ServiceService,
+	swarmService *ServiceService,
 ) (any, error) {
 	// Get service logs
 	logs, err := swarmService.GetServiceLogs(ctx, selectedService.ID)

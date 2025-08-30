@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/wikczerski/whaletui/internal/domains/swarm"
 	uimocks "github.com/wikczerski/whaletui/internal/mocks/ui"
 	"github.com/wikczerski/whaletui/internal/shared"
 )
@@ -13,7 +12,7 @@ import (
 // TestNewServicesView tests the creation of a new services view
 func TestNewServicesView(t *testing.T) {
 	mockUI := uimocks.NewMockUIInterface(t)
-	mockServiceService := &swarm.ServiceService{}
+	mockServiceService := &ServiceService{}
 	mockModalManager := uimocks.NewMockModalManagerInterface(t)
 	mockHeaderManager := uimocks.NewMockHeaderManagerInterface(t)
 
@@ -31,7 +30,7 @@ func TestNewServicesView(t *testing.T) {
 // TestServicesView_GetActions tests the getActions method
 func TestServicesView_GetActions(t *testing.T) {
 	mockUI := uimocks.NewMockUIInterface(t)
-	mockServiceService := &swarm.ServiceService{}
+	mockServiceService := &ServiceService{}
 	mockModalManager := uimocks.NewMockModalManagerInterface(t)
 	mockHeaderManager := uimocks.NewMockHeaderManagerInterface(t)
 
@@ -53,7 +52,7 @@ func TestServicesView_GetActions(t *testing.T) {
 // TestServicesView_FormatServiceRow tests the service row formatting
 func TestServicesView_FormatServiceRow(t *testing.T) {
 	mockUI := uimocks.NewMockUIInterface(t)
-	mockServiceService := &swarm.ServiceService{}
+	mockServiceService := &ServiceService{}
 	mockModalManager := uimocks.NewMockModalManagerInterface(t)
 	mockHeaderManager := uimocks.NewMockHeaderManagerInterface(t)
 
@@ -87,7 +86,7 @@ func TestServicesView_FormatServiceRow(t *testing.T) {
 // TestServicesView_GetServiceID tests the service ID retrieval
 func TestServicesView_GetServiceID(t *testing.T) {
 	mockUI := uimocks.NewMockUIInterface(t)
-	mockServiceService := &swarm.ServiceService{}
+	mockServiceService := &ServiceService{}
 	mockModalManager := uimocks.NewMockModalManagerInterface(t)
 	mockHeaderManager := uimocks.NewMockHeaderManagerInterface(t)
 
@@ -105,7 +104,7 @@ func TestServicesView_GetServiceID(t *testing.T) {
 // TestServicesView_GetServiceName tests the service name retrieval
 func TestServicesView_GetServiceName(t *testing.T) {
 	mockUI := uimocks.NewMockUIInterface(t)
-	mockServiceService := &swarm.ServiceService{}
+	mockServiceService := &ServiceService{}
 	mockModalManager := uimocks.NewMockModalManagerInterface(t)
 	mockHeaderManager := uimocks.NewMockHeaderManagerInterface(t)
 

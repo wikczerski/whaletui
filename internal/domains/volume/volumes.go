@@ -48,7 +48,7 @@ func (vv *VolumesView) setupBasicCallbacks() {
 // setupActionCallbacks sets up the action-related callbacks
 func (vv *VolumesView) setupActionCallbacks() {
 	vv.HandleKeyPress = func(key rune, v shared.Volume) { vv.handleAction(key, &v) }
-	vv.ShowDetails = func(v shared.Volume) { vv.showVolumeDetails(&v) }
+	vv.ShowDetailsCallback = func(v shared.Volume) { vv.showVolumeDetails(&v) }
 	vv.GetActions = vv.getVolumeActions
 }
 

@@ -57,7 +57,7 @@ func (cv *ContainersView) setupBasicCallbacks() {
 // setupActionCallbacks sets up the action-related callbacks
 func (cv *ContainersView) setupActionCallbacks() {
 	cv.HandleKeyPress = func(key rune, c shared.Container) { cv.handleContainerKey(key, &c) }
-	cv.ShowDetails = func(c shared.Container) { cv.showContainerDetails(&c) }
+	cv.ShowDetailsCallback = func(c shared.Container) { cv.showContainerDetails(&c) }
 	cv.GetActions = cv.getContainerActions
 }
 

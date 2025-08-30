@@ -1,4 +1,3 @@
-// Package swarm provides Swarm-related UI views for WhaleTUI.
 package swarm
 
 import (
@@ -8,28 +7,27 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/wikczerski/whaletui/internal/domains/swarm"
 	"github.com/wikczerski/whaletui/internal/logger"
 	"github.com/wikczerski/whaletui/internal/shared"
-	uiinterfaces "github.com/wikczerski/whaletui/internal/ui/interfaces"
-	"github.com/wikczerski/whaletui/internal/ui/managers"
+	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 )
 
 // NodesView represents the swarm nodes view
 type NodesView struct {
 	*shared.BaseView[shared.SwarmNode]
-	nodeService   *swarm.NodeService
-	modalManager  *managers.ModalManager
-	headerManager *managers.HeaderManager
+	nodeService   *NodeService
+	modalManager  interfaces.ModalManagerInterface
+	headerManager interfaces.HeaderManagerInterface
 	log           *slog.Logger
 }
 
+// getUI safely gets the UI interface
 // NewNodesView creates a new swarm nodes view
 func NewNodesView(
-	ui uiinterfaces.UIInterface,
-	nodeService *swarm.NodeService,
-	modalManager *managers.ModalManager,
-	headerManager *managers.HeaderManager,
+	ui shared.UIInterface,
+	nodeService *NodeService,
+	modalManager interfaces.ModalManagerInterface,
+	headerManager interfaces.HeaderManagerInterface,
 ) *NodesView {
 	headers := []string{
 		"ID", "Hostname", "Role", "Availability", "Status",
@@ -47,6 +45,10 @@ func NewNodesView(
 	view.setupCallbacks()
 
 	return view
+}
+
+func (v *NodesView) getUI() shared.UIInterface {
+	return v.GetUI()
 }
 
 // setupCallbacks sets up the callbacks for the base view
@@ -102,12 +104,15 @@ func (v *NodesView) getActions() map[rune]string {
 func (v *NodesView) showAvailabilityUpdateModal(
 	ctx context.Context,
 	selectedNode *shared.SwarmNode,
-	swarmNodeService *swarm.NodeService,
+	swarmNodeService *NodeService,
 ) {
-	v.GetUI().
-		ShowNodeAvailabilityModal(selectedNode.Hostname, selectedNode.Availability, func(newAvailability string) {
+	v.GetUI().ShowNodeAvailabilityModal(
+		selectedNode.Hostname,
+		selectedNode.Availability,
+		func(newAvailability string) {
 			v.handleAvailabilityUpdate(ctx, selectedNode, newAvailability, swarmNodeService)
-		})
+		},
+	)
 }
 
 // handleAvailabilityUpdate handles the actual availability update
@@ -115,7 +120,7 @@ func (v *NodesView) handleAvailabilityUpdate(
 	ctx context.Context,
 	selectedNode *shared.SwarmNode,
 	newAvailability string,
-	swarmNodeService *swarm.NodeService,
+	swarmNodeService *NodeService,
 ) {
 	err := swarmNodeService.UpdateNodeAvailability(ctx, selectedNode.ID, newAvailability)
 	if err != nil {
@@ -133,13 +138,30 @@ func (v *NodesView) handleAvailabilityUpdateError(
 	node *shared.SwarmNode,
 	newAvailability string,
 	err error,
-	swarmNodeService *swarm.NodeService,
+	swarmNodeService *NodeService,
 ) {
 	// Check if this is a retryable error
 	if v.isRetryableError(err) {
-		// Show retry dialog with automatic retry option
-		v.GetUI().ShowRetryDialog(
-			fmt.Sprintf("update availability for node '%s' to '%s'", node.Hostname, newAvailability),
+		v.showRetryDialog(ctx, node, newAvailability, err, swarmNodeService)
+	} else {
+		v.showFallbackDialog(ctx, node, newAvailability, err, swarmNodeService)
+	}
+}
+
+// showRetryDialog shows the retry dialog for retryable errors
+func (v *NodesView) showRetryDialog(
+	ctx context.Context,
+	node *shared.SwarmNode,
+	newAvailability string,
+	err error,
+	swarmNodeService *NodeService,
+) {
+	if ui, ok := v.GetUI().(interface {
+		ShowRetryDialog(string, error, func() error, func())
+	}); ok {
+		ui.ShowRetryDialog(
+			fmt.Sprintf("update availability for node '%s' to '%s'",
+				node.Hostname, newAvailability),
 			err,
 			func() error {
 				// Retry function
@@ -147,27 +169,43 @@ func (v *NodesView) handleAvailabilityUpdateError(
 			},
 			func() {
 				// Success callback
-				v.GetUI().
-					ShowInfo(fmt.Sprintf("Node '%s' availability successfully updated to '%s'",
-						node.Hostname, newAvailability))
+				if infoUI, ok := v.GetUI().(interface{ ShowInfo(string) }); ok {
+					message := fmt.Sprintf("Node '%s' availability successfully updated to '%s'",
+						node.Hostname, newAvailability)
+					infoUI.ShowInfo(message)
+				}
 				v.Refresh()
 			},
 		)
-	} else {
-		// Show fallback options for non-retryable errors
-		fallbackOptions := []string{
-			"Check Node Status",
-			"View Node Details",
-			"Try Different Availability",
-			"Check Swarm Health",
-		}
+	}
+}
 
-		v.GetUI().ShowFallbackDialog(
-			fmt.Sprintf("update availability for node '%s' to '%s'", node.Hostname, newAvailability),
+// showFallbackDialog shows the fallback dialog for non-retryable errors
+func (v *NodesView) showFallbackDialog(
+	ctx context.Context,
+	node *shared.SwarmNode,
+	newAvailability string,
+	err error,
+	swarmNodeService *NodeService,
+) {
+	fallbackOptions := []string{
+		"Check Node Status",
+		"View Node Details",
+		"Try Different Availability",
+		"Check Swarm Health",
+	}
+
+	if ui, ok := v.GetUI().(interface {
+		ShowFallbackDialog(string, error, []string, func(string))
+	}); ok {
+		ui.ShowFallbackDialog(
+			fmt.Sprintf("update availability for node '%s' to '%s'",
+				node.Hostname, newAvailability),
 			err,
 			fallbackOptions,
 			func(fallbackOption string) {
-				v.executeAvailabilityFallback(ctx, node, fallbackOption, newAvailability, swarmNodeService)
+				v.executeAvailabilityFallback(ctx, node, fallbackOption,
+					newAvailability, swarmNodeService)
 			},
 		)
 	}
@@ -204,7 +242,7 @@ func (v *NodesView) executeAvailabilityFallback(
 	ctx context.Context,
 	node *shared.SwarmNode,
 	fallbackOption, _ string,
-	swarmNodeService *swarm.NodeService,
+	swarmNodeService *NodeService,
 ) {
 	switch fallbackOption {
 	case "Check Node Status":
@@ -222,7 +260,7 @@ func (v *NodesView) executeAvailabilityFallback(
 func (v *NodesView) handleCheckNodeStatus(
 	ctx context.Context,
 	node *shared.SwarmNode,
-	swarmNodeService *swarm.NodeService,
+	swarmNodeService *NodeService,
 ) {
 	nodeInfo, err := swarmNodeService.InspectNode(ctx, node.ID)
 	if err != nil {
@@ -244,11 +282,13 @@ func (v *NodesView) handleCheckNodeStatus(
 func (v *NodesView) handleViewNodeDetails(
 	ctx context.Context,
 	node *shared.SwarmNode,
-	swarmNodeService *swarm.NodeService,
+	swarmNodeService *NodeService,
 ) {
 	nodeInfo, err := swarmNodeService.InspectNode(ctx, node.ID)
 	if err != nil {
-		v.GetUI().ShowError(fmt.Errorf("failed to get node details: %v", err))
+		if ui := v.getUI(); ui != nil {
+			ui.ShowError(fmt.Errorf("failed to get node details: %v", err))
+		}
 		return
 	}
 
@@ -265,27 +305,35 @@ func (v *NodesView) handleViewNodeDetails(
 		node.Hostname, shared.TruncName(node.ID, 12), node.Role, nodeInfo["Availability"],
 		nodeInfo["Status"], nodeInfo["ManagerStatus"], nodeInfo["EngineVersion"],
 		node.Address, node.CPUs, node.Memory)
-	v.GetUI().ShowInfo(detailsText)
+	if ui := v.getUI(); ui != nil {
+		ui.ShowInfo(detailsText)
+	}
 }
 
 // handleTryDifferentAvailability handles trying different availability
 func (v *NodesView) handleTryDifferentAvailability(
 	ctx context.Context,
 	node *shared.SwarmNode,
-	swarmNodeService *swarm.NodeService,
+	swarmNodeService *NodeService,
 ) {
-	v.GetUI().
-		ShowNodeAvailabilityModal(node.Hostname, node.Availability, func(differentAvailability string) {
-			err := swarmNodeService.UpdateNodeAvailability(ctx, node.ID, differentAvailability)
-			if err != nil {
-				v.GetUI().
-					ShowError(fmt.Errorf("failed to update availability to '%s': %v", differentAvailability, err))
-			} else {
-				v.GetUI().ShowInfo(fmt.Sprintf("Node '%s' availability successfully updated to '%s'",
-					node.Hostname, differentAvailability))
-				v.Refresh()
-			}
-		})
+	if ui := v.getUI(); ui != nil {
+		ui.ShowNodeAvailabilityModal(node.Hostname, node.Availability,
+			func(differentAvailability string) {
+				err := swarmNodeService.UpdateNodeAvailability(ctx, node.ID, differentAvailability)
+				if err != nil {
+					if ui := v.getUI(); ui != nil {
+						ui.ShowError(fmt.Errorf("failed to update availability to '%s': %v",
+							differentAvailability, err))
+					}
+				} else {
+					if ui := v.getUI(); ui != nil {
+						ui.ShowInfo(fmt.Sprintf("Node '%s' availability successfully updated to '%s'",
+							node.Hostname, differentAvailability))
+					}
+					v.Refresh()
+				}
+			})
+	}
 }
 
 // handleCheckSwarmHealth handles checking swarm health
@@ -350,7 +398,7 @@ func (v *NodesView) performNodeRemoval(ctx context.Context, selectedNode *shared
 	}
 
 	// Cast to the correct type
-	if swarmNodeService, ok := nodeService.(swarm.NodeService); ok {
+	if swarmNodeService, ok := nodeService.(NodeService); ok {
 		// Remove the node (force removal)
 		err := swarmNodeService.RemoveNode(ctx, selectedNode.ID, true)
 		if err != nil {
@@ -404,7 +452,7 @@ func (v *NodesView) handleAction(key rune, node *shared.SwarmNode) {
 			return
 		}
 
-		swarmNodeService, ok := nodeService.(*swarm.NodeService)
+		swarmNodeService, ok := nodeService.(*NodeService)
 		if !ok {
 			v.log.Warn("Swarm node service type assertion failed")
 			return

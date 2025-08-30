@@ -462,17 +462,18 @@ func writeThemeFile(path string, data []byte) error {
 
 // loadFromFile loads theme from a specific file
 func (tm *ThemeManager) loadFromFile(path string) error {
-	if err := tm.validateThemePath(path); err != nil {
+	resolvedPath, err := tm.validateThemePath(path)
+	if err != nil {
 		return err
 	}
 
 	// nolint:gosec // Path is validated by validateThemePath before this function is called
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(resolvedPath)
 	if err != nil {
 		return fmt.Errorf("failed to read theme file: %w", err)
 	}
 
-	config, err := tm.parseThemeData(path, data)
+	config, err := tm.parseThemeData(resolvedPath, data)
 	if err != nil {
 		return err
 	}
@@ -482,36 +483,33 @@ func (tm *ThemeManager) loadFromFile(path string) error {
 }
 
 // validateThemePath validates the theme file path to prevent directory traversal
-func (tm *ThemeManager) validateThemePath(path string) error {
+// and returns the resolved absolute path
+func (tm *ThemeManager) validateThemePath(path string) (string, error) {
 	// Clean the path to remove any directory traversal attempts
 	cleanPath := filepath.Clean(path)
 
-	// Ensure the path is absolute
+	// Convert relative paths to absolute paths based on current working directory
 	if !filepath.IsAbs(cleanPath) {
-		return errors.New("theme file path must be absolute")
+		absPath, err := filepath.Abs(cleanPath)
+		if err != nil {
+			return "", fmt.Errorf("failed to resolve relative path: %w", err)
+		}
+		cleanPath = absPath
 	}
 
 	// Additional security: check for suspicious patterns
 	// Check for directory traversal attempts
 	if strings.Contains(cleanPath, "..") {
-		return errors.New("theme file path contains directory traversal attempts")
+		return "", errors.New("theme file path contains directory traversal attempts")
 	}
 
 	// Check for home directory expansion attempts (but allow Windows short names like ~1)
 	// Only reject paths that start with ~ or contain ~/ which could be home directory expansion
 	if strings.HasPrefix(cleanPath, "~") || strings.Contains(cleanPath, "~/") {
-		return errors.New("theme file path contains home directory expansion attempts")
+		return "", errors.New("theme file path contains home directory expansion attempts")
 	}
 
-	// Only check directory containment if we have a theme directory set
-	if tm.path != "" {
-		cleanThemeDir := filepath.Clean(filepath.Dir(tm.path))
-		if !strings.HasPrefix(cleanPath, cleanThemeDir) {
-			return errors.New("theme file path is outside the theme directory")
-		}
-	}
-
-	return nil
+	return cleanPath, nil
 }
 
 // parseThemeData parses theme data based on file extension

@@ -4,12 +4,12 @@ import (
 	"github.com/wikczerski/whaletui/internal/domains/container"
 	"github.com/wikczerski/whaletui/internal/domains/image"
 	"github.com/wikczerski/whaletui/internal/domains/network"
-	swarmDomain "github.com/wikczerski/whaletui/internal/domains/swarm"
+
+	"github.com/wikczerski/whaletui/internal/domains/swarm"
 	"github.com/wikczerski/whaletui/internal/domains/volume"
 	"github.com/wikczerski/whaletui/internal/ui/constants"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 	"github.com/wikczerski/whaletui/internal/ui/managers"
-	"github.com/wikczerski/whaletui/internal/ui/views/swarm"
 )
 
 // createAndRegisterViews creates all views and registers them with the view registry
@@ -30,13 +30,13 @@ func (ui *UI) createResourceViews() {
 	// Create swarm views
 	ui.swarmServicesView = swarm.NewServicesView(
 		ui,
-		ui.GetSwarmServiceService().(*swarmDomain.ServiceService),
+		ui.GetSwarmServiceService().(*swarm.ServiceService),
 		ui.modalManager.(*managers.ModalManager),
 		ui.headerManager.(*managers.HeaderManager),
 	)
 	ui.swarmNodesView = swarm.NewNodesView(
 		ui,
-		ui.GetSwarmNodeService().(*swarmDomain.NodeService),
+		ui.GetSwarmNodeService().(*swarm.NodeService),
 		ui.modalManager.(*managers.ModalManager),
 		ui.headerManager.(*managers.HeaderManager),
 	)
