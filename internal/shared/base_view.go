@@ -27,8 +27,6 @@ type UIInterface interface {
 	ShowServiceScaleModal(string, uint64, func(int))
 	GetSwarmServiceService() any
 	GetSwarmNodeService() any
-	IsContainerServiceAvailable() bool
-	GetContainerService() any
 }
 
 // ServiceFactoryInterface defines minimal interface for services

@@ -305,16 +305,6 @@ func Fatal(msg string, args ...any) {
 	os.Exit(1)
 }
 
-// With returns a new logger with the given key-value pairs
-func With(args ...any) *slog.Logger {
-	return GetLogger().With(args...)
-}
-
-// WithGroup returns a new logger with the given group name
-func WithGroup(name string) *slog.Logger {
-	return GetLogger().WithGroup(name)
-}
-
 // SetTUIMode sets whether the logger should avoid stderr output (for TUI mode)
 func SetTUIMode(enabled bool) {
 	mu.Lock()

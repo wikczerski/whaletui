@@ -55,16 +55,8 @@ func (ui *UI) GetSwarmNodeService() any {
 	return nil
 }
 
-// IsContainerServiceAvailable checks if container service is available (for shared.UIInterface)
-func (ui *UI) IsContainerServiceAvailable() bool {
-	if ui.services != nil {
-		return ui.services.IsContainerServiceAvailable()
-	}
-	return false
-}
-
 // GetContainerService returns the container service (for shared.UIInterface)
-func (ui *UI) GetContainerService() any {
+func (ui *UI) GetContainerService() interfaces.ContainerService {
 	if ui.services != nil {
 		return ui.services.GetContainerService()
 	}
@@ -157,11 +149,6 @@ func (ui *UI) IsInDetailsMode() bool {
 	return ui.inDetailsMode
 }
 
-// IsRefreshing returns whether the UI is currently in a refresh cycle
-func (ui *UI) IsRefreshing() bool {
-	return ui.isRefreshing
-}
-
 // IsModalActive returns whether a modal is currently active
 func (ui *UI) IsModalActive() bool {
 	if !ui.hasValidPages() {
@@ -222,11 +209,6 @@ func (ui *UI) ShowLogs(containerID, containerName string) {
 	ui.showLogs("container", containerID, containerName)
 }
 
-// ShowLogsForResource shows logs for any resource type
-func (ui *UI) ShowLogsForResource(resourceType, resourceID, resourceName string) {
-	ui.showLogs(resourceType, resourceID, resourceName)
-}
-
 // ShowShell shows shell view for a container
 func (ui *UI) ShowShell(containerID, containerName string) {
 	ui.createShellView(containerID, containerName)
@@ -247,21 +229,6 @@ func (ui *UI) GetViewContainer() any {
 	return ui.viewContainer
 }
 
-// GetImageService returns the image service
-func (ui *UI) GetImageService() any {
-	return ui.services.GetImageService()
-}
-
-// GetVolumeService returns the volume service
-func (ui *UI) GetVolumeService() any {
-	return ui.services.GetVolumeService()
-}
-
-// GetNetworkService returns the network service
-func (ui *UI) GetNetworkService() any {
-	return ui.services.GetNetworkService()
-}
-
 // GetThemeManager returns the theme manager
 func (ui *UI) GetThemeManager() *config.ThemeManager {
 	return ui.themeManager
@@ -275,11 +242,6 @@ func (ui *UI) SetHeaderManager(headerManager interfaces.HeaderManagerInterface) 
 // SetModalManager sets the modal manager
 func (ui *UI) SetModalManager(modalManager interfaces.ModalManagerInterface) {
 	ui.modalManager = modalManager
-}
-
-// UpdateLegend updates the legend with current view information
-func (ui *UI) UpdateLegend() {
-	ui.updateLegend()
 }
 
 // Refresh refreshes the UI

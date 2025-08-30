@@ -94,29 +94,6 @@ func (ah *ActionHandlers) HandleContainerAction(
 	ah.handleContainerAccessAction(action, containerID, containerName, containerService)
 }
 
-// HandleContainerLifecycleAction handles container lifecycle operations (start, stop, restart)
-func (ah *ActionHandlers) HandleContainerLifecycleAction(
-	action rune,
-	containerID string,
-	containerService any,
-	onRefresh func(),
-) {
-	switch action {
-	case 's':
-		if cs, ok := containerService.(interfaces.ContainerService); ok {
-			ah.executor.StartOperation("container", containerID, cs.StartContainer, onRefresh)
-		}
-	case 'S':
-		if cs, ok := containerService.(interfaces.ContainerService); ok {
-			ah.executor.StopOperation("container", containerID, cs.StopContainer, onRefresh)
-		}
-	case 'r':
-		if cs, ok := containerService.(interfaces.ContainerService); ok {
-			ah.executor.RestartOperation("container", containerID, cs.RestartContainer, onRefresh)
-		}
-	}
-}
-
 // HandleContainerManagementAction handles container management operations (delete, inspect)
 func (ah *ActionHandlers) HandleContainerManagementAction(
 	action rune,
@@ -138,24 +115,6 @@ func (ah *ActionHandlers) HandleContainerManagementAction(
 	case 'i':
 		if cs, ok := containerService.(interfaces.ContainerService); ok {
 			ah.HandleInspectAction("container", containerID, cs.InspectContainer)
-		}
-	}
-}
-
-// HandleContainerAccessAction handles container access operations (attach, logs, exec)
-func (ah *ActionHandlers) HandleContainerAccessAction(
-	action rune,
-	containerID, containerName string,
-	containerService any,
-) {
-	switch action {
-	case 'a':
-		ah.HandleAttachAction(containerID, containerName)
-	case 'l':
-		ah.ui.ShowLogs(containerID, containerName)
-	case 'e':
-		if cs, ok := containerService.(interfaces.ContainerService); ok {
-			ah.HandleExecAction(containerID, containerName, cs.ExecContainer)
 		}
 	}
 }

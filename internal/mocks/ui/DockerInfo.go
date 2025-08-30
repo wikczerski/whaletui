@@ -36,94 +36,6 @@ func (_m *MockDockerInfo) EXPECT() *MockDockerInfo_Expecter {
 	return &MockDockerInfo_Expecter{mock: &_m.Mock}
 }
 
-// GetContainers provides a mock function for the type MockDockerInfo
-func (_mock *MockDockerInfo) GetContainers() int {
-	ret := _mock.Called()
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetContainers")
-	}
-
-	var r0 int
-	if returnFunc, ok := ret.Get(0).(func() int); ok {
-		r0 = returnFunc()
-	} else {
-		r0 = ret.Get(0).(int)
-	}
-	return r0
-}
-
-// MockDockerInfo_GetContainers_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetContainers'
-type MockDockerInfo_GetContainers_Call struct {
-	*mock.Call
-}
-
-// GetContainers is a helper method to define mock.On call
-func (_e *MockDockerInfo_Expecter) GetContainers() *MockDockerInfo_GetContainers_Call {
-	return &MockDockerInfo_GetContainers_Call{Call: _e.mock.On("GetContainers")}
-}
-
-func (_c *MockDockerInfo_GetContainers_Call) Run(run func()) *MockDockerInfo_GetContainers_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run()
-	})
-	return _c
-}
-
-func (_c *MockDockerInfo_GetContainers_Call) Return(n int) *MockDockerInfo_GetContainers_Call {
-	_c.Call.Return(n)
-	return _c
-}
-
-func (_c *MockDockerInfo_GetContainers_Call) RunAndReturn(run func() int) *MockDockerInfo_GetContainers_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// GetImages provides a mock function for the type MockDockerInfo
-func (_mock *MockDockerInfo) GetImages() int {
-	ret := _mock.Called()
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetImages")
-	}
-
-	var r0 int
-	if returnFunc, ok := ret.Get(0).(func() int); ok {
-		r0 = returnFunc()
-	} else {
-		r0 = ret.Get(0).(int)
-	}
-	return r0
-}
-
-// MockDockerInfo_GetImages_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetImages'
-type MockDockerInfo_GetImages_Call struct {
-	*mock.Call
-}
-
-// GetImages is a helper method to define mock.On call
-func (_e *MockDockerInfo_Expecter) GetImages() *MockDockerInfo_GetImages_Call {
-	return &MockDockerInfo_GetImages_Call{Call: _e.mock.On("GetImages")}
-}
-
-func (_c *MockDockerInfo_GetImages_Call) Run(run func()) *MockDockerInfo_GetImages_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run()
-	})
-	return _c
-}
-
-func (_c *MockDockerInfo_GetImages_Call) Return(n int) *MockDockerInfo_GetImages_Call {
-	_c.Call.Return(n)
-	return _c
-}
-
-func (_c *MockDockerInfo_GetImages_Call) RunAndReturn(run func() int) *MockDockerInfo_GetImages_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // GetLoggingDriver provides a mock function for the type MockDockerInfo
 func (_mock *MockDockerInfo) GetLoggingDriver() string {
 	ret := _mock.Called()
@@ -164,50 +76,6 @@ func (_c *MockDockerInfo_GetLoggingDriver_Call) Return(s string) *MockDockerInfo
 }
 
 func (_c *MockDockerInfo_GetLoggingDriver_Call) RunAndReturn(run func() string) *MockDockerInfo_GetLoggingDriver_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// GetNetworks provides a mock function for the type MockDockerInfo
-func (_mock *MockDockerInfo) GetNetworks() int {
-	ret := _mock.Called()
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetNetworks")
-	}
-
-	var r0 int
-	if returnFunc, ok := ret.Get(0).(func() int); ok {
-		r0 = returnFunc()
-	} else {
-		r0 = ret.Get(0).(int)
-	}
-	return r0
-}
-
-// MockDockerInfo_GetNetworks_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetNetworks'
-type MockDockerInfo_GetNetworks_Call struct {
-	*mock.Call
-}
-
-// GetNetworks is a helper method to define mock.On call
-func (_e *MockDockerInfo_Expecter) GetNetworks() *MockDockerInfo_GetNetworks_Call {
-	return &MockDockerInfo_GetNetworks_Call{Call: _e.mock.On("GetNetworks")}
-}
-
-func (_c *MockDockerInfo_GetNetworks_Call) Run(run func()) *MockDockerInfo_GetNetworks_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run()
-	})
-	return _c
-}
-
-func (_c *MockDockerInfo_GetNetworks_Call) Return(n int) *MockDockerInfo_GetNetworks_Call {
-	_c.Call.Return(n)
-	return _c
-}
-
-func (_c *MockDockerInfo_GetNetworks_Call) RunAndReturn(run func() int) *MockDockerInfo_GetNetworks_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -296,50 +164,6 @@ func (_c *MockDockerInfo_GetVersion_Call) Return(s string) *MockDockerInfo_GetVe
 }
 
 func (_c *MockDockerInfo_GetVersion_Call) RunAndReturn(run func() string) *MockDockerInfo_GetVersion_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// GetVolumes provides a mock function for the type MockDockerInfo
-func (_mock *MockDockerInfo) GetVolumes() int {
-	ret := _mock.Called()
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetVolumes")
-	}
-
-	var r0 int
-	if returnFunc, ok := ret.Get(0).(func() int); ok {
-		r0 = returnFunc()
-	} else {
-		r0 = ret.Get(0).(int)
-	}
-	return r0
-}
-
-// MockDockerInfo_GetVolumes_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetVolumes'
-type MockDockerInfo_GetVolumes_Call struct {
-	*mock.Call
-}
-
-// GetVolumes is a helper method to define mock.On call
-func (_e *MockDockerInfo_Expecter) GetVolumes() *MockDockerInfo_GetVolumes_Call {
-	return &MockDockerInfo_GetVolumes_Call{Call: _e.mock.On("GetVolumes")}
-}
-
-func (_c *MockDockerInfo_GetVolumes_Call) Run(run func()) *MockDockerInfo_GetVolumes_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run()
-	})
-	return _c
-}
-
-func (_c *MockDockerInfo_GetVolumes_Call) Return(n int) *MockDockerInfo_GetVolumes_Call {
-	_c.Call.Return(n)
-	return _c
-}
-
-func (_c *MockDockerInfo_GetVolumes_Call) RunAndReturn(run func() int) *MockDockerInfo_GetVolumes_Call {
 	_c.Call.Return(run)
 	return _c
 }

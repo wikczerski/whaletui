@@ -85,19 +85,19 @@ func (_c *MockUIInterface_GetApp_Call) RunAndReturn(run func() any) *MockUIInter
 }
 
 // GetContainerService provides a mock function for the type MockUIInterface
-func (_mock *MockUIInterface) GetContainerService() any {
+func (_mock *MockUIInterface) GetContainerService() interfaces.ContainerService {
 	ret := _mock.Called()
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetContainerService")
 	}
 
-	var r0 any
-	if returnFunc, ok := ret.Get(0).(func() any); ok {
+	var r0 interfaces.ContainerService
+	if returnFunc, ok := ret.Get(0).(func() interfaces.ContainerService); ok {
 		r0 = returnFunc()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(any)
+			r0 = ret.Get(0).(interfaces.ContainerService)
 		}
 	}
 	return r0
@@ -120,12 +120,12 @@ func (_c *MockUIInterface_GetContainerService_Call) Run(run func()) *MockUIInter
 	return _c
 }
 
-func (_c *MockUIInterface_GetContainerService_Call) Return(v any) *MockUIInterface_GetContainerService_Call {
-	_c.Call.Return(v)
+func (_c *MockUIInterface_GetContainerService_Call) Return(containerService interfaces.ContainerService) *MockUIInterface_GetContainerService_Call {
+	_c.Call.Return(containerService)
 	return _c
 }
 
-func (_c *MockUIInterface_GetContainerService_Call) RunAndReturn(run func() any) *MockUIInterface_GetContainerService_Call {
+func (_c *MockUIInterface_GetContainerService_Call) RunAndReturn(run func() interfaces.ContainerService) *MockUIInterface_GetContainerService_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -264,52 +264,6 @@ func (_c *MockUIInterface_GetCurrentViewNavigation_Call) RunAndReturn(run func()
 	return _c
 }
 
-// GetImageService provides a mock function for the type MockUIInterface
-func (_mock *MockUIInterface) GetImageService() any {
-	ret := _mock.Called()
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetImageService")
-	}
-
-	var r0 any
-	if returnFunc, ok := ret.Get(0).(func() any); ok {
-		r0 = returnFunc()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(any)
-		}
-	}
-	return r0
-}
-
-// MockUIInterface_GetImageService_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetImageService'
-type MockUIInterface_GetImageService_Call struct {
-	*mock.Call
-}
-
-// GetImageService is a helper method to define mock.On call
-func (_e *MockUIInterface_Expecter) GetImageService() *MockUIInterface_GetImageService_Call {
-	return &MockUIInterface_GetImageService_Call{Call: _e.mock.On("GetImageService")}
-}
-
-func (_c *MockUIInterface_GetImageService_Call) Run(run func()) *MockUIInterface_GetImageService_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run()
-	})
-	return _c
-}
-
-func (_c *MockUIInterface_GetImageService_Call) Return(v any) *MockUIInterface_GetImageService_Call {
-	_c.Call.Return(v)
-	return _c
-}
-
-func (_c *MockUIInterface_GetImageService_Call) RunAndReturn(run func() any) *MockUIInterface_GetImageService_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // GetMainFlex provides a mock function for the type MockUIInterface
 func (_mock *MockUIInterface) GetMainFlex() any {
 	ret := _mock.Called()
@@ -352,52 +306,6 @@ func (_c *MockUIInterface_GetMainFlex_Call) Return(v any) *MockUIInterface_GetMa
 }
 
 func (_c *MockUIInterface_GetMainFlex_Call) RunAndReturn(run func() any) *MockUIInterface_GetMainFlex_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// GetNetworkService provides a mock function for the type MockUIInterface
-func (_mock *MockUIInterface) GetNetworkService() any {
-	ret := _mock.Called()
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetNetworkService")
-	}
-
-	var r0 any
-	if returnFunc, ok := ret.Get(0).(func() any); ok {
-		r0 = returnFunc()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(any)
-		}
-	}
-	return r0
-}
-
-// MockUIInterface_GetNetworkService_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetNetworkService'
-type MockUIInterface_GetNetworkService_Call struct {
-	*mock.Call
-}
-
-// GetNetworkService is a helper method to define mock.On call
-func (_e *MockUIInterface_Expecter) GetNetworkService() *MockUIInterface_GetNetworkService_Call {
-	return &MockUIInterface_GetNetworkService_Call{Call: _e.mock.On("GetNetworkService")}
-}
-
-func (_c *MockUIInterface_GetNetworkService_Call) Run(run func()) *MockUIInterface_GetNetworkService_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run()
-	})
-	return _c
-}
-
-func (_c *MockUIInterface_GetNetworkService_Call) Return(v any) *MockUIInterface_GetNetworkService_Call {
-	_c.Call.Return(v)
-	return _c
-}
-
-func (_c *MockUIInterface_GetNetworkService_Call) RunAndReturn(run func() any) *MockUIInterface_GetNetworkService_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -816,96 +724,6 @@ func (_c *MockUIInterface_GetViewRegistry_Call) RunAndReturn(run func() any) *Mo
 	return _c
 }
 
-// GetVolumeService provides a mock function for the type MockUIInterface
-func (_mock *MockUIInterface) GetVolumeService() any {
-	ret := _mock.Called()
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetVolumeService")
-	}
-
-	var r0 any
-	if returnFunc, ok := ret.Get(0).(func() any); ok {
-		r0 = returnFunc()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(any)
-		}
-	}
-	return r0
-}
-
-// MockUIInterface_GetVolumeService_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetVolumeService'
-type MockUIInterface_GetVolumeService_Call struct {
-	*mock.Call
-}
-
-// GetVolumeService is a helper method to define mock.On call
-func (_e *MockUIInterface_Expecter) GetVolumeService() *MockUIInterface_GetVolumeService_Call {
-	return &MockUIInterface_GetVolumeService_Call{Call: _e.mock.On("GetVolumeService")}
-}
-
-func (_c *MockUIInterface_GetVolumeService_Call) Run(run func()) *MockUIInterface_GetVolumeService_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run()
-	})
-	return _c
-}
-
-func (_c *MockUIInterface_GetVolumeService_Call) Return(v any) *MockUIInterface_GetVolumeService_Call {
-	_c.Call.Return(v)
-	return _c
-}
-
-func (_c *MockUIInterface_GetVolumeService_Call) RunAndReturn(run func() any) *MockUIInterface_GetVolumeService_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// IsContainerServiceAvailable provides a mock function for the type MockUIInterface
-func (_mock *MockUIInterface) IsContainerServiceAvailable() bool {
-	ret := _mock.Called()
-
-	if len(ret) == 0 {
-		panic("no return value specified for IsContainerServiceAvailable")
-	}
-
-	var r0 bool
-	if returnFunc, ok := ret.Get(0).(func() bool); ok {
-		r0 = returnFunc()
-	} else {
-		r0 = ret.Get(0).(bool)
-	}
-	return r0
-}
-
-// MockUIInterface_IsContainerServiceAvailable_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IsContainerServiceAvailable'
-type MockUIInterface_IsContainerServiceAvailable_Call struct {
-	*mock.Call
-}
-
-// IsContainerServiceAvailable is a helper method to define mock.On call
-func (_e *MockUIInterface_Expecter) IsContainerServiceAvailable() *MockUIInterface_IsContainerServiceAvailable_Call {
-	return &MockUIInterface_IsContainerServiceAvailable_Call{Call: _e.mock.On("IsContainerServiceAvailable")}
-}
-
-func (_c *MockUIInterface_IsContainerServiceAvailable_Call) Run(run func()) *MockUIInterface_IsContainerServiceAvailable_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run()
-	})
-	return _c
-}
-
-func (_c *MockUIInterface_IsContainerServiceAvailable_Call) Return(b bool) *MockUIInterface_IsContainerServiceAvailable_Call {
-	_c.Call.Return(b)
-	return _c
-}
-
-func (_c *MockUIInterface_IsContainerServiceAvailable_Call) RunAndReturn(run func() bool) *MockUIInterface_IsContainerServiceAvailable_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // IsInDetailsMode provides a mock function for the type MockUIInterface
 func (_mock *MockUIInterface) IsInDetailsMode() bool {
 	ret := _mock.Called()
@@ -1034,50 +852,6 @@ func (_c *MockUIInterface_IsModalActive_Call) Return(b bool) *MockUIInterface_Is
 }
 
 func (_c *MockUIInterface_IsModalActive_Call) RunAndReturn(run func() bool) *MockUIInterface_IsModalActive_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// IsRefreshing provides a mock function for the type MockUIInterface
-func (_mock *MockUIInterface) IsRefreshing() bool {
-	ret := _mock.Called()
-
-	if len(ret) == 0 {
-		panic("no return value specified for IsRefreshing")
-	}
-
-	var r0 bool
-	if returnFunc, ok := ret.Get(0).(func() bool); ok {
-		r0 = returnFunc()
-	} else {
-		r0 = ret.Get(0).(bool)
-	}
-	return r0
-}
-
-// MockUIInterface_IsRefreshing_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IsRefreshing'
-type MockUIInterface_IsRefreshing_Call struct {
-	*mock.Call
-}
-
-// IsRefreshing is a helper method to define mock.On call
-func (_e *MockUIInterface_Expecter) IsRefreshing() *MockUIInterface_IsRefreshing_Call {
-	return &MockUIInterface_IsRefreshing_Call{Call: _e.mock.On("IsRefreshing")}
-}
-
-func (_c *MockUIInterface_IsRefreshing_Call) Run(run func()) *MockUIInterface_IsRefreshing_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run()
-	})
-	return _c
-}
-
-func (_c *MockUIInterface_IsRefreshing_Call) Return(b bool) *MockUIInterface_IsRefreshing_Call {
-	_c.Call.Return(b)
-	return _c
-}
-
-func (_c *MockUIInterface_IsRefreshing_Call) RunAndReturn(run func() bool) *MockUIInterface_IsRefreshing_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1460,58 +1234,6 @@ func (_c *MockUIInterface_ShowLogs_Call) Return() *MockUIInterface_ShowLogs_Call
 }
 
 func (_c *MockUIInterface_ShowLogs_Call) RunAndReturn(run func(s string, s1 string)) *MockUIInterface_ShowLogs_Call {
-	_c.Run(run)
-	return _c
-}
-
-// ShowLogsForResource provides a mock function for the type MockUIInterface
-func (_mock *MockUIInterface) ShowLogsForResource(s string, s1 string, s2 string) {
-	_mock.Called(s, s1, s2)
-	return
-}
-
-// MockUIInterface_ShowLogsForResource_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ShowLogsForResource'
-type MockUIInterface_ShowLogsForResource_Call struct {
-	*mock.Call
-}
-
-// ShowLogsForResource is a helper method to define mock.On call
-//   - s string
-//   - s1 string
-//   - s2 string
-func (_e *MockUIInterface_Expecter) ShowLogsForResource(s interface{}, s1 interface{}, s2 interface{}) *MockUIInterface_ShowLogsForResource_Call {
-	return &MockUIInterface_ShowLogsForResource_Call{Call: _e.mock.On("ShowLogsForResource", s, s1, s2)}
-}
-
-func (_c *MockUIInterface_ShowLogsForResource_Call) Run(run func(s string, s1 string, s2 string)) *MockUIInterface_ShowLogsForResource_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
-		if args[0] != nil {
-			arg0 = args[0].(string)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		var arg2 string
-		if args[2] != nil {
-			arg2 = args[2].(string)
-		}
-		run(
-			arg0,
-			arg1,
-			arg2,
-		)
-	})
-	return _c
-}
-
-func (_c *MockUIInterface_ShowLogsForResource_Call) Return() *MockUIInterface_ShowLogsForResource_Call {
-	_c.Call.Return()
-	return _c
-}
-
-func (_c *MockUIInterface_ShowLogsForResource_Call) RunAndReturn(run func(s string, s1 string, s2 string)) *MockUIInterface_ShowLogsForResource_Call {
 	_c.Run(run)
 	return _c
 }

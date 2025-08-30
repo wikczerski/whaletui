@@ -29,7 +29,6 @@ type UIInterface interface {
 	IsInLogsMode() bool
 	IsInDetailsMode() bool
 	IsModalActive() bool
-	IsRefreshing() bool
 	GetCurrentActions() map[rune]string
 	GetCurrentViewActions() string
 	GetCurrentViewNavigation() string
@@ -43,21 +42,16 @@ type UIInterface interface {
 	// Additional methods needed by handlers
 	GetPages() any
 	ShowLogs(string, string)
-	ShowLogsForResource(string, string, string)
 	ShowShell(string, string)
 
 	// Additional methods needed by modal manager
 	GetViewContainer() any
 
 	// Additional methods needed by views
-	GetContainerService() any
-	GetImageService() any
-	GetVolumeService() any
-	GetNetworkService() any
+	GetContainerService() ContainerService
 	GetServicesAny() any
 	GetSwarmServiceService() any
 	GetSwarmNodeService() any
-	IsContainerServiceAvailable() bool
 
 	// Theme management
 	GetThemeManager() *config.ThemeManager

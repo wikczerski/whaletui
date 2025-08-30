@@ -44,69 +44,6 @@ func NewServicesView(
 	return view
 }
 
-// Render renders the swarm services view
-func (v *ServicesView) Render(_ context.Context) error {
-	// The base view handles rendering automatically through the callbacks
-	// Just refresh the data
-	v.Refresh()
-	return nil
-}
-
-// HandleInput handles user input for the services view
-func (v *ServicesView) HandleInput(ctx context.Context, input rune) (any, error) {
-	return v.routeInput(ctx, input)
-}
-
-// routeInput routes the input to the appropriate handler
-func (v *ServicesView) routeInput(ctx context.Context, input rune) (any, error) {
-	return v.handleInputRouting(ctx, input)
-}
-
-// handleInputRouting handles the input routing logic
-func (v *ServicesView) handleInputRouting(ctx context.Context, input rune) (any, error) {
-	return v.routeInputToHandler(ctx, input)
-}
-
-// routeInputToHandler routes the input to the appropriate handler
-func (v *ServicesView) routeInputToHandler(ctx context.Context, input rune) (any, error) {
-	return v.processInputCommand(ctx, input)
-}
-
-// processInputCommand processes the input command
-func (v *ServicesView) processInputCommand(ctx context.Context, input rune) (any, error) {
-	return v.executeInputCommand(ctx, input)
-}
-
-// executeInputCommand executes the input command
-func (v *ServicesView) executeInputCommand(ctx context.Context, input rune) (any, error) {
-	return v.handleInputCommand(ctx, input)
-}
-
-// handleInputCommand handles the input command logic
-func (v *ServicesView) handleInputCommand(ctx context.Context, input rune) (any, error) {
-	switch input {
-	case 'i':
-		return v.handleInspect(ctx)
-	case 's':
-		return v.handleScale(ctx)
-	case 'r':
-		return v.handleRemove(ctx)
-	case 'l':
-		return v.handleLogs(ctx)
-	case 'f':
-		return v, nil // Refresh current view
-	case 'n':
-		return v.handleNavigateToNodes(ctx)
-	case 'q':
-		return v.handleBackToMain(ctx)
-	case 'h':
-		v.handleHelp()
-		return v, nil
-	default:
-		return v, nil
-	}
-}
-
 // handleInspect handles service inspection
 func (v *ServicesView) handleInspect(ctx context.Context) (any, error) {
 	selectedService, serviceService, err := v.validateServiceSelection()
@@ -608,24 +545,6 @@ func (v *ServicesView) displayServiceLogs(selectedService *shared.SwarmService, 
 	v.GetUI().ShowInfo(fmt.Sprintf("Service '%s' Logs:\n\n%s", selectedService.Name, logPreview))
 }
 
-// handleNavigateToNodes handles navigation to swarm nodes view
-func (v *ServicesView) handleNavigateToNodes(_ context.Context) (any, error) {
-	// This would return a nodes view - placeholder for now
-	return v, errors.New("nodes view not implemented yet")
-}
-
-// handleBackToMain handles navigation back to main menu
-func (v *ServicesView) handleBackToMain(_ context.Context) (any, error) {
-	// This would return the main menu view - placeholder for now
-	return v, errors.New("main menu view not implemented yet")
-}
-
-// handleHelp shows contextual help for swarm services
-func (v *ServicesView) handleHelp() {
-	// Show general swarm services help
-	v.GetUI().ShowContextualHelp("swarm_services", "")
-}
-
 // setupCallbacks sets up the callbacks for the base view
 func (v *ServicesView) setupCallbacks() {
 	v.ListItems = v.listServices
@@ -633,6 +552,35 @@ func (v *ServicesView) setupCallbacks() {
 	v.GetItemID = func(s shared.SwarmService) string { return v.getServiceID(&s) }
 	v.GetItemName = func(s shared.SwarmService) string { return v.getServiceName(&s) }
 	v.GetActions = v.getActions
+	v.HandleKeyPress = func(key rune, s shared.SwarmService) { v.handleAction(key, &s) }
+}
+
+// handleAction handles action key presses for swarm services
+func (v *ServicesView) handleAction(key rune, service *shared.SwarmService) {
+	ctx := context.Background()
+
+	switch key {
+	case 'i':
+		if _, err := v.handleInspect(ctx); err != nil {
+			v.log.Error("Failed to handle inspect action", "error", err)
+		}
+	case 's':
+		if _, err := v.handleScale(ctx); err != nil {
+			v.log.Error("Failed to handle scale action", "error", err)
+		}
+	case 'r':
+		if _, err := v.handleRemove(ctx); err != nil {
+			v.log.Error("Failed to handle remove action", "error", err)
+		}
+	case 'l':
+		if _, err := v.handleLogs(ctx); err != nil {
+			v.log.Error("Failed to handle logs action", "error", err)
+		}
+	case 'f':
+		v.Refresh()
+	default:
+		v.log.Warn("Unknown action key", "key", string(key))
+	}
 }
 
 // listServices lists all swarm services

@@ -116,7 +116,7 @@ func (n *NodeService) GetActions() map[rune]string {
 
 // GetActionsString returns the available actions as a string
 func (n *NodeService) GetActionsString() string {
-	return "i: Inspect, a: Update Availability, r: Remove"
+	return "<i>: Inspect\n<a>: Update Availability\n<r>: Remove"
 }
 
 // convertToSharedNode converts a Docker swarm node to shared node

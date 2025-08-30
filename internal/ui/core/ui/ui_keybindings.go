@@ -9,7 +9,7 @@ import (
 
 // handleGlobalKeyBindings handles all global key bindings
 func (ui *UI) handleGlobalKeyBindings(event *tcell.EventKey) *tcell.EventKey {
-	if ui.shouldSkipGlobalKeyBindings(event) {
+	if ui.shouldSkipGlobalKeyBindings() {
 		return event
 	}
 
@@ -17,7 +17,7 @@ func (ui *UI) handleGlobalKeyBindings(event *tcell.EventKey) *tcell.EventKey {
 }
 
 // shouldSkipGlobalKeyBindings checks if global key bindings should be skipped
-func (ui *UI) shouldSkipGlobalKeyBindings(event *tcell.EventKey) bool {
+func (ui *UI) shouldSkipGlobalKeyBindings() bool {
 	return ui.IsModalActive() || ui.isShellInputFieldFocused()
 }
 

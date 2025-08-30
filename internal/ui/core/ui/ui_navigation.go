@@ -5,6 +5,7 @@ import (
 
 	"github.com/rivo/tview"
 	"github.com/wikczerski/whaletui/internal/shared"
+	"github.com/wikczerski/whaletui/internal/ui/constants"
 	"github.com/wikczerski/whaletui/internal/ui/core"
 	"github.com/wikczerski/whaletui/internal/ui/views/shell"
 )
@@ -39,16 +40,7 @@ func (ui *UI) performViewSwitch(view string) {
 
 	// Set the current service based on the view to enable proper navigation
 	if ui.services != nil {
-		switch view {
-		case "containers":
-			ui.services.SetCurrentService("container")
-		case "images":
-			ui.services.SetCurrentService("image")
-		case "volumes":
-			ui.services.SetCurrentService("volume")
-		case "networks":
-			ui.services.SetCurrentService("network")
-		}
+		ui.services.SetCurrentService(view)
 	}
 }
 
@@ -140,16 +132,7 @@ func (ui *UI) restoreCurrentView(currentViewInfo *core.ViewInfo) {
 
 	// Ensure the current service is set for proper navigation
 	if ui.services != nil {
-		switch currentViewInfo.Name {
-		case "containers":
-			ui.services.SetCurrentService("container")
-		case "images":
-			ui.services.SetCurrentService("image")
-		case "volumes":
-			ui.services.SetCurrentService("volume")
-		case "networks":
-			ui.services.SetCurrentService("network")
-		}
+		ui.services.SetCurrentService(currentViewInfo.Name)
 	}
 }
 
@@ -226,7 +209,7 @@ func (ui *UI) setLogsFocus() {
 
 // createShellView creates a new shell view for the container
 func (ui *UI) createShellView(containerID, containerName string) {
-	containerService := ui.services.GetContainerService()
+	containerService := ui.GetContainerService()
 	if containerService != nil {
 		ui.shellView = shell.NewView(
 			ui,
@@ -250,5 +233,5 @@ func (ui *UI) displayShellView(containerID, containerName string) {
 
 // handleShellExit handles the shell exit callback
 func (ui *UI) handleShellExit() {
-	ui.switchView("containers")
+	ui.switchView(constants.ViewContainers)
 }

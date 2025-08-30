@@ -1,7 +1,6 @@
 package swarm
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -119,89 +118,4 @@ func TestServicesView_GetServiceName(t *testing.T) {
 
 	name := view.GetItemName(service)
 	assert.Equal(t, "test-service", name)
-}
-
-// TestServicesView_HandleInput_Refresh tests the refresh input handling
-func TestServicesView_HandleInput_Refresh(t *testing.T) {
-	mockUI := uimocks.NewMockUIInterface(t)
-	mockServiceService := &swarm.ServiceService{}
-	mockModalManager := uimocks.NewMockModalManagerInterface(t)
-	mockHeaderManager := uimocks.NewMockHeaderManagerInterface(t)
-
-	view := NewServicesView(mockUI, mockServiceService, mockModalManager, mockHeaderManager)
-
-	ctx := context.Background()
-	result, err := view.HandleInput(ctx, 'f')
-
-	assert.NoError(t, err)
-	assert.Equal(t, view, result)
-}
-
-// TestServicesView_HandleInput_Help tests the help input handling
-func TestServicesView_HandleInput_Help(t *testing.T) {
-	mockUI := uimocks.NewMockUIInterface(t)
-	mockServiceService := &swarm.ServiceService{}
-	mockModalManager := uimocks.NewMockModalManagerInterface(t)
-	mockHeaderManager := uimocks.NewMockHeaderManagerInterface(t)
-
-	// Set up mock expectations
-	mockUI.EXPECT().ShowContextualHelp("swarm_services", "").Return()
-
-	view := NewServicesView(mockUI, mockServiceService, mockModalManager, mockHeaderManager)
-
-	ctx := context.Background()
-	result, err := view.HandleInput(ctx, 'h')
-
-	assert.NoError(t, err)
-	assert.Equal(t, view, result)
-}
-
-// TestServicesView_HandleInput_Quit tests the quit input handling
-func TestServicesView_HandleInput_Quit(t *testing.T) {
-	mockUI := uimocks.NewMockUIInterface(t)
-	mockServiceService := &swarm.ServiceService{}
-	mockModalManager := uimocks.NewMockModalManagerInterface(t)
-	mockHeaderManager := uimocks.NewMockHeaderManagerInterface(t)
-
-	view := NewServicesView(mockUI, mockServiceService, mockModalManager, mockHeaderManager)
-
-	ctx := context.Background()
-	result, err := view.HandleInput(ctx, 'q')
-
-	assert.Error(t, err)
-	assert.Equal(t, "main menu view not implemented yet", err.Error())
-	assert.Equal(t, view, result)
-}
-
-// TestServicesView_HandleInput_NavigateToNodes tests the navigation input handling
-func TestServicesView_HandleInput_NavigateToNodes(t *testing.T) {
-	mockUI := uimocks.NewMockUIInterface(t)
-	mockServiceService := &swarm.ServiceService{}
-	mockModalManager := uimocks.NewMockModalManagerInterface(t)
-	mockHeaderManager := uimocks.NewMockHeaderManagerInterface(t)
-
-	view := NewServicesView(mockUI, mockServiceService, mockModalManager, mockHeaderManager)
-
-	ctx := context.Background()
-	result, err := view.HandleInput(ctx, 'n')
-
-	assert.Error(t, err)
-	assert.Equal(t, "nodes view not implemented yet", err.Error())
-	assert.Equal(t, view, result)
-}
-
-// TestServicesView_HandleInput_Default tests the default input handling
-func TestServicesView_HandleInput_Default(t *testing.T) {
-	mockUI := uimocks.NewMockUIInterface(t)
-	mockServiceService := &swarm.ServiceService{}
-	mockModalManager := uimocks.NewMockModalManagerInterface(t)
-	mockHeaderManager := uimocks.NewMockHeaderManagerInterface(t)
-
-	view := NewServicesView(mockUI, mockServiceService, mockModalManager, mockHeaderManager)
-
-	ctx := context.Background()
-	result, err := view.HandleInput(ctx, 'x') // unknown key
-
-	assert.NoError(t, err)
-	assert.Equal(t, view, result)
 }

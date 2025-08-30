@@ -14,6 +14,7 @@ import (
 	"github.com/wikczerski/whaletui/internal/domains/volume"
 	"github.com/wikczerski/whaletui/internal/shared"
 	sharedInterfaces "github.com/wikczerski/whaletui/internal/shared/interfaces"
+	"github.com/wikczerski/whaletui/internal/ui/constants"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 )
 
@@ -67,7 +68,7 @@ func NewServiceFactory(client *docker.Client) *ServiceFactory {
 		LogsService:         logs.NewLogsService(containerService),
 		SwarmServiceService: swarmServices.service,
 		SwarmNodeService:    swarmServices.node,
-		currentService:      "container", // Default to container service
+		currentService:      constants.ViewContainers, // Default to container service
 	}
 }
 
@@ -80,7 +81,7 @@ func createEmptyServiceFactory() *ServiceFactory {
 		NetworkService:    nil,
 		DockerInfoService: nil,
 		LogsService:       nil,
-		currentService:    "container", // Default to container service
+		currentService:    constants.ViewContainers, // Default to container service
 	}
 }
 
@@ -298,10 +299,6 @@ func (a *networkServiceAdapter) GetActionsString() string {
 // dockerInfoImpl implements interfaces.DockerInfo
 type dockerInfoImpl struct {
 	version         string
-	containers      int
-	images          int
-	volumes         int
-	networks        int
 	operatingSystem string
 	architecture    string
 	driver          string
@@ -318,22 +315,6 @@ func (d *dockerInfoImpl) GetOperatingSystem() string {
 
 func (d *dockerInfoImpl) GetLoggingDriver() string {
 	return d.loggingDriver
-}
-
-func (d *dockerInfoImpl) GetContainers() int {
-	return d.containers
-}
-
-func (d *dockerInfoImpl) GetImages() int {
-	return d.images
-}
-
-func (d *dockerInfoImpl) GetVolumes() int {
-	return d.volumes
-}
-
-func (d *dockerInfoImpl) GetNetworks() int {
-	return d.networks
 }
 
 // dockerInfoServiceWrapper wraps shared.DockerInfoService to implement interfaces.DockerInfoService
@@ -353,10 +334,6 @@ func (w *dockerInfoServiceWrapper) GetDockerInfo(
 	// Create a concrete implementation of interfaces.DockerInfo
 	info := &dockerInfoImpl{
 		version:         sharedInfo.Version,
-		containers:      sharedInfo.Containers,
-		images:          sharedInfo.Images,
-		volumes:         sharedInfo.Volumes,
-		networks:        sharedInfo.Networks,
 		operatingSystem: sharedInfo.OperatingSystem,
 		architecture:    sharedInfo.Architecture,
 		driver:          sharedInfo.Driver,
@@ -377,7 +354,7 @@ func (w *dockerInfoServiceWrapper) GetActions() map[rune]string {
 }
 
 func (w *dockerInfoServiceWrapper) GetActionsString() string {
-	return "r:Refresh h:Help"
+	return "<r>:Refresh\n<h>:Help"
 }
 
 // GetContainerService returns the container service
@@ -434,15 +411,6 @@ func (sf *ServiceFactory) IsContainerServiceAvailable() bool {
 	return sf != nil && sf.ContainerService != nil
 }
 
-// GetCurrentService returns the currently active service
-func (sf *ServiceFactory) GetCurrentService() any {
-	if sf == nil {
-		return nil
-	}
-
-	return sf.getServiceByType(sf.currentService)
-}
-
 // SetCurrentService sets the currently active service
 func (sf *ServiceFactory) SetCurrentService(serviceName string) {
 	if sf != nil {
@@ -453,21 +421,21 @@ func (sf *ServiceFactory) SetCurrentService(serviceName string) {
 // getServiceByType returns the service based on the service type
 func (sf *ServiceFactory) getServiceByType(serviceType string) any {
 	switch serviceType {
-	case "container":
+	case constants.ViewContainers:
 		return sf.ContainerService
-	case "image":
+	case constants.ViewImages:
 		return sf.ImageService
-	case "volume":
+	case constants.ViewVolumes:
 		return sf.VolumeService
-	case "network":
+	case constants.ViewNetworks:
 		return sf.NetworkService
-	case "dockerInfo":
+	case constants.ViewDockerInfo:
 		return sf.DockerInfoService
-	case "logs":
+	case constants.ViewLogs:
 		return sf.LogsService
-	case "swarmService":
+	case constants.ViewSwarmServices:
 		return sf.SwarmServiceService
-	case "swarmNode":
+	case constants.ViewSwarmNodes:
 		return sf.SwarmNodeService
 	default:
 		return nil
@@ -476,24 +444,5 @@ func (sf *ServiceFactory) getServiceByType(serviceType string) any {
 
 // checkServiceAvailability checks if a specific service is available
 func (sf *ServiceFactory) checkServiceAvailability(serviceName string) bool {
-	switch serviceName {
-	case "container":
-		return sf.ContainerService != nil
-	case "image":
-		return sf.ImageService != nil
-	case "volume":
-		return sf.VolumeService != nil
-	case "network":
-		return sf.NetworkService != nil
-	case "dockerInfo":
-		return sf.DockerInfoService != nil
-	case "logs":
-		return sf.LogsService != nil
-	case "swarmService":
-		return sf.SwarmServiceService != nil
-	case "swarmNode":
-		return sf.SwarmNodeService != nil
-	default:
-		return false
-	}
+	return sf.getServiceByType(serviceName) != nil
 }

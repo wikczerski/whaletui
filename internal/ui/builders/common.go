@@ -199,11 +199,25 @@ func CreateInspectDetailsView(
 	onAction func(rune),
 	onBack func(),
 ) *tview.Flex {
-	return createInspectDetailsView(title, inspectData, actions, onAction, onBack)
+	detailsFlex := tview.NewFlex().SetDirection(tview.FlexRow)
+
+	titleView := createInspectTitleView(title)
+	inspectText := createInspectTextView(inspectData, actions)
+	backButton := tview.NewButton("Back to Table").SetSelectedFunc(onBack)
+
+	// Add components to flex
+	detailsFlex.AddItem(titleView, constants.TitleViewHeight, 0, false)
+	detailsFlex.AddItem(inspectText, 0, 1, true) // Set to true to make it focusable and scrollable
+	detailsFlex.AddItem(backButton, constants.BackButtonHeight, 0, false)
+
+	// Set up key bindings for the details view
+	setupInspectDetailsKeyBindings(detailsFlex, inspectText, onAction, onBack)
+
+	return detailsFlex
 }
 
-// createInspectView creates a reusable inspection view
-func createInspectView(title string) (*tview.TextView, *tview.Flex) {
+// CreateInspectView is an exported function for backward compatibility
+func CreateInspectView(title string) (*tview.TextView, *tview.Flex) {
 	inspectView := tview.NewTextView().SetDynamicColors(true).SetScrollable(true)
 	inspectView.SetTitle(fmt.Sprintf(" %s ", title)).SetBorder(true)
 
@@ -217,36 +231,6 @@ func createInspectView(title string) (*tview.TextView, *tview.Flex) {
 	inspectFlex.AddItem(backButton, 1, 0, true)
 
 	return inspectView, inspectFlex
-}
-
-// CreateInspectView is an exported function for backward compatibility
-func CreateInspectView(title string) (*tview.TextView, *tview.Flex) {
-	return createInspectView(title)
-}
-
-// createInspectDetailsView creates a details view that displays Docker inspect data in condensed JSON
-func createInspectDetailsView(
-	title string,
-	inspectData map[string]any,
-	actions map[rune]string,
-	onAction func(rune),
-	onBack func(),
-) *tview.Flex {
-	detailsFlex := tview.NewFlex().SetDirection(tview.FlexRow)
-
-	titleView := createInspectTitleView(title)
-	inspectText := createInspectTextView(inspectData, actions)
-	backButton := createInspectBackButton(onBack)
-
-	// Add components to flex
-	detailsFlex.AddItem(titleView, constants.TitleViewHeight, 0, false)
-	detailsFlex.AddItem(inspectText, 0, 1, true) // Set to true to make it focusable and scrollable
-	detailsFlex.AddItem(backButton, constants.BackButtonHeight, 0, false)
-
-	// Set up key bindings for the details view
-	setupInspectDetailsKeyBindings(detailsFlex, inspectText, onAction, onBack)
-
-	return detailsFlex
 }
 
 // createInspectTitleView creates the title view for the inspect details
@@ -288,11 +272,6 @@ func buildInspectContent(inspectData map[string]any, actions map[rune]string) st
 	}
 
 	return condensedJSON
-}
-
-// createInspectBackButton creates the back button for the inspect details
-func createInspectBackButton(onBack func()) *tview.Button {
-	return tview.NewButton("Back to Table").SetSelectedFunc(onBack)
 }
 
 // setupInspectTextScrolling configures the scrolling behavior for the inspect text view

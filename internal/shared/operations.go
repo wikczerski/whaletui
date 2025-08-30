@@ -3,7 +3,6 @@ package shared
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/wikczerski/whaletui/internal/docker"
@@ -86,34 +85,4 @@ func (co *CommonOperations) AttachContainer(ctx context.Context, id string) (any
 		return nil, errors.New("docker client is not initialized")
 	}
 	return co.client.AttachContainer(ctx, id)
-}
-
-// InspectResource provides a generic inspect operation
-func (co *CommonOperations) InspectResource(
-	ctx context.Context,
-	resourceType, id string,
-) (map[string]any, error) {
-	if co.client == nil {
-		return nil, errors.New("docker client is not initialized")
-	}
-
-	return co.inspectResourceByType(ctx, resourceType, id)
-}
-
-// inspectResourceByType inspects a resource based on its type
-func (co *CommonOperations) inspectResourceByType(ctx context.Context,
-	resourceType, id string,
-) (map[string]any, error) {
-	switch resourceType {
-	case "container":
-		return co.client.InspectContainer(ctx, id)
-	case "image":
-		return co.client.InspectImage(ctx, id)
-	case "volume":
-		return co.client.InspectVolume(ctx, id)
-	case "network":
-		return co.client.InspectNetwork(ctx, id)
-	default:
-		return nil, fmt.Errorf("unsupported resource type: %s", resourceType)
-	}
 }

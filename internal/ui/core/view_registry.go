@@ -45,11 +45,6 @@ func (vr *ViewRegistry) Register(
 	}
 }
 
-// Get returns view info by name
-func (vr *ViewRegistry) Get(name string) *ViewInfo {
-	return vr.views[name]
-}
-
 // GetCurrent returns the current view info
 func (vr *ViewRegistry) GetCurrent() *ViewInfo {
 	return vr.views[vr.currentView]
@@ -60,11 +55,6 @@ func (vr *ViewRegistry) SetCurrent(name string) {
 	if _, exists := vr.views[name]; exists {
 		vr.currentView = name
 	}
-}
-
-// GetCurrentName returns the current view name
-func (vr *ViewRegistry) GetCurrentName() string {
-	return vr.currentView
 }
 
 // GetCurrentActionsString returns the actions string from the current view
@@ -83,22 +73,8 @@ func (vr *ViewRegistry) GetCurrentNavigationString() string {
 	return ""
 }
 
-// GetAll returns all views
-func (vr *ViewRegistry) GetAll() map[string]*ViewInfo {
-	return vr.views
-}
-
 // Exists checks if a view exists
 func (vr *ViewRegistry) Exists(name string) bool {
 	_, exists := vr.views[name]
 	return exists
-}
-
-// GetViewNames returns all view names
-func (vr *ViewRegistry) GetViewNames() []string {
-	names := make([]string, 0, len(vr.views))
-	for name := range vr.views {
-		names = append(names, name)
-	}
-	return names
 }

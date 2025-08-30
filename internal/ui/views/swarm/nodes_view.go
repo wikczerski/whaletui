@@ -49,42 +49,6 @@ func NewNodesView(
 	return view
 }
 
-// Render renders the swarm nodes view
-func (v *NodesView) Render(_ context.Context) error {
-	// The base view handles rendering automatically through the callbacks
-	// Just refresh the data
-	v.Refresh()
-	return nil
-}
-
-// HandleInput handles user input for the nodes view
-func (v *NodesView) HandleInput(ctx context.Context, input rune) (any, error) {
-	return v.routeInput(ctx, input)
-}
-
-// routeInput routes the input to the appropriate handler
-func (v *NodesView) routeInput(ctx context.Context, input rune) (any, error) {
-	switch input {
-	case 'i':
-		return v.handleInspect(ctx)
-	case 'a':
-		return v.handleUpdateAvailability(ctx)
-	case 'r':
-		return v.handleRemove(ctx)
-	case 'f':
-		return v, nil // Refresh current view
-	case 's':
-		return v.handleNavigateToServices(ctx)
-	case 'q':
-		return v.handleBackToMain(ctx)
-	case 'h':
-		v.handleHelp()
-		return v, nil
-	default:
-		return v, nil
-	}
-}
-
 // setupCallbacks sets up the callbacks for the base view
 func (v *NodesView) setupCallbacks() {
 	v.ListItems = v.listNodes
@@ -92,6 +56,7 @@ func (v *NodesView) setupCallbacks() {
 	v.GetItemID = func(n shared.SwarmNode) string { return v.getNodeID(&n) }
 	v.GetItemName = func(n shared.SwarmNode) string { return v.getNodeName(&n) }
 	v.GetActions = v.getActions
+	v.HandleKeyPress = func(key rune, n shared.SwarmNode) { v.handleAction(key, &n) }
 }
 
 // listNodes lists all swarm nodes
@@ -131,119 +96,6 @@ func (v *NodesView) getActions() map[rune]string {
 		'r': "Remove",
 		'f': "Refresh",
 	}
-}
-
-// handleInspect handles node inspection
-func (v *NodesView) handleInspect(ctx context.Context) (any, error) {
-	selectedNode, nodeService, err := v.validateNodeSelection()
-	if err != nil {
-		return v, err
-	}
-
-	// Cast to the correct type
-	if swarmNodeService, ok := nodeService.(*swarm.NodeService); ok {
-		return v.performNodeInspection(ctx, selectedNode, swarmNodeService)
-	}
-
-	v.GetUI().ShowError(errors.New("swarm node service is not properly configured"))
-	return v, errors.New("swarm node service not available")
-}
-
-// validateNodeSelection validates node selection and service availability
-func (v *NodesView) validateNodeSelection() (*shared.SwarmNode, any, error) {
-	selectedNode := v.GetSelectedItem()
-	if selectedNode == nil {
-		v.GetUI().ShowError(errors.New("please select a node first"))
-		return nil, nil, errors.New("no node selected")
-	}
-
-	nodeService := v.GetUI().GetSwarmNodeService()
-	if nodeService == nil {
-		v.GetUI().
-			ShowError(errors.New("swarm node service is not available - please check your Docker connection"))
-		return nil, nil, errors.New("swarm node service not available")
-	}
-
-	return selectedNode, nodeService, nil
-}
-
-// performNodeInspection performs the actual node inspection
-func (v *NodesView) performNodeInspection(
-	ctx context.Context,
-	selectedNode *shared.SwarmNode,
-	swarmNodeService *swarm.NodeService,
-) (any, error) {
-	nodeInfo, err := swarmNodeService.InspectNode(ctx, selectedNode.ID)
-	if err != nil {
-		errorMsg := fmt.Sprintf(
-			"failed to inspect node '%s': %v\n\nPlease check:\n"+
-				"• Node is accessible\n"+
-				"• You have sufficient permissions\n"+
-				"• Docker daemon is running",
-			selectedNode.Hostname,
-			err,
-		)
-		v.GetUI().ShowError(fmt.Errorf("%s", errorMsg))
-		return v, fmt.Errorf("failed to inspect node: %w", err)
-	}
-
-	v.displayNodeInfo(selectedNode, nodeInfo)
-	return v, nil
-}
-
-// displayNodeInfo displays node information in a modal
-func (v *NodesView) displayNodeInfo(selectedNode *shared.SwarmNode, nodeInfo map[string]any) {
-	if nodeInfo == nil {
-		v.GetUI().
-			ShowInfo(fmt.Sprintf("Node '%s' has no detailed information available", selectedNode.Hostname))
-		return
-	}
-
-	infoText := v.formatNodeInfo(selectedNode, nodeInfo)
-	v.GetUI().ShowInfo(infoText)
-}
-
-// formatNodeInfo formats node information for display
-func (v *NodesView) formatNodeInfo(selectedNode *shared.SwarmNode, nodeInfo map[string]any) string {
-	return fmt.Sprintf(
-		"Node Details: %s\n\n"+
-			"ID: %s\n"+
-			"Role: %s\n"+
-			"Availability: %s\n"+
-			"Status: %s\n"+
-			"Manager Status: %s\n"+
-			"Engine Version: %s\n"+
-			"Address: %s\n"+
-			"CPUs: %d\n"+
-			"Memory: %d",
-		selectedNode.Hostname,
-		shared.TruncName(selectedNode.ID, 12),
-		selectedNode.Role,
-		selectedNode.Availability,
-		selectedNode.Status,
-		selectedNode.ManagerStatus,
-		selectedNode.EngineVersion,
-		selectedNode.Address,
-		selectedNode.CPUs,
-		selectedNode.Memory,
-	)
-}
-
-// handleUpdateAvailability handles node availability updates
-func (v *NodesView) handleUpdateAvailability(ctx context.Context) (any, error) {
-	selectedNode, nodeService, err := v.validateNodeSelection()
-	if err != nil {
-		return v, err
-	}
-
-	// Cast to the correct type
-	if swarmNodeService, ok := nodeService.(*swarm.NodeService); ok {
-		v.showAvailabilityUpdateModal(ctx, selectedNode, swarmNodeService)
-		return v, nil
-	}
-
-	v.GetUI().ShowError(errors.New("swarm node service is not properly configured"))
-	return v, errors.New("swarm node service not available")
 }
 
 // showAvailabilityUpdateModal shows the availability update modal
@@ -531,27 +383,41 @@ func (v *NodesView) handleNodeRemovalSuccess(selectedNode *shared.SwarmNode) {
 	v.Refresh()
 }
 
-// handleNavigateToServices handles navigation to swarm services view
-func (v *NodesView) handleNavigateToServices(_ context.Context) (any, error) {
-	// This would return a services view - placeholder for now
-	return v, errors.New("services view not implemented yet")
-}
+// handleAction handles action key presses for swarm nodes
+func (v *NodesView) handleAction(key rune, node *shared.SwarmNode) {
+	ctx := context.Background()
 
-// handleBackToMain handles navigation back to main menu
-func (v *NodesView) handleBackToMain(_ context.Context) (any, error) {
-	// This would return the main menu view - placeholder for now
-	return v, errors.New("main menu view not implemented yet")
-}
+	switch key {
+	case 'i':
+		// TODO: Implement inspect functionality
+		v.log.Info("Inspect action not yet implemented")
+	case 'a':
+		selectedNode := v.GetSelectedItem()
+		if selectedNode == nil {
+			v.log.Warn("No node selected for availability update")
+			return
+		}
 
-// handleHelp shows contextual help for swarm nodes
-func (v *NodesView) handleHelp() {
-	// Show general swarm nodes help
-	v.GetUI().ShowContextualHelp("swarm_nodes", "")
-}
+		nodeService := v.GetUI().GetSwarmNodeService()
+		if nodeService == nil {
+			v.log.Warn("Swarm node service not available")
+			return
+		}
 
-// showOperationHelp shows contextual help for a specific operation
-// This function is intentionally unused - it's a placeholder for future help functionality
-// nolint:unused // Intentionally unused - placeholder for future help functionality
-func (v *NodesView) showOperationHelp(operation string) {
-	v.GetUI().ShowContextualHelp("swarm_nodes", operation)
+		swarmNodeService, ok := nodeService.(*swarm.NodeService)
+		if !ok {
+			v.log.Warn("Swarm node service type assertion failed")
+			return
+		}
+
+		v.showAvailabilityUpdateModal(ctx, selectedNode, swarmNodeService)
+	case 'r':
+		if _, err := v.handleRemove(ctx); err != nil {
+			v.log.Error("Failed to handle remove action", "error", err)
+		}
+	case 'f':
+		v.Refresh()
+	default:
+		v.log.Warn("Unknown action key", "key", string(key))
+	}
 }
