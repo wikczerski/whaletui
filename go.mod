@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/docker/docker v28.0.0+incompatible
 	github.com/gdamore/tcell/v2 v2.9.0
-	github.com/rivo/tview v0.0.0-20231126152417-33a1d271f2b6
+	github.com/rivo/tview v0.42.0
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.11.0
 	golang.org/x/crypto v0.41.0
