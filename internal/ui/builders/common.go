@@ -8,6 +8,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/wikczerski/whaletui/internal/ui/constants"
+	"github.com/wikczerski/whaletui/internal/ui/utils"
 )
 
 // FormatTime formats a time.Time to a human-readable string
@@ -154,6 +155,30 @@ func (tb *TableBuilder) SetupRow(
 ) {
 	for i, cell := range cells {
 		tableCell := tview.NewTableCell(cell).
+			SetTextColor(textColor).
+			SetAlign(tview.AlignLeft).
+			SetExpansion(1)
+		table.SetCell(row, i, tableCell)
+	}
+}
+
+// SetupRowWithLimits sets up a table row with character limits applied
+func (tb *TableBuilder) SetupRowWithLimits(
+	table *tview.Table,
+	row int,
+	cells []string,
+	columnTypes []string,
+	textColor tcell.Color,
+	formatter *utils.TableFormatter,
+) {
+	for i, cell := range cells {
+		// Apply character limits if formatter and column type are provided
+		formattedCell := cell
+		if formatter != nil && i < len(columnTypes) {
+			formattedCell = formatter.FormatCell(cell, columnTypes[i])
+		}
+
+		tableCell := tview.NewTableCell(formattedCell).
 			SetTextColor(textColor).
 			SetAlign(tview.AlignLeft).
 			SetExpansion(1)

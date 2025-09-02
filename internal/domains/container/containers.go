@@ -13,6 +13,7 @@ import (
 	"github.com/wikczerski/whaletui/internal/ui/constants"
 	"github.com/wikczerski/whaletui/internal/ui/handlers"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
+	"github.com/wikczerski/whaletui/internal/ui/utils"
 )
 
 // ContainersView displays and manages Docker containers
@@ -36,6 +37,7 @@ func NewContainersView(ui interfaces.UIInterface) *ContainersView {
 	}
 
 	cv.setupCallbacks()
+	cv.setupCharacterLimits(ui)
 	return cv
 }
 
@@ -253,4 +255,15 @@ func (cv *ContainersView) showContainerDetails(container *shared.Container) {
 			}
 		}
 	}
+}
+
+// setupCharacterLimits sets up character limits for table columns
+func (cv *ContainersView) setupCharacterLimits(ui interfaces.UIInterface) {
+	// Define column types for containers table
+	columnTypes := []string{"id", "name", "image", "status", "state", "ports", "created"}
+	cv.SetColumnTypes(columnTypes)
+
+	// Create formatter from theme manager
+	formatter := utils.NewTableFormatterFromTheme(ui.GetThemeManager())
+	cv.SetFormatter(formatter)
 }

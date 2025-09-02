@@ -55,6 +55,9 @@ vet:
 
 test-all: vet imports fmt lint test
 
+mockery:
+	mockery --config=.mockery.yml
+
 # Docker testing environment setup
 docker-test:
 	@echo "Setting up Docker testing environment..."

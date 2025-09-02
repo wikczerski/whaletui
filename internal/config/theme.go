@@ -62,6 +62,23 @@ var DefaultTheme = ThemeConfig{
 		ContentWidth:    constants.HeaderContentWidth,
 		LogoWidth:       constants.HeaderLogoWidth,
 	},
+	TableLimits: TableLimits{
+		ID:          12, // Container/Image IDs
+		Name:        30, // Container/Volume names
+		Image:       40, // Image names
+		Status:      20, // Status messages
+		State:       15, // State values
+		Ports:       25, // Port mappings
+		Created:     20, // Created timestamps
+		Size:        15, // Size values
+		Driver:      15, // Volume drivers
+		Mountpoint:  50, // Mount points
+		Repository:  35, // Image repositories
+		Tag:         20, // Image tags
+		Network:     25, // Network names
+		Scope:       15, // Network scope
+		Description: 50, // General descriptions
+	},
 }
 
 // ThemeManager manages theme configuration
@@ -309,6 +326,26 @@ func (tm *ThemeManager) SaveTheme(path string) error {
 // GetConfig returns the current theme configuration
 func (tm *ThemeManager) GetConfig() *ThemeConfig {
 	return tm.config
+}
+
+// GetTableLimits returns the current table limits configuration
+func (tm *ThemeManager) GetTableLimits() TableLimits {
+	return tm.config.TableLimits
+}
+
+// ReloadTheme reloads the theme configuration from file
+func (tm *ThemeManager) ReloadTheme() error {
+	if tm.path == "" {
+		return errors.New("no theme path specified")
+	}
+
+	// Load the theme from file
+	err := tm.loadFromFile(tm.path)
+	if err != nil {
+		return fmt.Errorf("failed to reload theme: %w", err)
+	}
+
+	return nil
 }
 
 // GetPath returns the current theme file path

@@ -856,6 +856,50 @@ func (_c *MockUIInterface_IsModalActive_Call) RunAndReturn(run func() bool) *Moc
 	return _c
 }
 
+// ReloadTheme provides a mock function for the type MockUIInterface
+func (_mock *MockUIInterface) ReloadTheme() error {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for ReloadTheme")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func() error); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockUIInterface_ReloadTheme_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ReloadTheme'
+type MockUIInterface_ReloadTheme_Call struct {
+	*mock.Call
+}
+
+// ReloadTheme is a helper method to define mock.On call
+func (_e *MockUIInterface_Expecter) ReloadTheme() *MockUIInterface_ReloadTheme_Call {
+	return &MockUIInterface_ReloadTheme_Call{Call: _e.mock.On("ReloadTheme")}
+}
+
+func (_c *MockUIInterface_ReloadTheme_Call) Run(run func()) *MockUIInterface_ReloadTheme_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockUIInterface_ReloadTheme_Call) Return(err error) *MockUIInterface_ReloadTheme_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockUIInterface_ReloadTheme_Call) RunAndReturn(run func() error) *MockUIInterface_ReloadTheme_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ShowConfirm provides a mock function for the type MockUIInterface
 func (_mock *MockUIInterface) ShowConfirm(s string, fn func(bool)) {
 	_mock.Called(s, fn)

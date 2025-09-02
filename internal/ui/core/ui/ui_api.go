@@ -234,6 +234,39 @@ func (ui *UI) GetThemeManager() *config.ThemeManager {
 	return ui.themeManager
 }
 
+// ReloadTheme reloads the theme configuration and refreshes all views
+func (ui *UI) ReloadTheme() error {
+	if ui.themeManager == nil {
+		return errors.New("theme manager not initialized")
+	}
+
+	// Reload the theme from file
+	err := ui.themeManager.ReloadTheme()
+	if err != nil {
+		return fmt.Errorf("failed to reload theme: %w", err)
+	}
+
+	// Refresh all views to apply the new character limits
+	ui.refreshAllViews()
+
+	ui.log.Info("Theme reloaded successfully")
+	return nil
+}
+
+// refreshAllViews refreshes all registered views
+func (ui *UI) refreshAllViews() {
+	// Refresh the current view
+	currentView := ui.viewRegistry.GetCurrent()
+	if currentView != nil && currentView.Refresh != nil {
+		currentView.Refresh()
+	}
+
+	// Update headers to reflect any theme changes
+	ui.headerManager.UpdateDockerInfo()
+	ui.headerManager.UpdateNavigation()
+	ui.headerManager.UpdateActions()
+}
+
 // SetHeaderManager sets the header manager
 func (ui *UI) SetHeaderManager(headerManager interfaces.HeaderManagerInterface) {
 	ui.headerManager = headerManager

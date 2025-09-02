@@ -7,9 +7,11 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"github.com/wikczerski/whaletui/internal/config"
 	"github.com/wikczerski/whaletui/internal/logger"
 	"github.com/wikczerski/whaletui/internal/ui/builders"
 	"github.com/wikczerski/whaletui/internal/ui/constants"
+	"github.com/wikczerski/whaletui/internal/ui/utils"
 )
 
 // ServiceFactoryInterface defines minimal interface for services
@@ -48,6 +50,9 @@ type UIInterface interface {
 	GetServicesAny() any
 	GetSwarmServiceService() any
 	GetSwarmNodeService() any
+
+	// Theme management
+	GetThemeManager() *config.ThemeManager
 }
 
 // BaseView provides common functionality for all Docker resource views
@@ -69,6 +74,10 @@ type BaseView[T any] struct {
 	HandleKeyPress      func(key rune, item T)
 	ShowDetailsCallback func(item T)
 	GetActions          func() map[rune]string
+
+	// Character limits support
+	columnTypes []string
+	formatter   *utils.TableFormatter
 }
 
 // NewBaseView creates a new base view with common functionality
@@ -122,6 +131,27 @@ func (bv *BaseView[T]) GetHeaders() []string {
 	return bv.headers
 }
 
+// SetColumnTypes sets the column types for character limit formatting
+func (bv *BaseView[T]) SetColumnTypes(columnTypes []string) {
+	bv.columnTypes = columnTypes
+}
+
+// SetFormatter sets the table formatter for character limits
+func (bv *BaseView[T]) SetFormatter(formatter *utils.TableFormatter) {
+	bv.formatter = formatter
+}
+
+// RefreshFormatter updates the formatter with the latest theme configuration
+func (bv *BaseView[T]) RefreshFormatter(ui UIInterface) {
+	if ui != nil {
+		themeManager := ui.GetThemeManager()
+		if themeManager != nil {
+			// Create a new formatter with the updated limits
+			bv.formatter = utils.NewTableFormatterFromTheme(themeManager)
+		}
+	}
+}
+
 // GetSelectedItem returns the currently selected item from the table
 func (bv *BaseView[T]) GetSelectedItem() *T {
 	row, _ := bv.table.GetSelection()
@@ -137,6 +167,9 @@ func (bv *BaseView[T]) Refresh() {
 	if bv.ListItems == nil {
 		return
 	}
+
+	// Refresh the formatter to get latest theme configuration
+	bv.RefreshFormatter(bv.ui)
 
 	items, err := bv.ListItems(context.Background())
 	if err != nil {
@@ -258,7 +291,14 @@ func (bv *BaseView[T]) populateTableRows(items []T) {
 	for i, item := range items {
 		cells := bv.FormatRow(item)
 		rowColor := bv.getRowColor(item)
-		builders.NewTableBuilder().SetupRow(bv.table, i+1, cells, rowColor)
+
+		// Use character limits if formatter and column types are available
+		if bv.formatter != nil && len(bv.columnTypes) > 0 {
+			builders.NewTableBuilder().SetupRowWithLimits(
+				bv.table, i+1, cells, bv.columnTypes, rowColor, bv.formatter)
+		} else {
+			builders.NewTableBuilder().SetupRow(bv.table, i+1, cells, rowColor)
+		}
 	}
 }
 
