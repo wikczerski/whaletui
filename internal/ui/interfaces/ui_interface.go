@@ -55,6 +55,7 @@ type UIInterface interface {
 
 	// Theme management
 	GetThemeManager() *config.ThemeManager
+	ReloadTheme() error
 
 	// Shutdown management
 	GetShutdownChan() chan struct{}

@@ -10,6 +10,7 @@ import (
 	"github.com/wikczerski/whaletui/internal/logger"
 	"github.com/wikczerski/whaletui/internal/shared"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
+	"github.com/wikczerski/whaletui/internal/ui/utils"
 )
 
 // ServicesView represents the swarm services view
@@ -39,6 +40,7 @@ func NewServicesView(
 	}
 
 	view.setupCallbacks()
+	view.setupCharacterLimits(ui)
 
 	return view
 }
@@ -619,4 +621,15 @@ func (v *ServicesView) getActions() map[rune]string {
 		'l': "Logs",
 		'f': "Refresh",
 	}
+}
+
+// setupCharacterLimits sets up character limits for table columns
+func (v *ServicesView) setupCharacterLimits(ui interfaces.UIInterface) {
+	// Define column types for swarm services table: ID, Name, Image, Mode, Replicas, Status, Created
+	columnTypes := []string{"id", "name", "image", "mode", "replicas", "status", "created"}
+	v.SetColumnTypes(columnTypes)
+
+	// Create formatter from theme manager
+	formatter := utils.NewTableFormatterFromTheme(ui.GetThemeManager())
+	v.SetFormatter(formatter)
 }

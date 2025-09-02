@@ -29,6 +29,7 @@ type ThemeConfig struct {
 	ContainerExec ContainerExecTheme `json:"containerExec" yaml:"containerExec"`
 	CommandMode   CommandModeTheme   `json:"commandMode"   yaml:"commandMode"`
 	HeaderLayout  HeaderLayout       `json:"headerLayout"  yaml:"headerLayout"`
+	TableLimits   TableLimits        `json:"tableLimits"   yaml:"tableLimits"`
 }
 
 // MergeWith merges this config with another, copying non-empty values
@@ -60,6 +61,7 @@ func (tc *ThemeConfig) mergeAllSections(other *ThemeConfig) {
 	tc.ContainerExec.MergeWith(other.ContainerExec)
 	tc.CommandMode.MergeWith(other.CommandMode)
 	tc.HeaderLayout.MergeWith(other.HeaderLayout)
+	tc.TableLimits.MergeWith(other.TableLimits)
 }
 
 // HeaderLayout defines the header column width configuration
@@ -260,4 +262,71 @@ func (cmt *CommandModeTheme) MergeWith(other any) {
 	}
 
 	mergeStringFields(cmt, otherMode)
+}
+
+// TableLimits defines character limits for table columns
+type TableLimits struct {
+	ID          int `json:"id,omitempty"          yaml:"id,omitempty"`
+	Name        int `json:"name,omitempty"        yaml:"name,omitempty"`
+	Image       int `json:"image,omitempty"       yaml:"image,omitempty"`
+	Status      int `json:"status,omitempty"      yaml:"status,omitempty"`
+	State       int `json:"state,omitempty"       yaml:"state,omitempty"`
+	Ports       int `json:"ports,omitempty"       yaml:"ports,omitempty"`
+	Created     int `json:"created,omitempty"     yaml:"created,omitempty"`
+	Size        int `json:"size,omitempty"        yaml:"size,omitempty"`
+	Driver      int `json:"driver,omitempty"      yaml:"driver,omitempty"`
+	Mountpoint  int `json:"mountpoint,omitempty"  yaml:"mountpoint,omitempty"`
+	Repository  int `json:"repository,omitempty"  yaml:"repository,omitempty"`
+	Tag         int `json:"tag,omitempty"         yaml:"tag,omitempty"`
+	Network     int `json:"network,omitempty"     yaml:"network,omitempty"`
+	Scope       int `json:"scope,omitempty"       yaml:"scope,omitempty"`
+	Description int `json:"description,omitempty" yaml:"description,omitempty"`
+}
+
+// MergeWith merges this TableLimits with another, copying non-zero values
+func (tl *TableLimits) MergeWith(other any) {
+	otherLimits := extractTableLimits(other)
+	if otherLimits == nil {
+		return
+	}
+
+	tl.mergeIntegerFields(otherLimits)
+}
+
+// extractTableLimits extracts TableLimits from various types
+func extractTableLimits(other any) *TableLimits {
+	switch v := other.(type) {
+	case TableLimits:
+		return &v
+	case *TableLimits:
+		return v
+	default:
+		return nil
+	}
+}
+
+// mergeIntegerFields merges non-zero integer fields
+func (tl *TableLimits) mergeIntegerFields(other *TableLimits) {
+	tl.mergeLimitField(&tl.ID, other.ID)
+	tl.mergeLimitField(&tl.Name, other.Name)
+	tl.mergeLimitField(&tl.Image, other.Image)
+	tl.mergeLimitField(&tl.Status, other.Status)
+	tl.mergeLimitField(&tl.State, other.State)
+	tl.mergeLimitField(&tl.Ports, other.Ports)
+	tl.mergeLimitField(&tl.Created, other.Created)
+	tl.mergeLimitField(&tl.Size, other.Size)
+	tl.mergeLimitField(&tl.Driver, other.Driver)
+	tl.mergeLimitField(&tl.Mountpoint, other.Mountpoint)
+	tl.mergeLimitField(&tl.Repository, other.Repository)
+	tl.mergeLimitField(&tl.Tag, other.Tag)
+	tl.mergeLimitField(&tl.Network, other.Network)
+	tl.mergeLimitField(&tl.Scope, other.Scope)
+	tl.mergeLimitField(&tl.Description, other.Description)
+}
+
+// mergeLimitField merges a single limit field if the other value is greater than 0
+func (tl *TableLimits) mergeLimitField(field *int, otherValue int) {
+	if otherValue > 0 {
+		*field = otherValue
+	}
 }

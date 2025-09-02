@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
+	"github.com/wikczerski/whaletui/internal/config"
 	mocks "github.com/wikczerski/whaletui/internal/mocks/ui"
 	"github.com/wikczerski/whaletui/internal/shared"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
@@ -35,6 +36,10 @@ func newImagesUIMockWithServices(
 	} else {
 		ui.On("GetServicesAny").Return(sf)
 	}
+
+	// Mock GetThemeManager for character limits setup
+	mockThemeManager := config.NewThemeManager("")
+	ui.On("GetThemeManager").Return(mockThemeManager).Maybe()
 
 	return ui
 }

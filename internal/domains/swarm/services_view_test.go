@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/wikczerski/whaletui/internal/config"
 	uimocks "github.com/wikczerski/whaletui/internal/mocks/ui"
 	"github.com/wikczerski/whaletui/internal/shared"
 )
@@ -15,6 +16,10 @@ func TestNewServicesView(t *testing.T) {
 	mockServiceService := &ServiceService{}
 	mockModalManager := uimocks.NewMockModalManagerInterface(t)
 	mockHeaderManager := uimocks.NewMockHeaderManagerInterface(t)
+
+	// Mock GetThemeManager for character limits setup
+	mockThemeManager := config.NewThemeManager("")
+	mockUI.On("GetThemeManager").Return(mockThemeManager).Maybe()
 
 	view := NewServicesView(mockUI, mockServiceService, mockModalManager, mockHeaderManager)
 
@@ -33,6 +38,10 @@ func TestServicesView_GetActions(t *testing.T) {
 	mockServiceService := &ServiceService{}
 	mockModalManager := uimocks.NewMockModalManagerInterface(t)
 	mockHeaderManager := uimocks.NewMockHeaderManagerInterface(t)
+
+	// Mock GetThemeManager for character limits setup
+	mockThemeManager := config.NewThemeManager("")
+	mockUI.On("GetThemeManager").Return(mockThemeManager).Maybe()
 
 	view := NewServicesView(mockUI, mockServiceService, mockModalManager, mockHeaderManager)
 
@@ -55,6 +64,10 @@ func TestServicesView_FormatServiceRow(t *testing.T) {
 	mockServiceService := &ServiceService{}
 	mockModalManager := uimocks.NewMockModalManagerInterface(t)
 	mockHeaderManager := uimocks.NewMockHeaderManagerInterface(t)
+
+	// Mock GetThemeManager for character limits setup
+	mockThemeManager := config.NewThemeManager("")
+	mockUI.On("GetThemeManager").Return(mockThemeManager).Maybe()
 
 	view := NewServicesView(mockUI, mockServiceService, mockModalManager, mockHeaderManager)
 
@@ -90,6 +103,10 @@ func TestServicesView_GetServiceID(t *testing.T) {
 	mockModalManager := uimocks.NewMockModalManagerInterface(t)
 	mockHeaderManager := uimocks.NewMockHeaderManagerInterface(t)
 
+	// Mock GetThemeManager for character limits setup
+	mockThemeManager := config.NewThemeManager("")
+	mockUI.On("GetThemeManager").Return(mockThemeManager).Maybe()
+
 	view := NewServicesView(mockUI, mockServiceService, mockModalManager, mockHeaderManager)
 
 	service := shared.SwarmService{
@@ -107,6 +124,10 @@ func TestServicesView_GetServiceName(t *testing.T) {
 	mockServiceService := &ServiceService{}
 	mockModalManager := uimocks.NewMockModalManagerInterface(t)
 	mockHeaderManager := uimocks.NewMockHeaderManagerInterface(t)
+
+	// Mock GetThemeManager for character limits setup
+	mockThemeManager := config.NewThemeManager("")
+	mockUI.On("GetThemeManager").Return(mockThemeManager).Maybe()
 
 	view := NewServicesView(mockUI, mockServiceService, mockModalManager, mockHeaderManager)
 

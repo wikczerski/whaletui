@@ -10,6 +10,7 @@ import (
 	"github.com/wikczerski/whaletui/internal/logger"
 	"github.com/wikczerski/whaletui/internal/shared"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
+	"github.com/wikczerski/whaletui/internal/ui/utils"
 )
 
 // NodesView represents the swarm nodes view
@@ -43,6 +44,7 @@ func NewNodesView(
 	}
 
 	view.setupCallbacks()
+	view.setupCharacterLimits(ui)
 
 	return view
 }
@@ -468,4 +470,19 @@ func (v *NodesView) handleAction(key rune, node *shared.SwarmNode) {
 	default:
 		v.log.Warn("Unknown action key", "key", string(key))
 	}
+}
+
+// setupCharacterLimits sets up character limits for table columns
+func (v *NodesView) setupCharacterLimits(ui shared.UIInterface) {
+	// Define column types for swarm nodes table:
+	// ID, Hostname, Role, Availability, Status, Manager Status, Engine Version, Address
+	columnTypes := []string{
+		"id", "name", "hostname", "role", "availability",
+		"status", "manager_status", "engine_version", "address",
+	}
+	v.SetColumnTypes(columnTypes)
+
+	// Create formatter from theme manager
+	formatter := utils.NewTableFormatterFromTheme(ui.GetThemeManager())
+	v.SetFormatter(formatter)
 }

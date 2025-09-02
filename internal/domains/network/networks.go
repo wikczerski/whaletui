@@ -8,6 +8,7 @@ import (
 	"github.com/wikczerski/whaletui/internal/ui/builders"
 	"github.com/wikczerski/whaletui/internal/ui/handlers"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
+	"github.com/wikczerski/whaletui/internal/ui/utils"
 )
 
 // NetworksView displays and manages Docker networks
@@ -27,6 +28,7 @@ func NewNetworksView(ui interfaces.UIInterface) *NetworksView {
 	}
 
 	setupNetworkViewCallbacks(nv)
+	setupNetworkCharacterLimits(nv, ui)
 	return nv
 }
 
@@ -202,4 +204,15 @@ func (nv *NetworksView) inspectNetwork(id string) {
 
 	nv.handlers.HandleResourceAction('i', "network", id, "",
 		inspectService.InspectNetwork, nil, func() { nv.Refresh() })
+}
+
+// setupNetworkCharacterLimits sets up character limits for table columns
+func setupNetworkCharacterLimits(nv *NetworksView, ui interfaces.UIInterface) {
+	// Define column types for networks table
+	columnTypes := []string{"id", "name", "driver", "scope", "created"}
+	nv.SetColumnTypes(columnTypes)
+
+	// Create formatter from theme manager
+	formatter := utils.NewTableFormatterFromTheme(ui.GetThemeManager())
+	nv.SetFormatter(formatter)
 }
