@@ -38,7 +38,21 @@
     "placeholder": "#666666",
     "title": "#00FF00"
   },
-  "headerLayout": {
-    "spacerWidth": 2
+  "tableLimits": {
+    "id": 12,
+    "name": 25,
+    "image": 35,
+    "status": 15,
+    "state": 10,
+    "ports": 20,
+    "created": 15,
+    "size": 12,
+    "driver": 12,
+    "mountpoint": 40,
+    "repository": 30,
+    "tag": 15,
+    "network": 20,
+    "scope": 10,
+    "description": 40
   }
 }
