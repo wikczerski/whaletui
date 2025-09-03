@@ -30,7 +30,6 @@ type ServiceFactoryInterface interface {
 	GetLogsService() LogsService
 	GetSwarmServiceService() any
 	GetSwarmNodeService() any
-	GetCurrentService() any
 	SetCurrentService(serviceName string)
 	IsServiceAvailable(serviceName string) bool
 	IsContainerServiceAvailable() bool
@@ -95,8 +94,4 @@ type DockerInfo interface {
 	GetVersion() string
 	GetOperatingSystem() string
 	GetLoggingDriver() string
-	GetContainers() int
-	GetImages() int
-	GetVolumes() int
-	GetNetworks() int
 }

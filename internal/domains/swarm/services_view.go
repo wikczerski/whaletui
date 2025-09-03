@@ -7,16 +7,16 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/wikczerski/whaletui/internal/domains/swarm"
 	"github.com/wikczerski/whaletui/internal/logger"
 	"github.com/wikczerski/whaletui/internal/shared"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
+	"github.com/wikczerski/whaletui/internal/ui/utils"
 )
 
 // ServicesView represents the swarm services view
 type ServicesView struct {
 	*shared.BaseView[shared.SwarmService]
-	serviceService *swarm.ServiceService
+	serviceService *ServiceService
 	modalManager   interfaces.ModalManagerInterface
 	headerManager  interfaces.HeaderManagerInterface
 	log            *slog.Logger
@@ -25,7 +25,7 @@ type ServicesView struct {
 // NewServicesView creates a new swarm services view
 func NewServicesView(
 	ui interfaces.UIInterface,
-	serviceService *swarm.ServiceService,
+	serviceService *ServiceService,
 	modalManager interfaces.ModalManagerInterface,
 	headerManager interfaces.HeaderManagerInterface,
 ) *ServicesView {
@@ -40,71 +40,9 @@ func NewServicesView(
 	}
 
 	view.setupCallbacks()
+	view.setupCharacterLimits(ui)
 
 	return view
-}
-
-// Render renders the swarm services view
-func (v *ServicesView) Render(_ context.Context) error {
-	// The base view handles rendering automatically through the callbacks
-	// Just refresh the data
-	v.Refresh()
-	return nil
-}
-
-// HandleInput handles user input for the services view
-func (v *ServicesView) HandleInput(ctx context.Context, input rune) (any, error) {
-	return v.routeInput(ctx, input)
-}
-
-// routeInput routes the input to the appropriate handler
-func (v *ServicesView) routeInput(ctx context.Context, input rune) (any, error) {
-	return v.handleInputRouting(ctx, input)
-}
-
-// handleInputRouting handles the input routing logic
-func (v *ServicesView) handleInputRouting(ctx context.Context, input rune) (any, error) {
-	return v.routeInputToHandler(ctx, input)
-}
-
-// routeInputToHandler routes the input to the appropriate handler
-func (v *ServicesView) routeInputToHandler(ctx context.Context, input rune) (any, error) {
-	return v.processInputCommand(ctx, input)
-}
-
-// processInputCommand processes the input command
-func (v *ServicesView) processInputCommand(ctx context.Context, input rune) (any, error) {
-	return v.executeInputCommand(ctx, input)
-}
-
-// executeInputCommand executes the input command
-func (v *ServicesView) executeInputCommand(ctx context.Context, input rune) (any, error) {
-	return v.handleInputCommand(ctx, input)
-}
-
-// handleInputCommand handles the input command logic
-func (v *ServicesView) handleInputCommand(ctx context.Context, input rune) (any, error) {
-	switch input {
-	case 'i':
-		return v.handleInspect(ctx)
-	case 's':
-		return v.handleScale(ctx)
-	case 'r':
-		return v.handleRemove(ctx)
-	case 'l':
-		return v.handleLogs(ctx)
-	case 'f':
-		return v, nil // Refresh current view
-	case 'n':
-		return v.handleNavigateToNodes(ctx)
-	case 'q':
-		return v.handleBackToMain(ctx)
-	case 'h':
-		v.handleHelp()
-		return v, nil
-	default:
-		return v, nil
-	}
 }
 
 // handleInspect handles service inspection
@@ -115,7 +53,7 @@ func (v *ServicesView) handleInspect(ctx context.Context) (any, error) {
 	}
 
 	// Cast to the correct type
-	if swarmService, ok := serviceService.(*swarm.ServiceService); ok {
+	if swarmService, ok := serviceService.(*ServiceService); ok {
 		return v.performServiceInspection(ctx, selectedService, swarmService)
 	}
 
@@ -127,7 +65,7 @@ func (v *ServicesView) handleInspect(ctx context.Context) (any, error) {
 func (v *ServicesView) performServiceInspection(
 	ctx context.Context,
 	selectedService *shared.SwarmService,
-	swarmService *swarm.ServiceService,
+	swarmService *ServiceService,
 ) (any, error) {
 	serviceInfo, err := swarmService.InspectService(ctx, selectedService.ID)
 	if err != nil {
@@ -193,7 +131,7 @@ func (v *ServicesView) handleScale(ctx context.Context) (any, error) {
 	}
 
 	// Cast to the correct type
-	if swarmService, ok := serviceService.(*swarm.ServiceService); ok {
+	if swarmService, ok := serviceService.(*ServiceService); ok {
 		currentReplicas := v.getCurrentReplicas(ctx, selectedService, swarmService)
 		v.showScaleModal(ctx, selectedService, currentReplicas, swarmService)
 		return v, nil
@@ -225,7 +163,7 @@ func (v *ServicesView) validateServiceSelection() (*shared.SwarmService, any, er
 func (v *ServicesView) getCurrentReplicas(
 	ctx context.Context,
 	selectedService *shared.SwarmService,
-	swarmService *swarm.ServiceService,
+	swarmService *ServiceService,
 ) uint64 {
 	serviceInfo, err := swarmService.InspectService(ctx, selectedService.ID)
 	if err != nil {
@@ -247,7 +185,7 @@ func (v *ServicesView) showScaleModal(
 	ctx context.Context,
 	selectedService *shared.SwarmService,
 	currentReplicas uint64,
-	swarmService *swarm.ServiceService,
+	swarmService *ServiceService,
 ) {
 	v.GetUI().ShowServiceScaleModal(selectedService.Name, currentReplicas, func(newReplicas int) {
 		v.handleServiceScaling(ctx, selectedService, newReplicas, swarmService)
@@ -259,7 +197,7 @@ func (v *ServicesView) handleServiceScaling(
 	ctx context.Context,
 	selectedService *shared.SwarmService,
 	newReplicas int,
-	swarmService *swarm.ServiceService,
+	swarmService *ServiceService,
 ) {
 	if newReplicas < 0 {
 		v.GetUI().ShowError(fmt.Errorf("invalid replica count: %d", newReplicas))
@@ -282,7 +220,7 @@ func (v *ServicesView) handleScaleError(
 	service *shared.SwarmService,
 	newReplicas int,
 	err error,
-	swarmService *swarm.ServiceService,
+	swarmService *ServiceService,
 ) {
 	// Check if this is a retryable error
 	if v.isRetryableError(err) {
@@ -354,7 +292,7 @@ func (v *ServicesView) executeScaleFallback(
 	service *shared.SwarmService,
 	fallbackOption string,
 	_ int,
-	swarmService *swarm.ServiceService,
+	swarmService *ServiceService,
 ) {
 	switch fallbackOption {
 	case "Check Service Status":
@@ -372,7 +310,7 @@ func (v *ServicesView) executeScaleFallback(
 func (v *ServicesView) handleCheckServiceStatus(
 	ctx context.Context,
 	service *shared.SwarmService,
-	swarmService *swarm.ServiceService,
+	swarmService *ServiceService,
 ) {
 	serviceInfo, err := swarmService.InspectService(ctx, service.ID)
 	if err != nil {
@@ -392,7 +330,7 @@ func (v *ServicesView) handleCheckServiceStatus(
 func (v *ServicesView) handleViewServiceLogs(
 	ctx context.Context,
 	service *shared.SwarmService,
-	swarmService *swarm.ServiceService,
+	swarmService *ServiceService,
 ) {
 	logs, err := swarmService.GetServiceLogs(ctx, service.ID)
 	if err != nil {
@@ -411,7 +349,7 @@ func (v *ServicesView) handleViewServiceLogs(
 func (v *ServicesView) handleTryDifferentReplicaCount(
 	ctx context.Context,
 	service *shared.SwarmService,
-	swarmService *swarm.ServiceService,
+	swarmService *ServiceService,
 ) {
 	serviceInfo, err := swarmService.InspectService(ctx, service.ID)
 	if err != nil {
@@ -434,7 +372,7 @@ func (v *ServicesView) handleDifferentReplicaCount(
 	ctx context.Context,
 	service *shared.SwarmService,
 	differentReplicas int,
-	swarmService *swarm.ServiceService,
+	swarmService *ServiceService,
 ) {
 	if differentReplicas < 0 {
 		v.GetUI().ShowError(fmt.Errorf("invalid replica count: %d", differentReplicas))
@@ -456,7 +394,7 @@ func (v *ServicesView) handleDifferentReplicaCount(
 func (v *ServicesView) handleShowServiceDetails(
 	ctx context.Context,
 	service *shared.SwarmService,
-	swarmService *swarm.ServiceService,
+	swarmService *ServiceService,
 ) {
 	serviceInfo, err := swarmService.InspectService(ctx, service.ID)
 	if err != nil {
@@ -525,7 +463,7 @@ func (v *ServicesView) executeServiceRemoval(
 	serviceService any,
 ) {
 	// Cast to the correct type
-	if swarmService, ok := serviceService.(swarm.ServiceService); ok {
+	if swarmService, ok := serviceService.(ServiceService); ok {
 		// Remove the service
 		err := swarmService.RemoveService(ctx, selectedService.ID)
 		if err != nil {
@@ -558,7 +496,7 @@ func (v *ServicesView) handleLogs(ctx context.Context) (any, error) {
 	}
 
 	// Cast to the correct type
-	if swarmService, ok := serviceService.(*swarm.ServiceService); ok {
+	if swarmService, ok := serviceService.(*ServiceService); ok {
 		return v.performServiceLogs(ctx, selectedService, swarmService)
 	}
 
@@ -570,7 +508,7 @@ func (v *ServicesView) handleLogs(ctx context.Context) (any, error) {
 func (v *ServicesView) performServiceLogs(
 	ctx context.Context,
 	selectedService *shared.SwarmService,
-	swarmService *swarm.ServiceService,
+	swarmService *ServiceService,
 ) (any, error) {
 	// Get service logs
 	logs, err := swarmService.GetServiceLogs(ctx, selectedService.ID)
@@ -608,24 +546,6 @@ func (v *ServicesView) displayServiceLogs(selectedService *shared.SwarmService, 
 	v.GetUI().ShowInfo(fmt.Sprintf("Service '%s' Logs:\n\n%s", selectedService.Name, logPreview))
 }
 
-// handleNavigateToNodes handles navigation to swarm nodes view
-func (v *ServicesView) handleNavigateToNodes(_ context.Context) (any, error) {
-	// This would return a nodes view - placeholder for now
-	return v, errors.New("nodes view not implemented yet")
-}
-
-// handleBackToMain handles navigation back to main menu
-func (v *ServicesView) handleBackToMain(_ context.Context) (any, error) {
-	// This would return the main menu view - placeholder for now
-	return v, errors.New("main menu view not implemented yet")
-}
-
-// handleHelp shows contextual help for swarm services
-func (v *ServicesView) handleHelp() {
-	// Show general swarm services help
-	v.GetUI().ShowContextualHelp("swarm_services", "")
-}
-
 // setupCallbacks sets up the callbacks for the base view
 func (v *ServicesView) setupCallbacks() {
 	v.ListItems = v.listServices
@@ -633,6 +553,35 @@ func (v *ServicesView) setupCallbacks() {
 	v.GetItemID = func(s shared.SwarmService) string { return v.getServiceID(&s) }
 	v.GetItemName = func(s shared.SwarmService) string { return v.getServiceName(&s) }
 	v.GetActions = v.getActions
+	v.HandleKeyPress = func(key rune, s shared.SwarmService) { v.handleAction(key, &s) }
+}
+
+// handleAction handles action key presses for swarm services
+func (v *ServicesView) handleAction(key rune, service *shared.SwarmService) {
+	ctx := context.Background()
+
+	switch key {
+	case 'i':
+		if _, err := v.handleInspect(ctx); err != nil {
+			v.log.Error("Failed to handle inspect action", "error", err)
+		}
+	case 's':
+		if _, err := v.handleScale(ctx); err != nil {
+			v.log.Error("Failed to handle scale action", "error", err)
+		}
+	case 'r':
+		if _, err := v.handleRemove(ctx); err != nil {
+			v.log.Error("Failed to handle remove action", "error", err)
+		}
+	case 'l':
+		if _, err := v.handleLogs(ctx); err != nil {
+			v.log.Error("Failed to handle logs action", "error", err)
+		}
+	case 'f':
+		v.Refresh()
+	default:
+		v.log.Warn("Unknown action key", "key", string(key))
+	}
 }
 
 // listServices lists all swarm services
@@ -672,4 +621,15 @@ func (v *ServicesView) getActions() map[rune]string {
 		'l': "Logs",
 		'f': "Refresh",
 	}
+}
+
+// setupCharacterLimits sets up character limits for table columns
+func (v *ServicesView) setupCharacterLimits(ui interfaces.UIInterface) {
+	// Define column types for swarm services table: ID, Name, Image, Mode, Replicas, Status, Created
+	columnTypes := []string{"id", "name", "image", "mode", "replicas", "status", "created"}
+	v.SetColumnTypes(columnTypes)
+
+	// Create formatter from theme manager
+	formatter := utils.NewTableFormatterFromTheme(ui.GetThemeManager())
+	v.SetFormatter(formatter)
 }

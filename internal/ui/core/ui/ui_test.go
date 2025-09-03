@@ -16,39 +16,6 @@ import (
 	"github.com/wikczerski/whaletui/internal/ui/managers"
 )
 
-// setupMocksForUIInitialization sets up all the required mock expectations for UI initialization
-// This function is intentionally unused - it's a helper for future test setup
-// nolint:unused // Intentionally unused - helper for future test setup
-func setupMocksForUIInitialization(
-	t *testing.T,
-	headerManager *mocks.MockHeaderManagerInterface,
-	serviceFactory *mocks.MockServiceFactoryInterface,
-) {
-	// Header manager expectations
-	headerManager.On("CreateHeaderSection").Return(tview.NewTextView()).Maybe()
-	headerManager.On("UpdateDockerInfo").Return().Maybe()
-	headerManager.On("UpdateNavigation").Return().Maybe()
-	headerManager.On("UpdateActions").Return().Maybe()
-
-	// Service factory expectations (only if serviceFactory is not nil)
-	if serviceFactory != nil {
-		serviceFactory.On("GetContainerService").Return(nil).Maybe()
-		serviceFactory.On("GetImageService").Return(nil).Maybe()
-		serviceFactory.On("GetVolumeService").Return(nil).Maybe()
-		serviceFactory.On("GetNetworkService").Return(nil).Maybe()
-		serviceFactory.On("GetDockerInfoService").Return(nil).Maybe()
-		serviceFactory.On("GetLogsService").Return(nil).Maybe()
-		serviceFactory.On("GetSwarmServiceService").
-			Return(sharedMocks.NewMockSwarmServiceService(t)).
-			Maybe()
-		serviceFactory.On("GetSwarmNodeService").
-			Return(sharedMocks.NewMockSwarmNodeService(t)).
-			Maybe()
-		serviceFactory.On("IsServiceAvailable", "container").Return(false).Maybe()
-		serviceFactory.On("IsContainerServiceAvailable").Return(false).Maybe()
-	}
-}
-
 func TestNew(t *testing.T) {
 	tests := []struct {
 		name           string

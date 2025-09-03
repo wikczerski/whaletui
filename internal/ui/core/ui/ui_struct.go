@@ -9,6 +9,7 @@ import (
 	"github.com/wikczerski/whaletui/internal/domains/image"
 	"github.com/wikczerski/whaletui/internal/domains/logs"
 	"github.com/wikczerski/whaletui/internal/domains/network"
+	"github.com/wikczerski/whaletui/internal/domains/swarm"
 	"github.com/wikczerski/whaletui/internal/domains/volume"
 	"github.com/wikczerski/whaletui/internal/logger"
 	"github.com/wikczerski/whaletui/internal/ui/builders"
@@ -16,7 +17,6 @@ import (
 	"github.com/wikczerski/whaletui/internal/ui/handlers"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 	"github.com/wikczerski/whaletui/internal/ui/views/shell"
-	"github.com/wikczerski/whaletui/internal/ui/views/swarm"
 )
 
 // UI represents the main UI

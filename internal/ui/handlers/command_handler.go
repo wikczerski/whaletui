@@ -197,20 +197,20 @@ func (ch *CommandHandler) handleViewSwitchCommand(command string) bool {
 func (ch *CommandHandler) getViewMappings() map[string]string {
 	return map[string]string{
 		"containers":     constants.ViewContainers,
-		"c":              "containers",
-		"images":         "images",
-		"i":              "images",
-		"volumes":        "volumes",
-		"v":              "volumes",
-		"networks":       "networks",
-		"n":              "networks",
-		"swarm services": "swarmServices",
-		"swarm":          "swarmServices",
-		"services":       "swarmServices",
-		"s":              "swarmServices",
-		"swarm nodes":    "swarmNodes",
-		"nodes":          "swarmNodes",
-		"w":              "swarmNodes",
+		"c":              constants.ViewContainers,
+		"images":         constants.ViewImages,
+		"i":              constants.ViewImages,
+		"volumes":        constants.ViewVolumes,
+		"v":              constants.ViewVolumes,
+		"networks":       constants.ViewNetworks,
+		"n":              constants.ViewNetworks,
+		"swarm services": constants.ViewSwarmServices,
+		"swarm":          constants.ViewSwarmServices,
+		"services":       constants.ViewSwarmServices,
+		"s":              constants.ViewSwarmServices,
+		"swarm nodes":    constants.ViewSwarmNodes,
+		"nodes":          constants.ViewSwarmNodes,
+		"w":              constants.ViewSwarmNodes,
 	}
 }
 
@@ -219,6 +219,9 @@ func (ch *CommandHandler) handleSystemCommand(command string) bool {
 	switch command {
 	case "quit", "q", "exit":
 		ch.handleQuitCommand()
+		return true
+	case "reload", "r":
+		ch.handleReloadThemeCommand()
 		return true
 	}
 	return false
@@ -242,6 +245,18 @@ func (ch *CommandHandler) handleQuitCommand() {
 	case shutdownChan <- struct{}{}:
 	default:
 	}
+	ch.Exit()
+}
+
+// handleReloadThemeCommand handles the reload theme command
+func (ch *CommandHandler) handleReloadThemeCommand() {
+	err := ch.ui.ReloadTheme()
+	if err != nil {
+		ch.showCommandError("Failed to reload theme: " + err.Error())
+		return
+	}
+
+	ch.showCommandSuccess("Theme reloaded successfully")
 	ch.Exit()
 }
 
@@ -291,6 +306,45 @@ func (ch *CommandHandler) showCommandError(message string) {
 	})
 }
 
+// showCommandSuccess displays a success message in the command input with green text
+func (ch *CommandHandler) showCommandSuccess(message string) {
+	if ch.commandInput == nil {
+		return
+	}
+
+	// Cancel any existing timer
+	if ch.errorTimer != nil {
+		ch.errorTimer.Stop()
+	}
+
+	// Get theme manager for styling
+	themeManager := ch.ui.GetThemeManager()
+
+	// Store original theme color
+	originalTextColor := themeManager.GetCommandModeTextColor()
+
+	// Set success message with green text
+	ch.commandInput.SetText(message)
+	ch.commandInput.SetFieldTextColor(tcell.ColorGreen)
+
+	// Set up a timer to clear the success message after 2 seconds
+	ch.errorTimer = time.AfterFunc(2*time.Second, func() {
+		// Use the UI's app to schedule the update on the main thread
+		if ch.isActive && ch.commandInput != nil {
+			app, ok := ch.ui.GetApp().(*tview.Application)
+			if !ok {
+				return
+			}
+			app.QueueUpdateDraw(func() {
+				if ch.isActive && ch.commandInput != nil {
+					ch.commandInput.SetText("")
+					ch.commandInput.SetFieldTextColor(originalTextColor)
+				}
+			})
+		}
+	})
+}
+
 // clearError clears any displayed error message immediately
 func (ch *CommandHandler) clearError() {
 	if ch.errorTimer != nil {
@@ -310,7 +364,7 @@ func (ch *CommandHandler) getAutocomplete(currentText string) []string {
 	suggestions := []string{
 		"containers", "images", "volumes", "networks",
 		"swarm services", "swarm nodes", "services", "nodes",
-		"quit", "q", "exit", "help", "?",
+		"quit", "q", "exit", "help", "?", "reload", "r",
 	}
 
 	var matches []string

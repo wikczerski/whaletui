@@ -6,6 +6,7 @@ import (
 	"github.com/rivo/tview"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/wikczerski/whaletui/internal/config"
 	mocks "github.com/wikczerski/whaletui/internal/mocks/ui"
 )
 
@@ -26,6 +27,11 @@ func newContainersUIMock(t *testing.T) *mocks.MockUIInterface {
 	mockSF.On("IsContainerServiceAvailable").Return(false).Maybe()
 
 	ui.On("GetServicesAny").Return(mockSF).Maybe()
+
+	// Mock GetThemeManager for character limits setup
+	mockThemeManager := config.NewThemeManager("")
+	ui.On("GetThemeManager").Return(mockThemeManager).Maybe()
+
 	return ui
 }
 

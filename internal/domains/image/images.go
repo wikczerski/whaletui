@@ -9,6 +9,7 @@ import (
 	"github.com/wikczerski/whaletui/internal/ui/builders"
 	"github.com/wikczerski/whaletui/internal/ui/handlers"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
+	"github.com/wikczerski/whaletui/internal/ui/utils"
 )
 
 // ImagesView displays and manages Docker images
@@ -28,6 +29,7 @@ func NewImagesView(ui interfaces.UIInterface) *ImagesView {
 	}
 
 	iv.setupCallbacks()
+	iv.setupCharacterLimits(ui)
 	return iv
 }
 
@@ -48,7 +50,7 @@ func (iv *ImagesView) setupBasicCallbacks() {
 // setupActionCallbacks sets up the action-related callbacks
 func (iv *ImagesView) setupActionCallbacks() {
 	iv.HandleKeyPress = func(key rune, i shared.Image) { iv.handleImageKey(key, &i) }
-	iv.ShowDetails = func(i shared.Image) { iv.showImageDetails(&i) }
+	iv.ShowDetailsCallback = func(i shared.Image) { iv.showImageDetails(&i) }
 	iv.GetActions = iv.getImageActions
 }
 
@@ -210,4 +212,15 @@ func (iv *ImagesView) inspectImage(id string) {
 			}
 		}
 	}
+}
+
+// setupCharacterLimits sets up character limits for table columns
+func (iv *ImagesView) setupCharacterLimits(ui interfaces.UIInterface) {
+	// Define column types for images table
+	columnTypes := []string{"id", "repository", "tag", "size", "created", "description"}
+	iv.SetColumnTypes(columnTypes)
+
+	// Create formatter from theme manager
+	formatter := utils.NewTableFormatterFromTheme(ui.GetThemeManager())
+	iv.SetFormatter(formatter)
 }

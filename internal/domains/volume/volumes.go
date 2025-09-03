@@ -9,6 +9,7 @@ import (
 	"github.com/wikczerski/whaletui/internal/ui/builders"
 	"github.com/wikczerski/whaletui/internal/ui/handlers"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
+	"github.com/wikczerski/whaletui/internal/ui/utils"
 )
 
 // VolumesView displays and manages Docker volumes
@@ -28,6 +29,7 @@ func NewVolumesView(ui interfaces.UIInterface) *VolumesView {
 	}
 
 	setupVolumeViewCallbacks(vv)
+	setupVolumeCharacterLimits(vv, ui)
 	return vv
 }
 
@@ -48,7 +50,7 @@ func (vv *VolumesView) setupBasicCallbacks() {
 // setupActionCallbacks sets up the action-related callbacks
 func (vv *VolumesView) setupActionCallbacks() {
 	vv.HandleKeyPress = func(key rune, v shared.Volume) { vv.handleAction(key, &v) }
-	vv.ShowDetails = func(v shared.Volume) { vv.showVolumeDetails(&v) }
+	vv.ShowDetailsCallback = func(v shared.Volume) { vv.showVolumeDetails(&v) }
 	vv.GetActions = vv.getVolumeActions
 }
 
@@ -248,4 +250,15 @@ func (vv *VolumesView) performVolumeInspection(name string, inspectService inter
 	}
 
 	vv.ShowItemDetails(shared.Volume{Name: name}, inspectData, err)
+}
+
+// setupVolumeCharacterLimits sets up character limits for table columns
+func setupVolumeCharacterLimits(vv *VolumesView, ui interfaces.UIInterface) {
+	// Define column types for volumes table
+	columnTypes := []string{"name", "driver", "mountpoint", "created", "size"}
+	vv.SetColumnTypes(columnTypes)
+
+	// Create formatter from theme manager
+	formatter := utils.NewTableFormatterFromTheme(ui.GetThemeManager())
+	vv.SetFormatter(formatter)
 }

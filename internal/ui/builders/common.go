@@ -8,6 +8,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/wikczerski/whaletui/internal/ui/constants"
+	"github.com/wikczerski/whaletui/internal/ui/utils"
 )
 
 // FormatTime formats a time.Time to a human-readable string
@@ -161,6 +162,30 @@ func (tb *TableBuilder) SetupRow(
 	}
 }
 
+// SetupRowWithLimits sets up a table row with character limits applied
+func (tb *TableBuilder) SetupRowWithLimits(
+	table *tview.Table,
+	row int,
+	cells []string,
+	columnTypes []string,
+	textColor tcell.Color,
+	formatter *utils.TableFormatter,
+) {
+	for i, cell := range cells {
+		// Apply character limits if formatter and column type are provided
+		formattedCell := cell
+		if formatter != nil && i < len(columnTypes) {
+			formattedCell = formatter.FormatCell(cell, columnTypes[i])
+		}
+
+		tableCell := tview.NewTableCell(formattedCell).
+			SetTextColor(textColor).
+			SetAlign(tview.AlignLeft).
+			SetExpansion(1)
+		table.SetCell(row, i, tableCell)
+	}
+}
+
 // ViewBuilder provides methods to create views
 type ViewBuilder struct {
 	builder *ComponentBuilder
@@ -199,11 +224,25 @@ func CreateInspectDetailsView(
 	onAction func(rune),
 	onBack func(),
 ) *tview.Flex {
-	return createInspectDetailsView(title, inspectData, actions, onAction, onBack)
+	detailsFlex := tview.NewFlex().SetDirection(tview.FlexRow)
+
+	titleView := createInspectTitleView(title)
+	inspectText := createInspectTextView(inspectData, actions)
+	backButton := tview.NewButton("Back to Table").SetSelectedFunc(onBack)
+
+	// Add components to flex
+	detailsFlex.AddItem(titleView, constants.TitleViewHeight, 0, false)
+	detailsFlex.AddItem(inspectText, 0, 1, true) // Set to true to make it focusable and scrollable
+	detailsFlex.AddItem(backButton, constants.BackButtonHeight, 0, false)
+
+	// Set up key bindings for the details view
+	setupInspectDetailsKeyBindings(detailsFlex, inspectText, onAction, onBack)
+
+	return detailsFlex
 }
 
-// createInspectView creates a reusable inspection view
-func createInspectView(title string) (*tview.TextView, *tview.Flex) {
+// CreateInspectView is an exported function for backward compatibility
+func CreateInspectView(title string) (*tview.TextView, *tview.Flex) {
 	inspectView := tview.NewTextView().SetDynamicColors(true).SetScrollable(true)
 	inspectView.SetTitle(fmt.Sprintf(" %s ", title)).SetBorder(true)
 
@@ -217,36 +256,6 @@ func createInspectView(title string) (*tview.TextView, *tview.Flex) {
 	inspectFlex.AddItem(backButton, 1, 0, true)
 
 	return inspectView, inspectFlex
-}
-
-// CreateInspectView is an exported function for backward compatibility
-func CreateInspectView(title string) (*tview.TextView, *tview.Flex) {
-	return createInspectView(title)
-}
-
-// createInspectDetailsView creates a details view that displays Docker inspect data in condensed JSON
-func createInspectDetailsView(
-	title string,
-	inspectData map[string]any,
-	actions map[rune]string,
-	onAction func(rune),
-	onBack func(),
-) *tview.Flex {
-	detailsFlex := tview.NewFlex().SetDirection(tview.FlexRow)
-
-	titleView := createInspectTitleView(title)
-	inspectText := createInspectTextView(inspectData, actions)
-	backButton := createInspectBackButton(onBack)
-
-	// Add components to flex
-	detailsFlex.AddItem(titleView, constants.TitleViewHeight, 0, false)
-	detailsFlex.AddItem(inspectText, 0, 1, true) // Set to true to make it focusable and scrollable
-	detailsFlex.AddItem(backButton, constants.BackButtonHeight, 0, false)
-
-	// Set up key bindings for the details view
-	setupInspectDetailsKeyBindings(detailsFlex, inspectText, onAction, onBack)
-
-	return detailsFlex
 }
 
 // createInspectTitleView creates the title view for the inspect details
@@ -288,11 +297,6 @@ func buildInspectContent(inspectData map[string]any, actions map[rune]string) st
 	}
 
 	return condensedJSON
-}
-
-// createInspectBackButton creates the back button for the inspect details
-func createInspectBackButton(onBack func()) *tview.Button {
-	return tview.NewButton("Back to Table").SetSelectedFunc(onBack)
 }
 
 // setupInspectTextScrolling configures the scrolling behavior for the inspect text view

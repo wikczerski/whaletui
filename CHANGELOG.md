@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-01-27
+
+### Added
+- **Configurable Table Columns**: New character limit configuration for table columns to improve readability
+- **Enhanced Configuration System**: Updated theme configuration files with improved structure
+- **Swarm Domain Architecture**: Moved swarm views to domains structure for better organization
+
+### Changed
+- **Architecture Refactoring**: Major code structure improvements and cleanup
+- **Table Column Handling**: Refactored `createTableColumn` into smaller, focused functions
+- **Action Keys**: Updated action keys and configuration paths for better consistency
+
+### Fixed
+- **Code Organization**: Better separation of concerns and reduced complexity
+- **Configuration Paths**: Fixed action keys and config paths for proper functionality
 
 ## [0.2.0] - 2025-08-29
 

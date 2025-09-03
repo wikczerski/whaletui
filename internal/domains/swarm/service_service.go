@@ -131,7 +131,7 @@ func (s *ServiceService) GetActions() map[rune]string {
 
 // GetActionsString returns the available actions as a string
 func (s *ServiceService) GetActionsString() string {
-	return "i: Inspect, s: Scale, r: Remove, l: Logs"
+	return "<i>: Inspect\n<s>: Scale\n<r>: Remove\n<l>: Logs"
 }
 
 // convertToSharedService converts a Docker swarm service to shared service

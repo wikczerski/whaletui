@@ -62,7 +62,7 @@ func (sv *View) handleWordCompletion(currentText string, words []string) {
 func (sv *View) handleCommandCompletionForWords(currentText, lastWord string) {
 	completions := sv.getCommandCompletions(lastWord)
 	if len(completions) > 0 {
-		sv.handleCommandCompletionResults(currentText, lastWord, completions)
+		sv.handleCommandCompletion(currentText, lastWord, completions)
 	}
 }
 
@@ -102,11 +102,6 @@ func (sv *View) handleMultipleCompletions(currentText, partialName string, compl
 	} else {
 		sv.showCompletions(completions)
 	}
-}
-
-// handleCommandCompletionResults handles the results of command completion
-func (sv *View) handleCommandCompletionResults(currentText, lastWord string, completions []string) {
-	sv.handleCommandCompletion(currentText, lastWord, completions)
 }
 
 // parsePathForCompletion parses a path to extract directory and partial filename

@@ -229,7 +229,7 @@ func TestGetAutocomplete(t *testing.T) {
 	handler := NewCommandHandler(mockUI)
 
 	suggestions := handler.getAutocomplete("")
-	assert.Len(t, suggestions, 13)
+	assert.Len(t, suggestions, 15)
 	assert.Contains(t, suggestions, "containers")
 	assert.Contains(t, suggestions, "images")
 	assert.Contains(t, suggestions, "volumes")
@@ -243,6 +243,8 @@ func TestGetAutocomplete(t *testing.T) {
 	assert.Contains(t, suggestions, "exit")
 	assert.Contains(t, suggestions, "help")
 	assert.Contains(t, suggestions, "?")
+	assert.Contains(t, suggestions, "reload")
+	assert.Contains(t, suggestions, "r")
 
 	suggestions = handler.getAutocomplete("c")
 	assert.Len(t, suggestions, 1)

@@ -7,29 +7,12 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"github.com/wikczerski/whaletui/internal/config"
 	"github.com/wikczerski/whaletui/internal/logger"
 	"github.com/wikczerski/whaletui/internal/ui/builders"
 	"github.com/wikczerski/whaletui/internal/ui/constants"
+	"github.com/wikczerski/whaletui/internal/ui/utils"
 )
-
-// UIInterface defines minimal interface needed by BaseView to avoid circular dependency
-type UIInterface interface {
-	ShowError(error)
-	ShowDetails(any)
-	ShowCurrentView()
-	ShowConfirm(string, func(bool))
-	GetServicesAny() any
-	ShowInfo(string)
-	ShowNodeAvailabilityModal(string, string, func(string))
-	ShowRetryDialog(string, error, func() error, func())
-	ShowFallbackDialog(string, error, []string, func(string))
-	ShowContextualHelp(string, string)
-	ShowServiceScaleModal(string, uint64, func(int))
-	GetSwarmServiceService() any
-	GetSwarmNodeService() any
-	IsContainerServiceAvailable() bool
-	GetContainerService() any
-}
 
 // ServiceFactoryInterface defines minimal interface for services
 type ServiceFactoryInterface interface {
@@ -47,6 +30,31 @@ type ServiceFactoryInterface interface {
 	IsContainerServiceAvailable() bool
 }
 
+// UIInterface defines the interface that views need from the UI
+type UIInterface interface {
+	// Basic UI methods
+	ShowError(error)
+	ShowInfo(string)
+	ShowDetails(any)
+	ShowCurrentView()
+	ShowConfirm(string, func(bool))
+
+	// Advanced UI methods
+	ShowServiceScaleModal(string, uint64, func(int))
+	ShowNodeAvailabilityModal(string, string, func(string))
+	ShowContextualHelp(string, string)
+	ShowRetryDialog(string, error, func() error, func())
+	ShowFallbackDialog(string, error, []string, func(string))
+
+	// Service methods
+	GetServicesAny() any
+	GetSwarmServiceService() any
+	GetSwarmNodeService() any
+
+	// Theme management
+	GetThemeManager() *config.ThemeManager
+}
+
 // BaseView provides common functionality for all Docker resource views
 type BaseView[T any] struct {
 	ui       UIInterface
@@ -58,14 +66,18 @@ type BaseView[T any] struct {
 	log      *slog.Logger
 
 	// Callbacks for specific behavior
-	ListItems      func(ctx context.Context) ([]T, error)
-	FormatRow      func(item T) []string
-	GetRowColor    func(item T) tcell.Color // Optional: custom row colors
-	GetItemID      func(item T) string
-	GetItemName    func(item T) string
-	HandleKeyPress func(key rune, item T)
-	ShowDetails    func(item T)
-	GetActions     func() map[rune]string
+	ListItems           func(ctx context.Context) ([]T, error)
+	FormatRow           func(item T) []string
+	GetRowColor         func(item T) tcell.Color // Optional: custom row colors
+	GetItemID           func(item T) string
+	GetItemName         func(item T) string
+	HandleKeyPress      func(key rune, item T)
+	ShowDetailsCallback func(item T)
+	GetActions          func() map[rune]string
+
+	// Character limits support
+	columnTypes []string
+	formatter   *utils.TableFormatter
 }
 
 // NewBaseView creates a new base view with common functionality
@@ -119,6 +131,27 @@ func (bv *BaseView[T]) GetHeaders() []string {
 	return bv.headers
 }
 
+// SetColumnTypes sets the column types for character limit formatting
+func (bv *BaseView[T]) SetColumnTypes(columnTypes []string) {
+	bv.columnTypes = columnTypes
+}
+
+// SetFormatter sets the table formatter for character limits
+func (bv *BaseView[T]) SetFormatter(formatter *utils.TableFormatter) {
+	bv.formatter = formatter
+}
+
+// RefreshFormatter updates the formatter with the latest theme configuration
+func (bv *BaseView[T]) RefreshFormatter(ui UIInterface) {
+	if ui != nil {
+		themeManager := ui.GetThemeManager()
+		if themeManager != nil {
+			// Create a new formatter with the updated limits
+			bv.formatter = utils.NewTableFormatterFromTheme(themeManager)
+		}
+	}
+}
+
 // GetSelectedItem returns the currently selected item from the table
 func (bv *BaseView[T]) GetSelectedItem() *T {
 	row, _ := bv.table.GetSelection()
@@ -134,6 +167,9 @@ func (bv *BaseView[T]) Refresh() {
 	if bv.ListItems == nil {
 		return
 	}
+
+	// Refresh the formatter to get latest theme configuration
+	bv.RefreshFormatter(bv.ui)
 
 	items, err := bv.ListItems(context.Background())
 	if err != nil {
@@ -158,11 +194,13 @@ func (bv *BaseView[T]) ShowItemDetails(item T, inspectData map[string]any, err e
 
 // ShowConfirmDialog displays a confirmation dialog with the given message and callback
 func (bv *BaseView[T]) ShowConfirmDialog(message string, onConfirm func()) {
-	bv.ui.ShowConfirm(message, func(confirmed bool) {
-		if confirmed {
-			onConfirm()
-		}
-	})
+	if ui, ok := bv.ui.(interface{ ShowConfirm(string, func(bool)) }); ok {
+		ui.ShowConfirm(message, func(confirmed bool) {
+			if confirmed {
+				onConfirm()
+			}
+		})
+	}
 }
 
 func (bv *BaseView[T]) setupKeyBindings() {
@@ -186,8 +224,8 @@ func (bv *BaseView[T]) setupKeyBindings() {
 
 		if event.Key() == tcell.KeyEnter {
 			bv.log.Info("Enter key pressed")
-			if bv.ShowDetails != nil {
-				bv.ShowDetails(item)
+			if bv.ShowDetailsCallback != nil {
+				bv.ShowDetailsCallback(item)
 			}
 			return nil
 		}
@@ -253,7 +291,14 @@ func (bv *BaseView[T]) populateTableRows(items []T) {
 	for i, item := range items {
 		cells := bv.FormatRow(item)
 		rowColor := bv.getRowColor(item)
-		builders.NewTableBuilder().SetupRow(bv.table, i+1, cells, rowColor)
+
+		// Use character limits if formatter and column types are available
+		if bv.formatter != nil && len(bv.columnTypes) > 0 {
+			builders.NewTableBuilder().SetupRowWithLimits(
+				bv.table, i+1, cells, bv.columnTypes, rowColor, bv.formatter)
+		} else {
+			builders.NewTableBuilder().SetupRow(bv.table, i+1, cells, rowColor)
+		}
 	}
 }
 
@@ -343,4 +388,31 @@ func (bv *BaseView[T]) handleAction(key rune) {
 
 func (bv *BaseView[T]) showTable() {
 	bv.ui.ShowCurrentView()
+}
+
+// ShowDetails shows details for the selected item
+func (bv *BaseView[T]) ShowDetails(item T) {
+	if bv.ShowDetailsCallback != nil {
+		bv.ShowDetailsCallback(item)
+	} else {
+		// Default implementation
+		detailsView := bv.createDetailsView(item)
+		bv.ui.ShowDetails(detailsView)
+	}
+}
+
+// createDetailsView creates a default details view for the item
+func (bv *BaseView[T]) createDetailsView(item T) tview.Primitive {
+	details := tview.NewTextView().
+		SetDynamicColors(true).
+		SetRegions(true).
+		SetWordWrap(true)
+
+	details.SetTitle(fmt.Sprintf("Details: %s", bv.GetItemName(item)))
+	details.SetBorder(true)
+
+	// Format the item details
+	details.SetText(fmt.Sprintf("ID: %s\nName: %s", bv.GetItemID(item), bv.GetItemName(item)))
+
+	return details
 }

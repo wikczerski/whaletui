@@ -36,5 +36,20 @@ commandMode:
   placeholder: "#666666" # Medium gray placeholder (matching shell)
   title: "#00FF00"      # Bright green title (matching header)
 
-headerLayout:
-  spacerWidth: 2  # Only spacer width is configurable, content columns are dynamic
+# Character limits for table columns
+tableLimits:
+  id: 12          # Container/Image IDs
+  name: 25        # Container/Volume names (reduced from 30)
+  image: 35       # Image names (reduced from 40)
+  status: 15      # Status messages (reduced from 20)
+  state: 10       # State values (reduced from 15)
+  ports: 20       # Port mappings (reduced from 25)
+  created: 15     # Created timestamps (reduced from 20)
+  size: 12        # Size values (reduced from 15)
+  driver: 12      # Volume drivers (reduced from 15)
+  mountpoint: 40  # Mount points (reduced from 50)
+  repository: 30  # Image repositories (reduced from 35)
+  tag: 15         # Image tags (reduced from 20)
+  network: 20     # Network names (reduced from 25)
+  scope: 10       # Network scope (reduced from 15)
+  description: 40 # General descriptions (reduced from 50)

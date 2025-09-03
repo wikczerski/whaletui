@@ -408,14 +408,22 @@ func (hm *HeaderManager) getServiceForView(
 	viewName string,
 ) any {
 	switch viewName {
-	case "containers":
+	case constants.ViewContainers:
 		return services.GetContainerService()
-	case "images":
+	case constants.ViewImages:
 		return services.GetImageService()
-	case "volumes":
+	case constants.ViewVolumes:
 		return services.GetVolumeService()
-	case "networks":
+	case constants.ViewNetworks:
 		return services.GetNetworkService()
+	case constants.ViewSwarmServices:
+		return services.GetSwarmServiceService()
+	case constants.ViewSwarmNodes:
+		return services.GetSwarmNodeService()
+	case constants.ViewDockerInfo:
+		return services.GetDockerInfoService()
+	case constants.ViewLogs:
+		return services.GetLogsService()
 	default:
 		return nil
 	}

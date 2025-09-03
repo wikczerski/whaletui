@@ -14,8 +14,9 @@ const (
 	ViewVolumes       = "volumes"
 	ViewNetworks      = "networks"
 	ViewLogs          = "logs"
-	ViewSwarmServices = "swarm-services"
-	ViewSwarmNodes    = "swarm-nodes"
+	ViewSwarmServices = "swarmServices"
+	ViewSwarmNodes    = "swarmNodes"
+	ViewDockerInfo    = "dockerInfo"
 )
 
 // DefaultView is the default view to show when the application starts
