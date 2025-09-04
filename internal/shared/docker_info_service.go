@@ -45,6 +45,10 @@ func (s *dockerInfoService) GetDockerInfo(ctx context.Context) (*DockerInfo, err
 	extractors := s.createExtractors(info)
 	dockerInfo := s.buildDockerInfo(extractors)
 
+	// Add connection method information
+	connectionMethod := s.client.GetConnectionMethod()
+	dockerInfo.ConnectionMethod = connectionMethod
+
 	return dockerInfo, nil
 }
 

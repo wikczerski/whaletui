@@ -298,11 +298,12 @@ func (a *networkServiceAdapter) GetActionsString() string {
 
 // dockerInfoImpl implements interfaces.DockerInfo
 type dockerInfoImpl struct {
-	version         string
-	operatingSystem string
-	architecture    string
-	driver          string
-	loggingDriver   string
+	version          string
+	operatingSystem  string
+	architecture     string
+	driver           string
+	loggingDriver    string
+	connectionMethod string
 }
 
 func (d *dockerInfoImpl) GetVersion() string {
@@ -315,6 +316,10 @@ func (d *dockerInfoImpl) GetOperatingSystem() string {
 
 func (d *dockerInfoImpl) GetLoggingDriver() string {
 	return d.loggingDriver
+}
+
+func (d *dockerInfoImpl) GetConnectionMethod() string {
+	return d.connectionMethod
 }
 
 // dockerInfoServiceWrapper wraps shared.DockerInfoService to implement interfaces.DockerInfoService
@@ -333,11 +338,12 @@ func (w *dockerInfoServiceWrapper) GetDockerInfo(
 
 	// Create a concrete implementation of interfaces.DockerInfo
 	info := &dockerInfoImpl{
-		version:         sharedInfo.Version,
-		operatingSystem: sharedInfo.OperatingSystem,
-		architecture:    sharedInfo.Architecture,
-		driver:          sharedInfo.Driver,
-		loggingDriver:   sharedInfo.LoggingDriver,
+		version:          sharedInfo.Version,
+		operatingSystem:  sharedInfo.OperatingSystem,
+		architecture:     sharedInfo.Architecture,
+		driver:           sharedInfo.Driver,
+		loggingDriver:    sharedInfo.LoggingDriver,
+		connectionMethod: sharedInfo.ConnectionMethod,
 	}
 
 	// Convert to interface pointer

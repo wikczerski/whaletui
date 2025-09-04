@@ -117,7 +117,7 @@ func testAndCreateClient(
 	return client, nil
 }
 
-// handleConnectionFailure handles connection failure and attempts SSH fallback
+// handleConnectionFailure handles connection failure and attempts SSH connection
 func handleConnectionFailure(
 	cfg *config.Config,
 	log *slog.Logger,
@@ -128,10 +128,10 @@ func handleConnectionFailure(
 		log.Warn("Failed to close Docker client", "error", closeErr)
 	}
 
-	// If this is a remote host and direct connection failed, try SSH fallback
-	// Only try SSH fallback if it's not already an SSH connection
+	// If this is a remote host and direct connection failed, try SSH connection
+	// Only try SSH connection if it's not already an SSH connection
 	if cfg.RemoteHost != "" && !strings.HasPrefix(cfg.RemoteHost, "ssh://") {
-		return trySSHFallback(cfg, log)
+		return trySSHConnectionFromConfig(cfg, log)
 	}
 
 	return nil, fmt.Errorf("failed to connect to Docker: %w", err)

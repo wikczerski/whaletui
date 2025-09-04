@@ -59,9 +59,20 @@ func createSSHDockerClient(cfg *config.Config, log *slog.Logger) (*Client, error
 		return nil, fmt.Errorf("failed to extract host from SSH URL: %w", err)
 	}
 
-	// Since direct SSH connection is not yet implemented, use socat fallback
-	log.Info("Direct SSH connection not yet implemented, using socat fallback")
-	return trySSHFallbackWithSocat(cfg, log, host)
+	// Use SSH tunneling for remote connections
+	log.Info("Using SSH tunneling for remote connection")
+	return trySSHConnection(cfg, log, host)
+}
+
+// GetConnectionMethod returns the connection method used for this Docker client
+func (c *Client) GetConnectionMethod() string {
+	if c.sshConn != nil {
+		return c.sshConn.GetConnectionMethod()
+	}
+	if c.sshCtx != nil {
+		return "SSH Context"
+	}
+	return "Local Docker"
 }
 
 // Close closes the Docker client and cleans up SSH connections

@@ -63,7 +63,7 @@ func TestParseSSHHost(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			user, host, port, err := parseSSHHost(tt.host)
+			user, host, port, err := ParseSSHHost(tt.host)
 
 			if tt.expectError {
 				assert.Error(t, err)

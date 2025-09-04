@@ -51,6 +51,7 @@ type DockerInfo struct {
 	SecurityOptions    []string       `json:"security_options"`
 	ProductLicense     string         `json:"product_license"`
 	Warnings           []string       `json:"warnings"`
+	ConnectionMethod   string         `json:"connection_method"`
 }
 
 // Plugins represents Docker plugins information
@@ -65,4 +66,27 @@ type Plugins struct {
 type Commit struct {
 	ID       string `json:"id"`
 	Expected string `json:"expected"`
+}
+
+// GetVersion returns the Docker version
+func (d *DockerInfo) GetVersion() string {
+	return d.Version
+}
+
+// GetOperatingSystem returns the operating system
+func (d *DockerInfo) GetOperatingSystem() string {
+	return d.OperatingSystem
+}
+
+// GetLoggingDriver returns the logging driver
+func (d *DockerInfo) GetLoggingDriver() string {
+	return d.LoggingDriver
+}
+
+// GetConnectionMethod returns the connection method used
+func (d *DockerInfo) GetConnectionMethod() string {
+	if d.ConnectionMethod == "" {
+		return "Local Docker"
+	}
+	return d.ConnectionMethod
 }

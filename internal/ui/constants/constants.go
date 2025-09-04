@@ -186,6 +186,7 @@ const DockerInfoTemplate = `🐳 Docker Info
 🐋 Docker: %s
 💻 OS: %s
 📝 Logging: %s
+🔗 Method: %s
 🚀 WhaleTui: %s`
 
 // StatusBarTemplate is the template for the status bar display
