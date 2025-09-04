@@ -67,8 +67,8 @@ func extractUnixHost(url string) string {
 
 // These functions are currently unused and have been removed to satisfy the linter
 
-// trySSHFallbackWithSocat attempts to create a Docker client using SSH with socat proxy
-func trySSHFallbackWithSocat(cfg *config.Config, log *slog.Logger, host string) (*Client, error) {
+// trySSHConnection attempts to create a Docker client using SSH tunneling
+func trySSHConnection(cfg *config.Config, log *slog.Logger, host string) (*Client, error) {
 	if host == "" {
 		return nil, errors.New("host cannot be empty")
 	}
@@ -88,13 +88,13 @@ func tryCreateDockerClient(
 	host string,
 	sshConn *dockerssh.SSHConnection,
 ) (*Client, error) {
-	dockerCli, err := createDockerClientForProxy(sshConn, log)
+	dockerCli, err := createDockerClientForProxy(sshConn)
 	if err != nil {
 		cleanupSSHConnection(sshConn, log)
 		return nil, err
 	}
 
-	if err := testDockerConnection(dockerCli, sshConn, log); err != nil {
+	if err := testDockerConnection(dockerCli); err != nil {
 		cleanupDockerClient(dockerCli, sshConn, log)
 		return nil, err
 	}
@@ -102,28 +102,33 @@ func tryCreateDockerClient(
 	return createClient(cfg, log, host, sshConn, dockerCli), nil
 }
 
-// createSSHConnection creates an SSH connection using socat
+// createSSHConnection creates an SSH connection using SSH tunneling
 func createSSHConnection(host string, log *slog.Logger) (*dockerssh.SSHConnection, error) {
-	sshClient, err := dockerssh.NewSSHClient(host, 22)
+	// Parse the host to extract username, hostname, and port
+	username, hostname, port, err := dockerssh.ParseSSHHost(host)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create SSH client: %w", err)
+		return nil, fmt.Errorf("failed to parse SSH host: %w", err)
 	}
 
-	sshConn, err := sshClient.ConnectWithSocat(2375)
+	sshClient := dockerssh.NewSSHClient(hostname, port, username, log)
+
+	// Try SSH tunneling connection
+	sshConn, err := sshClient.ConnectWithFallback(2375)
 	if err != nil {
-		return nil, fmt.Errorf("failed to establish SSH connection with socat: %w", err)
+		return nil, fmt.Errorf("failed to establish SSH connection: %w", err)
 	}
 
 	localProxyHost := sshConn.GetLocalProxyHost()
-	log.Info("Created SSH connection with socat", "localProxy", localProxyHost)
+	connectionMethod := sshConn.GetConnectionMethod()
+	log.Info("Created SSH connection",
+		"localProxy", localProxyHost,
+		"method", connectionMethod)
+	log.Info("🔗 Connection Method", "method", connectionMethod)
 	return sshConn, nil
 }
 
 // createDockerClientForProxy creates a Docker client for the local proxy
-func createDockerClientForProxy(
-	sshConn *dockerssh.SSHConnection,
-	log *slog.Logger,
-) (*client.Client, error) {
+func createDockerClientForProxy(sshConn *dockerssh.SSHConnection) (*client.Client, error) {
 	localProxyHost := sshConn.GetLocalProxyHost()
 	opts := []client.Opt{
 		client.WithHost(localProxyHost),
@@ -140,16 +145,12 @@ func createDockerClientForProxy(
 }
 
 // testDockerConnection tests the Docker connection
-func testDockerConnection(
-	dockerCli *client.Client,
-	sshConn *dockerssh.SSHConnection,
-	log *slog.Logger,
-) error {
+func testDockerConnection(dockerCli *client.Client) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if _, err := dockerCli.Ping(ctx); err != nil {
-		return fmt.Errorf("failed to connect to Docker via socat proxy: %w", err)
+		return fmt.Errorf("failed to connect to Docker via SSH tunnel: %w", err)
 	}
 
 	return nil
@@ -158,11 +159,8 @@ func testDockerConnection(
 // cleanupSSHConnection cleans up the SSH connection
 func cleanupSSHConnection(sshConn *dockerssh.SSHConnection, log *slog.Logger) {
 	if closeErr := sshConn.Close(); closeErr != nil {
-		log.Warn(
-			"Failed to close SSH connection after Docker client creation failure",
-			"error",
-			closeErr,
-		)
+		log.Warn("Failed to close SSH connection after Docker client creation failure",
+			"error", closeErr)
 	}
 }
 
@@ -173,10 +171,12 @@ func cleanupDockerClient(
 	log *slog.Logger,
 ) {
 	if closeErr := dockerCli.Close(); closeErr != nil {
-		log.Warn("Failed to close Docker client after ping failure", "error", closeErr)
+		log.Warn("Failed to close Docker client after ping failure",
+			"error", closeErr)
 	}
 	if closeErr := sshConn.Close(); closeErr != nil {
-		log.Warn("Failed to close SSH connection after ping failure", "error", closeErr)
+		log.Warn("Failed to close SSH connection after ping failure",
+			"error", closeErr)
 	}
 }
 
@@ -189,13 +189,9 @@ func createClient(
 	dockerCli *client.Client,
 ) *Client {
 	localProxyHost := sshConn.GetLocalProxyHost()
-	log.Info(
-		"Successfully created Docker client via SSH socat proxy",
-		"host",
-		host,
-		"localProxy",
-		localProxyHost,
-	)
+	log.Info("Successfully created Docker client via SSH tunnel",
+		"host", host,
+		"localProxy", localProxyHost)
 
 	return &Client{
 		cli:     dockerCli,
@@ -206,8 +202,8 @@ func createClient(
 	}
 }
 
-// trySSHFallback is a simplified version for the client factory
-func trySSHFallback(cfg *config.Config, log *slog.Logger) (*Client, error) {
+// trySSHConnectionFromConfig is a simplified version for the client factory
+func trySSHConnectionFromConfig(cfg *config.Config, log *slog.Logger) (*Client, error) {
 	if cfg.RemoteHost == "" {
 		return nil, errors.New("no remote host configured")
 	}
@@ -217,5 +213,5 @@ func trySSHFallback(cfg *config.Config, log *slog.Logger) (*Client, error) {
 		return nil, fmt.Errorf("failed to extract host: %w", err)
 	}
 
-	return trySSHFallbackWithSocat(cfg, log, host)
+	return trySSHConnection(cfg, log, host)
 }

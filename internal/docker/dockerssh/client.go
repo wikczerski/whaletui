@@ -1,4 +1,3 @@
-// Package dockerssh provides SSH client functionality for Docker operations.
 package dockerssh
 
 import (
@@ -7,118 +6,93 @@ import (
 	"log/slog"
 	"net"
 	"os"
-	"strings"
+	"path/filepath"
 	"time"
 
-	"github.com/wikczerski/whaletui/internal/logger"
 	"golang.org/x/crypto/ssh"
 )
 
-// SSHClient represents an SSH client for remote Docker connections
+// SSHClient handles SSH connections for Docker access
 type SSHClient struct {
-	config   *ssh.ClientConfig
-	host     string
-	port     string
-	user     string
-	log      *slog.Logger
-	listener net.Listener
+	host   string
+	port   string
+	user   string
+	config *ssh.ClientConfig
+	log    *slog.Logger
 }
 
-// NewSSHClient creates a new SSH client for the specified host
-func NewSSHClient(host string, port int) (*SSHClient, error) {
-	if host == "" {
-		return nil, errors.New("SSH host cannot be empty")
-	}
-
-	user, hostname, sshPort, err := parseSSHHost(host)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse SSH host: %w", err)
-	}
-
-	config, err := createSSHConfigWithKey(user)
-	if err != nil {
-		return nil, err
-	}
-
-	return createSSHClient(config, hostname, sshPort, user), nil
-}
-
-// createSSHConfigWithKey creates SSH config with the user's key
-func createSSHConfigWithKey(user string) (*ssh.ClientConfig, error) {
-	sshKeyPath, err := getSSHKeyPath()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get SSH key path: %w", err)
-	}
-
-	return createSSHConfig(user, sshKeyPath)
-}
-
-// createSSHClient creates the SSH client with the given configuration
-func createSSHClient(config *ssh.ClientConfig, hostname, sshPort, user string) *SSHClient {
+// NewSSHClient creates a new SSH client
+func NewSSHClient(host, port, user string, log *slog.Logger) *SSHClient {
 	return &SSHClient{
-		config: config,
-		host:   hostname,
-		port:   sshPort,
+		host:   host,
+		port:   port,
 		user:   user,
-		log:    logger.GetLogger(),
+		config: createSSHConfig(user, log),
+		log:    log,
 	}
 }
 
-// GetConnectionInfo returns diagnostic information about the SSH client configuration
-func (s *SSHClient) GetConnectionInfo() string {
-	if s == nil {
-		return "SSH Client: <nil>"
+// createSSHConfig creates the SSH client configuration
+func createSSHConfig(username string, log *slog.Logger) *ssh.ClientConfig {
+	config := &ssh.ClientConfig{
+		User:            username,
+		Auth:            []ssh.AuthMethod{},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(), //nolint:gosec // Acceptable for development/testing
+		Timeout:         30 * time.Second,
 	}
 
-	user := s.getUserInfo()
-	host := s.getHostInfo()
-	port := s.getPortInfo()
+	// Try to use SSH key authentication
+	if err := addSSHKeyAuth(config, log); err != nil {
+		log.Warn("Failed to add SSH key authentication", "error", err)
+	}
 
-	return fmt.Sprintf("SSH Client: %s@%s:%s", user, host, port)
+	// Add password authentication as fallback
+	config.Auth = append(config.Auth, ssh.PasswordCallback(func() (string, error) {
+		return "", errors.New("password authentication not implemented")
+	}))
+
+	return config
 }
 
-// DiagnoseConnection performs comprehensive diagnostics on the SSH connection
-func (s *SSHClient) DiagnoseConnection() error {
-	var errors []string
-
-	s.diagnoseHostname(&errors)
-	s.diagnoseSSHKey(&errors)
-
-	if s.config == nil {
-		errors = append(errors, "SSH configuration not available")
-		return s.buildDiagnosticError(errors)
-	}
-
-	return s.diagnoseSSHConnection(&errors)
-}
-
-// Connect establishes an SSH connection without socat
-func (s *SSHClient) Connect() (*SSHContext, error) {
-	if err := s.validateHostname(); err != nil {
-		return nil, fmt.Errorf("hostname validation failed: %w", err)
-	}
-
-	client, err := ssh.Dial("tcp", net.JoinHostPort(s.host, s.port), s.config)
+// addSSHKeyAuth adds SSH key authentication to the config
+func addSSHKeyAuth(config *ssh.ClientConfig, log *slog.Logger) error {
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to SSH server %s:%s: %w", s.host, s.port, err)
+		return fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	if err := s.checkDockerSocketAccess(client); err != nil {
-		if closeErr := client.Close(); closeErr != nil {
-			s.log.Warn("Failed to close SSH client", "error", closeErr)
+	keyPaths := []string{
+		filepath.Join(homeDir, ".ssh", "id_rsa"),
+		filepath.Join(homeDir, ".ssh", "id_ed25519"),
+		filepath.Join(homeDir, ".ssh", "id_ecdsa"),
+	}
+
+	for _, keyPath := range keyPaths {
+		if _, err := os.Stat(keyPath); err == nil {
+			key, err := os.ReadFile(keyPath) //nolint:gosec // SSH key file reading is necessary
+			if err != nil {
+				log.Warn("Failed to read SSH key", "path", keyPath, "error", err)
+				continue
+			}
+
+			signer, err := ssh.ParsePrivateKey(key)
+			if err != nil {
+				log.Warn("Failed to parse SSH key", "path", keyPath, "error", err)
+				continue
+			}
+
+			config.Auth = append(config.Auth, ssh.PublicKeys(signer))
+			log.Info("Added SSH key authentication", "path", keyPath)
+			return nil
 		}
-		return nil, fmt.Errorf("docker socket not accessible: %w", err)
 	}
 
-	return &SSHContext{
-		client:     client,
-		remoteHost: s.host,
-		log:        s.log,
-	}, nil
+	return errors.New("no SSH keys found")
 }
 
-// ConnectWithSocat establishes an SSH connection and sets up port forwarding to the remote Docker socket
-func (s *SSHClient) ConnectWithSocat(remotePort int) (*SSHConnection, error) {
+// ConnectWithFallback establishes an SSH connection using SSH tunneling only
+// Only SSH tunnel method is supported - all fallback methods are disabled
+func (s *SSHClient) ConnectWithFallback(remotePort int) (*SSHConnection, error) {
 	if err := s.validateHostname(); err != nil {
 		return nil, fmt.Errorf("hostname validation failed: %w", err)
 	}
@@ -128,7 +102,140 @@ func (s *SSHClient) ConnectWithSocat(remotePort int) (*SSHConnection, error) {
 		return nil, err
 	}
 
-	return s.setupPortForwardingAndConnection(client, remotePort)
+	// Try SSH tunnel only
+	connection, err := s.trySSHTunnel(client, remotePort)
+	if err == nil {
+		s.log.Info("✅ Successfully established SSH tunnel connection")
+		s.log.Info("🔗 Connection Method: SSH Tunnel (local TCP port on remote machine)")
+		return connection, nil
+	}
+	s.log.Warn("SSH tunnel failed", "error", err)
+
+	// Clean up any local TCP ports that might have been created for SSH tunnel
+	s.cleanupLocalTCPPorts(client)
+
+	// SSH tunnel connection failed
+	return nil, fmt.Errorf("SSH tunnel connection failed: %w", err)
+}
+
+// trySSHTunnel attempts to establish SSH tunnel connection
+func (s *SSHClient) trySSHTunnel(client *ssh.Client, remotePort int) (*SSHConnection, error) {
+	s.log.Info("Attempting SSH tunnel connection")
+
+	// Create SSH tunnel client
+	tunnelClient := NewSSHTunnelClient(client, s.log)
+
+	// Check if Docker socket is accessible
+	if err := s.checkDockerSocketAccess(client); err != nil {
+		return nil, fmt.Errorf("docker socket not accessible for SSH tunnel: %w", err)
+	}
+
+	// Find an available local port
+	localPort, err := findAvailablePort()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find available local port: %w", err)
+	}
+
+	// Set up and test SSH tunnel
+	if err := s.setupAndTestTunnel(tunnelClient, localPort); err != nil {
+		return nil, err
+	}
+
+	// Create and return the SSH connection
+	return s.createSSHConnection(client, localPort, remotePort, tunnelClient), nil
+}
+
+// setupAndTestTunnel sets up and tests the SSH tunnel
+func (s *SSHClient) setupAndTestTunnel(tunnelClient *SSHTunnelClient, localPort int) error {
+	// Set up SSH tunnel
+	if err := tunnelClient.SetupSSHTunnel(localPort); err != nil {
+		return fmt.Errorf("failed to setup SSH tunnel: %w", err)
+	}
+
+	// Test the SSH tunnel
+	if err := tunnelClient.TestSSHTunnel(localPort); err != nil {
+		// Clean up the tunnel client
+		if err := tunnelClient.Close(); err != nil {
+			s.log.Warn("Failed to close tunnel client", "error", err)
+		}
+		return fmt.Errorf("SSH tunnel test failed: %w", err)
+	}
+
+	return nil
+}
+
+// createSSHConnection creates the SSH connection struct
+func (s *SSHClient) createSSHConnection(
+	client *ssh.Client,
+	localPort, remotePort int,
+	tunnelClient *SSHTunnelClient,
+) *SSHConnection {
+	return &SSHConnection{
+		client:         client,
+		localPort:      localPort,
+		remoteHost:     s.host,
+		remotePort:     remotePort,
+		log:            s.log,
+		connectionType: "SSH Tunnel",
+		tunnelClient:   tunnelClient,
+	}
+}
+
+// checkDockerSocketAccess checks if the Docker socket is accessible via SSH
+func (s *SSHClient) checkDockerSocketAccess(client *ssh.Client) error {
+	session, err := client.NewSession()
+	if err != nil {
+		return fmt.Errorf("failed to create session for Docker socket check: %w", err)
+	}
+	defer func() {
+		if err := session.Close(); err != nil {
+			s.log.Warn("Failed to close Docker socket check session", "error", err)
+		}
+	}()
+
+	// Check if the Docker socket exists and is accessible
+	cmd := "test -S /var/run/docker.sock && echo 'Docker socket accessible' || echo 'Docker socket not accessible'"
+	output, err := session.Output(cmd)
+	if err != nil {
+		return fmt.Errorf("failed to check Docker socket access: %w", err)
+	}
+
+	outputStr := string(output)
+	if outputStr == "Docker socket not accessible\n" {
+		return errors.New("docker socket is not accessible on remote host")
+	}
+
+	s.log.Info("Docker socket access verified", "output", outputStr)
+	return nil
+}
+
+// cleanupLocalTCPPorts cleans up any local TCP ports that might have been created for SSH tunnel
+func (s *SSHClient) cleanupLocalTCPPorts(client *ssh.Client) {
+	s.log.Info("Cleaning up any local TCP ports created for SSH tunnel")
+
+	session, err := client.NewSession()
+	if err != nil {
+		s.log.Warn("Failed to create cleanup session", "error", err)
+		return
+	}
+	defer func() {
+		if err := session.Close(); err != nil {
+			s.log.Warn("Failed to close cleanup session", "error", err)
+		}
+	}()
+
+	// Kill any processes listening on common Docker ports
+	ports := []int{2375, 2376, 2377, 2378, 2379}
+	for _, port := range ports {
+		cmd := fmt.Sprintf(
+			"lsof -ti:%d | xargs kill -9 2>/dev/null || fuser -k %d/tcp 2>/dev/null || true",
+			port, port)
+		if err := session.Run(cmd); err != nil {
+			s.log.Debug("Failed to cleanup port", "port", port, "error", err)
+		}
+	}
+
+	s.log.Info("Local TCP port cleanup completed")
 }
 
 // establishSSHConnection establishes the initial SSH connection
@@ -140,251 +247,37 @@ func (s *SSHClient) establishSSHConnection() (*ssh.Client, error) {
 	return client, nil
 }
 
-// setupPortForwardingAndConnection sets up port forwarding and creates the connection
-func (s *SSHClient) setupPortForwardingAndConnection(
-	client *ssh.Client,
-	remotePort int,
-) (*SSHConnection, error) {
-	localPort, err := s.setupPortForwarding(client)
-	if err != nil {
-		s.closeSSHClient(client)
-		return nil, err
-	}
-
-	s.setupAndTestPortForwarding(client, localPort)
-
-	s.log.Info("SSH port forwarding established successfully", "localPort", localPort)
-
-	return s.createSSHConnection(client, localPort), nil
-}
-
-// setupAndTestPortForwarding sets up and tests the port forwarding
-func (s *SSHClient) setupAndTestPortForwarding(client *ssh.Client, localPort int) {
-	s.startPortForwarding(client, localPort)
-	s.waitForListenerReady()
-
-	if err := s.testPortForwarding(localPort); err != nil {
-		s.closeSSHClient(client)
-	}
-}
-
-// setupPortForwarding sets up the local port and listener
-func (s *SSHClient) setupPortForwarding(client *ssh.Client) (int, error) {
-	localPort, err := findAvailablePort()
-	if err != nil {
-		return 0, fmt.Errorf("failed to find available port: %w", err)
-	}
-
-	s.log.Info(
-		"Setting up SSH port forwarding",
-		"localPort",
-		localPort,
-		"remoteSocket",
-		"/var/run/docker.sock",
-	)
-
-	listener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", localPort))
-	if err != nil {
-		return 0, fmt.Errorf("failed to bind to local port %d: %w", localPort, err)
-	}
-
-	s.listener = listener
-	return localPort, nil
-}
-
-// startPortForwarding starts the port forwarding goroutine
-func (s *SSHClient) startPortForwarding(client *ssh.Client, localPort int) {
-	go func() {
-		defer func() {
-			if err := s.listener.Close(); err != nil {
-				s.log.Warn("Failed to close listener", "error", err)
-			}
-		}()
-		for {
-			localConn, err := s.listener.Accept()
-			if err != nil {
-				s.log.Warn("Failed to accept local connection", "error", err)
-				return
-			}
-
-			s.handlePortForwardingConnection(client, localConn)
-		}
-	}()
-}
-
-// handlePortForwardingConnection handles a single port forwarding connection
-func (s *SSHClient) handlePortForwardingConnection(client *ssh.Client, localConn net.Conn) {
-	session, err := s.createSSHSession(client)
-	if err != nil {
-		s.cleanupConnection(localConn, nil)
-		return
-	}
-
-	s.setupSessionIO(session, localConn)
-
-	if err := s.executeSocatCommand(session); err != nil {
-		s.cleanupConnection(localConn, session)
-		return
-	}
-
-	s.cleanupConnection(localConn, session)
-}
-
-// createSSHSession creates a new SSH session
-func (s *SSHClient) createSSHSession(client *ssh.Client) (*ssh.Session, error) {
-	session, err := client.NewSession()
-	if err != nil {
-		s.log.Warn("Failed to create SSH session for forwarding", "error", err)
-		return nil, err
-	}
-	return session, nil
-}
-
-// executeSocatCommand executes the socat command on the remote machine
-func (s *SSHClient) executeSocatCommand(session *ssh.Session) error {
-	if err := session.Run("socat STDIO UNIX-CONNECT:/var/run/docker.sock"); err != nil {
-		s.log.Warn("Failed to execute socat on remote machine", "error", err)
-		return err
-	}
-	return nil
-}
-
-// cleanupConnection safely closes the connection and session
-func (s *SSHClient) cleanupConnection(localConn net.Conn, session *ssh.Session) {
-	if session != nil {
-		if err := session.Close(); err != nil {
-			s.log.Warn("Failed to close SSH session", "error", err)
-		}
-	}
-	if localConn != nil {
-		if err := localConn.Close(); err != nil {
-			s.log.Warn("Failed to close local connection", "error", err)
-		}
-	}
-}
-
-// setupSessionIO sets up the session input/output
-func (s *SSHClient) setupSessionIO(session *ssh.Session, localConn net.Conn) {
-	session.Stdin = localConn
-	session.Stdout = localConn
-	session.Stderr = os.Stderr
-}
-
-// waitForListenerReady waits for the listener to be ready
-func (s *SSHClient) waitForListenerReady() {
-	time.Sleep(1 * time.Second)
-}
-
-// testPortForwarding tests if the port forwarding is working
-func (s *SSHClient) testPortForwarding(localPort int) error {
-	testConn, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", localPort), 2*time.Second)
-	if err != nil {
-		return fmt.Errorf("local port forwarding test failed: %w", err)
-	}
-	if err := testConn.Close(); err != nil {
-		s.log.Warn("Failed to close test connection", "error", err)
-	}
-	return nil
-}
-
-// createSSHConnection creates the SSH connection struct
-func (s *SSHClient) createSSHConnection(client *ssh.Client, localPort int) *SSHConnection {
-	return &SSHConnection{
-		client:     client,
-		session:    nil, // Not using a single session for this approach
-		localPort:  localPort,
-		remoteHost: s.host,
-		remotePort: 0,  // Not using remote port for this approach
-		socatPID:   "", // Not using socat PID for this approach
-		log:        s.log,
-		listener:   s.listener, // Store the listener for cleanup
-	}
-}
-
-// getUserInfo returns the user info with fallback
-func (s *SSHClient) getUserInfo() string {
-	if s.user == "" {
-		return "<unknown>"
-	}
-	return s.user
-}
-
-// getHostInfo returns the host info with fallback
-func (s *SSHClient) getHostInfo() string {
+// validateHostname validates the hostname
+func (s *SSHClient) validateHostname() error {
 	if s.host == "" {
-		return "<unknown>"
-	}
-	return s.host
-}
-
-// getPortInfo returns the port info with fallback
-func (s *SSHClient) getPortInfo() string {
-	if s.port == "" {
-		return "<unknown>"
-	}
-	return s.port
-}
-
-// diagnoseHostname checks hostname resolution
-func (s *SSHClient) diagnoseHostname(errors *[]string) {
-	if err := s.validateHostname(); err != nil {
-		*errors = append(*errors, fmt.Sprintf("Hostname resolution: %v", err))
-	}
-}
-
-// diagnoseSSHKey checks SSH key configuration and permissions
-func (s *SSHClient) diagnoseSSHKey(errors *[]string) {
-	sshKeyPath, err := getSSHKeyPath()
-	if err != nil {
-		*errors = append(*errors, fmt.Sprintf("SSH key: %v", err))
-		return
-	}
-
-	s.checkSSHKeyPermissions(sshKeyPath, errors)
-}
-
-// checkSSHKeyPermissions checks SSH key file permissions
-func (s *SSHClient) checkSSHKeyPermissions(sshKeyPath string, errors *[]string) {
-	if info, err := os.Stat(sshKeyPath); err == nil {
-		if info.Mode().Perm()&0o077 != 0 {
-			*errors = append(
-				*errors,
-				fmt.Sprintf(
-					"SSH key has overly permissive permissions %v (should be 600)",
-					info.Mode().Perm(),
-				),
-			)
-		}
-	}
-}
-
-// diagnoseSSHConnection tests the actual SSH connection
-func (s *SSHClient) diagnoseSSHConnection(errors *[]string) error {
-	client, err := ssh.Dial("tcp", net.JoinHostPort(s.host, s.port), s.config)
-	if err != nil {
-		*errors = append(*errors, fmt.Sprintf("SSH connection: %v", err))
-		return s.buildDiagnosticError(*errors)
-	}
-	defer s.closeSSHClient(client)
-
-	if err := s.checkDockerSocketAccess(client); err != nil {
-		*errors = append(*errors, fmt.Sprintf("Docker socket access: %v", err))
-	}
-
-	return s.buildDiagnosticError(*errors)
-}
-
-// closeSSHClient safely closes the SSH client
-func (s *SSHClient) closeSSHClient(client *ssh.Client) {
-	if err := client.Close(); err != nil {
-		s.log.Warn("Failed to close SSH client", "error", err)
-	}
-}
-
-// buildDiagnosticError builds the final diagnostic error message
-func (s *SSHClient) buildDiagnosticError(errors []string) error {
-	if len(errors) > 0 {
-		return fmt.Errorf("SSH connection diagnostics failed:\n%s", strings.Join(errors, "\n"))
+		return errors.New("hostname cannot be empty")
 	}
 	return nil
+}
+
+// findAvailablePort finds an available local port
+func findAvailablePort() (int, error) {
+	// Try to find an available port in the range 2376-2390
+	for port := 2376; port <= 2390; port++ {
+		listener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+		if err == nil {
+			_ = listener.Close() // Ignore close error
+			return port, nil
+		}
+	}
+
+	// Fallback to system-assigned port if range is full
+	listener, err := net.Listen("tcp", ":0") //nolint:gosec // Safe for finding available ports
+	if err != nil {
+		return 0, err
+	}
+	defer func() {
+		_ = listener.Close() // Ignore close error
+	}()
+
+	addr, ok := listener.Addr().(*net.TCPAddr)
+	if !ok {
+		return 0, errors.New("failed to get TCP address")
+	}
+	return addr.Port, nil
 }

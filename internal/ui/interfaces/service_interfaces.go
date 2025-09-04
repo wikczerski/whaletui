@@ -94,4 +94,5 @@ type DockerInfo interface {
 	GetVersion() string
 	GetOperatingSystem() string
 	GetLoggingDriver() string
+	GetConnectionMethod() string
 }

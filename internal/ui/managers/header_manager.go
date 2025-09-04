@@ -243,20 +243,20 @@ func (hm *HeaderManager) getDockerInfoText() string {
 	services := hm.ui.GetServices()
 	if services == nil || !services.IsContainerServiceAvailable() {
 		return fmt.Sprintf(constants.DockerInfoTemplate,
-			"❌ Disconnected", "--", "--", "--", constants.AppVersion)
+			"❌ Disconnected", "--", "--", "--", "--", constants.AppVersion)
 	}
 
 	dockerInfoService := services.GetDockerInfoService()
 	if dockerInfoService == nil {
 		return fmt.Sprintf(constants.DockerInfoTemplate,
-			"⚠️ Partial", "Available", "--", "--", constants.AppVersion)
+			"⚠️ Partial", "Available", "--", "--", "--", constants.AppVersion)
 	}
 
 	ctx := context.Background()
 	dockerInfoPtr, err := dockerInfoService.GetDockerInfo(ctx)
 	if err != nil || dockerInfoPtr == nil {
 		return fmt.Sprintf(constants.DockerInfoTemplate,
-			"⚠️ Partial", "Available", "--", "--", constants.AppVersion)
+			"⚠️ Partial", "Available", "--", "--", "--", constants.AppVersion)
 	}
 
 	// Dereference the pointer to interface
@@ -272,6 +272,7 @@ func (hm *HeaderManager) getDockerInfoText() string {
 		dockerInfo.GetVersion(),
 		dockerInfo.GetOperatingSystem(),
 		dockerInfo.GetLoggingDriver(),
+		dockerInfo.GetConnectionMethod(),
 		constants.AppVersion)
 }
 
