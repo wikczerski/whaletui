@@ -217,7 +217,7 @@ func (iv *ImagesView) inspectImage(id string) {
 // setupCharacterLimits sets up character limits for table columns
 func (iv *ImagesView) setupCharacterLimits(ui interfaces.UIInterface) {
 	// Define column types for images table
-	columnTypes := []string{"id", "repository", "tag", "size", "created", "description"}
+	columnTypes := []string{"id", "repository", "tag", "size", "created", "containers"}
 	iv.SetColumnTypes(columnTypes)
 
 	// Create formatter from theme manager

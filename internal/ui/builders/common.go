@@ -146,6 +146,84 @@ func (tb *TableBuilder) SetupHeaders(table *tview.Table, headers []string) {
 	}
 }
 
+// SetupHeadersWithConfig sets up table headers with column configuration
+func (tb *TableBuilder) SetupHeadersWithConfig(
+	table *tview.Table,
+	headers []string,
+	columnTypes []string,
+	formatter *utils.TableFormatter,
+) {
+	tb.SetupHeadersWithConfigForView(table, headers, columnTypes, formatter, "")
+}
+
+// SetupHeadersWithConfigForView sets up table headers with view-specific column configuration
+func (tb *TableBuilder) SetupHeadersWithConfigForView(
+	table *tview.Table,
+	headers []string,
+	columnTypes []string,
+	formatter *utils.TableFormatter,
+	viewName string,
+) {
+	tb.SetupHeadersWithConfigForViewWithTerminalSize(
+		table, headers, columnTypes, formatter, viewName, 0)
+}
+
+// SetupHeadersWithConfigForViewWithTerminalSize sets up table headers with view-specific column configuration
+// with a given terminal width for percentage-based width calculations
+func (tb *TableBuilder) SetupHeadersWithConfigForViewWithTerminalSize(
+	table *tview.Table,
+	headers []string,
+	columnTypes []string,
+	formatter *utils.TableFormatter,
+	viewName string,
+	terminalWidth int,
+) {
+	visibleColumnIndex := 0
+	for i, header := range headers {
+		// Skip hidden columns
+		if formatter != nil && i < len(columnTypes) && !formatter.IsColumnVisibleForView(columnTypes[i], viewName) {
+			continue
+		}
+
+		// Use display name if available
+		displayHeader := header
+		if formatter != nil && i < len(columnTypes) {
+			displayHeader = formatter.GetColumnDisplayNameForView(columnTypes[i], viewName)
+		}
+
+		cell := tview.NewTableCell(displayHeader).
+			SetTextColor(constants.HeaderColor).
+			SetSelectable(false).
+			SetAlign(tview.AlignCenter).
+			SetExpansion(1)
+
+		// Set fixed width if configured
+		if formatter != nil && i < len(columnTypes) {
+			// Get terminal width if not provided
+			if terminalWidth <= 0 {
+				terminalWidth = tb.getTerminalWidth(table)
+			}
+			width := formatter.GetColumnWidthForViewWithTerminalSize(columnTypes[i], viewName, terminalWidth)
+			if width > 0 {
+				cell.SetExpansion(0)
+				// Pad the header content to the desired width
+				if len(displayHeader) < width {
+					// Center-pad the header with spaces to reach desired width
+					padding := width - len(displayHeader)
+					leftPad := padding / 2
+					rightPad := padding - leftPad
+					displayHeader = fmt.Sprintf("%*s%s%*s", leftPad, "", displayHeader, rightPad, "")
+				}
+				// Update the cell with padded content
+				cell.SetText(displayHeader)
+			}
+		}
+
+		table.SetCell(0, visibleColumnIndex, cell)
+		visibleColumnIndex++
+	}
+}
+
 // SetupRow sets up a table row with consistent styling
 func (tb *TableBuilder) SetupRow(
 	table *tview.Table,
@@ -162,7 +240,47 @@ func (tb *TableBuilder) SetupRow(
 	}
 }
 
-// SetupRowWithLimits sets up a table row with character limits applied
+// SetupRowWithAlignment sets up a table row with alignment based on column types
+func (tb *TableBuilder) SetupRowWithAlignment(
+	table *tview.Table,
+	row int,
+	cells []string,
+	columnTypes []string,
+	textColor tcell.Color,
+	formatter *utils.TableFormatter,
+) {
+	visibleColumnIndex := 0
+	for i, cell := range cells {
+		// Skip hidden columns
+		if formatter != nil && i < len(columnTypes) && !formatter.IsColumnVisible(columnTypes[i]) {
+			continue
+		}
+
+		alignment := tview.AlignLeft // Default alignment
+
+		if formatter != nil && i < len(columnTypes) {
+			alignment = formatter.GetAlignmentForColumn(columnTypes[i])
+		}
+
+		tableCell := tview.NewTableCell(cell).
+			SetTextColor(textColor).
+			SetAlign(alignment).
+			SetExpansion(1)
+
+		// Set fixed width if configured
+		if formatter != nil && i < len(columnTypes) {
+			width := formatter.GetColumnWidth(columnTypes[i])
+			if width > 0 {
+				tableCell.SetExpansion(0)
+			}
+		}
+
+		table.SetCell(row, visibleColumnIndex, tableCell)
+		visibleColumnIndex++
+	}
+}
+
+// SetupRowWithLimits sets up a table row with character limits and alignment applied
 func (tb *TableBuilder) SetupRowWithLimits(
 	table *tview.Table,
 	row int,
@@ -171,18 +289,88 @@ func (tb *TableBuilder) SetupRowWithLimits(
 	textColor tcell.Color,
 	formatter *utils.TableFormatter,
 ) {
+	tb.SetupRowWithLimitsForView(table, row, cells, columnTypes, textColor, formatter, "")
+}
+
+// SetupRowWithLimitsForView sets up a table row with view-specific character limits and alignment applied
+func (tb *TableBuilder) SetupRowWithLimitsForView(
+	table *tview.Table,
+	row int,
+	cells []string,
+	columnTypes []string,
+	textColor tcell.Color,
+	formatter *utils.TableFormatter,
+	viewName string,
+) {
+	tb.SetupRowWithLimitsForViewWithTerminalSize(table, row, cells, columnTypes, textColor, formatter, viewName, 0)
+}
+
+// SetupRowWithLimitsForViewWithTerminalSize sets up a table row with view-specific character limits and alignment applied
+// with a given terminal width for percentage-based width calculations
+func (tb *TableBuilder) SetupRowWithLimitsForViewWithTerminalSize(
+	table *tview.Table,
+	row int,
+	cells []string,
+	columnTypes []string,
+	textColor tcell.Color,
+	formatter *utils.TableFormatter,
+	viewName string,
+	terminalWidth int,
+) {
+	visibleColumnIndex := 0
 	for i, cell := range cells {
+		// Skip hidden columns
+		if formatter != nil && i < len(columnTypes) && !formatter.IsColumnVisibleForView(columnTypes[i], viewName) {
+			continue
+		}
+
 		// Apply character limits if formatter and column type are provided
 		formattedCell := cell
+		alignment := tview.AlignLeft // Default alignment
+
 		if formatter != nil && i < len(columnTypes) {
-			formattedCell = formatter.FormatCell(cell, columnTypes[i])
+			formattedCell = formatter.FormatCellForView(cell, columnTypes[i], viewName)
+			alignment = formatter.GetAlignmentForColumnForView(columnTypes[i], viewName)
 		}
 
 		tableCell := tview.NewTableCell(formattedCell).
 			SetTextColor(textColor).
-			SetAlign(tview.AlignLeft).
+			SetAlign(alignment).
 			SetExpansion(1)
-		table.SetCell(row, i, tableCell)
+
+		// Set fixed width if configured
+		if formatter != nil && i < len(columnTypes) {
+			// Get terminal width if not provided
+			if terminalWidth <= 0 {
+				terminalWidth = tb.getTerminalWidth(table)
+			}
+			width := formatter.GetColumnWidthForViewWithTerminalSize(columnTypes[i], viewName, terminalWidth)
+			if width > 0 {
+				tableCell.SetExpansion(0)
+				// Pad the content to the desired width based on alignment
+				if len(formattedCell) < width {
+					switch alignment {
+					case tview.AlignRight:
+						// Left-pad with spaces for right alignment
+						formattedCell = fmt.Sprintf("%*s", width, formattedCell)
+					case tview.AlignCenter:
+						// Center-pad with spaces
+						padding := width - len(formattedCell)
+						leftPad := padding / 2
+						rightPad := padding - leftPad
+						formattedCell = fmt.Sprintf("%*s%s%*s", leftPad, "", formattedCell, rightPad, "")
+					default: // tview.AlignLeft
+						// Right-pad with spaces for left alignment
+						formattedCell = fmt.Sprintf("%-*s", width, formattedCell)
+					}
+				}
+				// Update the cell with padded content
+				tableCell.SetText(formattedCell)
+			}
+		}
+
+		table.SetCell(row, visibleColumnIndex, tableCell)
+		visibleColumnIndex++
 	}
 }
 
@@ -440,4 +628,11 @@ func formatActionsText(actions map[rune]string) string {
 		result += fmt.Sprintf("%c: %s\n", key, action)
 	}
 	return result
+}
+
+// getTerminalWidth gets the terminal width (simplified approach for now)
+func (tb *TableBuilder) getTerminalWidth(table *tview.Table) int {
+	// For now, use a reasonable default terminal width
+	// TODO: Implement proper terminal width detection
+	return 120
 }

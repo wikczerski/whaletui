@@ -54,30 +54,8 @@ var DefaultTheme = ThemeConfig{
 		Placeholder: constants.CommandModeThemePlaceholderColor,
 		Title:       constants.CommandModeThemeTitleColor,
 	},
-	HeaderLayout: HeaderLayout{
-		DockerInfoWidth: constants.HeaderDockerInfoWidth,
-		SpacerWidth:     constants.HeaderSpacerWidth,
-		NavigationWidth: constants.HeaderNavigationWidth,
-		ActionsWidth:    constants.HeaderActionsWidth,
-		ContentWidth:    constants.HeaderContentWidth,
-		LogoWidth:       constants.HeaderLogoWidth,
-	},
 	TableLimits: TableLimits{
-		ID:          12, // Container/Image IDs
-		Name:        30, // Container/Volume names
-		Image:       40, // Image names
-		Status:      20, // Status messages
-		State:       15, // State values
-		Ports:       25, // Port mappings
-		Created:     20, // Created timestamps
-		Size:        15, // Size values
-		Driver:      15, // Volume drivers
-		Mountpoint:  50, // Mount points
-		Repository:  35, // Image repositories
-		Tag:         20, // Image tags
-		Network:     25, // Network names
-		Scope:       15, // Network scope
-		Description: 50, // General descriptions
+		// Default column configurations will be handled by TableFormatter defaults
 	},
 }
 
@@ -272,36 +250,6 @@ func (tm *ThemeManager) GetCommandModeTitleColor() tcell.Color {
 	return tm.GetColor(tm.config.CommandMode.Title)
 }
 
-// GetHeaderDockerInfoWidth returns the Docker info column width
-func (tm *ThemeManager) GetHeaderDockerInfoWidth() int {
-	return tm.config.HeaderLayout.DockerInfoWidth
-}
-
-// GetHeaderSpacerWidth returns the spacer column width
-func (tm *ThemeManager) GetHeaderSpacerWidth() int {
-	return tm.config.HeaderLayout.SpacerWidth
-}
-
-// GetHeaderNavigationWidth returns the navigation column width
-func (tm *ThemeManager) GetHeaderNavigationWidth() int {
-	return tm.config.HeaderLayout.NavigationWidth
-}
-
-// GetHeaderActionsWidth returns the actions column width
-func (tm *ThemeManager) GetHeaderActionsWidth() int {
-	return tm.config.HeaderLayout.ActionsWidth
-}
-
-// GetHeaderContentWidth returns the content column width
-func (tm *ThemeManager) GetHeaderContentWidth() int {
-	return tm.config.HeaderLayout.ContentWidth
-}
-
-// GetHeaderLogoWidth returns the logo column width
-func (tm *ThemeManager) GetHeaderLogoWidth() int {
-	return tm.config.HeaderLayout.LogoWidth
-}
-
 // SaveTheme saves the current theme configuration to file
 func (tm *ThemeManager) SaveTheme(path string) error {
 	path = getSavePath(path, tm.path)
@@ -357,10 +305,6 @@ func (tm *ThemeManager) GetPath() string {
 func (tm *ThemeManager) GetCurrentThemeInfo() map[string]any {
 	return map[string]any{
 		"path":            tm.path,
-		"dockerInfoWidth": tm.config.HeaderLayout.DockerInfoWidth,
-		"spacerWidth":     tm.config.HeaderLayout.SpacerWidth,
-		"contentWidth":    tm.config.HeaderLayout.ContentWidth,
-		"logoWidth":       tm.config.HeaderLayout.LogoWidth,
 		"headerColor":     tm.config.Colors.Header,
 		"borderColor":     tm.config.Colors.Border,
 		"textColor":       tm.config.Colors.Text,
