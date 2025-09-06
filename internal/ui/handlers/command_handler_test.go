@@ -163,13 +163,13 @@ func TestProcessCommand(t *testing.T) {
 
 	handler.isActive = true
 	mockUI.On("SwitchView", "images").Once()
-	result = handler.processCommand("i")
+	result = handler.processCommand("images")
 	assert.True(t, result)
 	assert.False(t, handler.isActive)
 
 	handler.isActive = true
 	mockUI.On("SwitchView", "volumes").Once()
-	result = handler.processCommand("v")
+	result = handler.processCommand("volumes")
 	assert.True(t, result)
 	assert.False(t, handler.isActive)
 
@@ -181,19 +181,7 @@ func TestProcessCommand(t *testing.T) {
 
 	handler.isActive = true
 	mockUI.On("SwitchView", "swarmServices").Once()
-	result = handler.processCommand("swarm services")
-	assert.True(t, result)
-	assert.False(t, handler.isActive)
-
-	handler.isActive = true
-	mockUI.On("SwitchView", "swarmServices").Once()
 	result = handler.processCommand("services")
-	assert.True(t, result)
-	assert.False(t, handler.isActive)
-
-	handler.isActive = true
-	mockUI.On("SwitchView", "swarmNodes").Once()
-	result = handler.processCommand("swarm nodes")
 	assert.True(t, result)
 	assert.False(t, handler.isActive)
 

@@ -62,11 +62,11 @@ make goreleaser-build
 make install-goreleaser
 ```
 
-### 4. Install Locally
+### 3. Install Locally
 
 ```bash
 # Install to your Go bin directory
-go install ./cmd/root
+go install .
 
 # Or use the built executable directly
 ./whaletui.exe

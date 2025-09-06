@@ -308,22 +308,18 @@ WhaleTUI seamlessly integrates image management with other Docker operations:
 ### Keyboard Shortcuts
 
 - `:images` - Switch to Images view
-- `p` - Pull new image (TBD - may not be implemented yet)
-- `b` - Build image from Dockerfile (TBD - may not be implemented yet)
-- `t` - Tag image (TBD - may not be implemented yet)
-- `r` - Remove image (TBD - may not be implemented yet)
 - `Enter` - View image details
+- `i` - Inspect image details
+- `ESC` - Close modal or go back
 
-> **Note**: Some features marked as TBD (To Be Determined) may not be fully implemented in the current version of WhaleTUI. Check the latest release notes for current feature availability.
+> **Note**: Image management in WhaleTUI currently focuses on viewing and inspecting images. For pulling, building, tagging, and removing images, use the Docker CLI directly.
 
-### Context Menus
+### Available Actions
 
 Use keyboard shortcuts and navigation for quick access to:
-- Container creation
-- Image inspection
-- Tag management
-- Removal options
-- Export/import functions
+- Image inspection and details
+- Viewing image information
+- Container creation (via Docker CLI)
 
 ## Next Steps
 

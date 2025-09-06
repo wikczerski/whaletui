@@ -298,6 +298,7 @@ Before submitting code for review, ensure:
 - `pre-commit` - Automation of running all code quality checks
 - `golangci-lint` - Code quality checks
 - `mockery` - Mock generation
+- `make` - Build automation
 
 ### Pre-commit Workflow
 - Run `make test-all` before committing

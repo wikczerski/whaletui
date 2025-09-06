@@ -14,14 +14,15 @@ WhaleTUI is designed to make Docker container management more accessible and eff
 
 ## Key Features
 
-- **Container Management**: Start, stop, restart, and manage containers with ease
-- **Image Operations**: Pull, build, and manage Docker images efficiently
-- **Network Management**: Configure and manage Docker networks
-- **Volume Operations**: Handle Docker volumes and data persistence
-- **Swarm Support**: Manage Docker Swarm clusters and services
+- **Container Management**: Start, stop, restart, delete, and manage containers with ease
+- **Image Management**: Browse, inspect, and manage Docker images
+- **Network Management**: View and manage Docker networks
+- **Volume Management**: Handle Docker volumes and data persistence
+- **Swarm Support**: Manage Docker Swarm services and nodes
 - **SSH Integration**: Connect to remote Docker hosts securely
 - **Real-time Logs**: Monitor container logs in real-time
 - **Interactive Shell**: Built-in shell for advanced operations
+- **Theme Support**: Customizable color schemes and UI appearance
 
 ## Why Choose WhaleTUI?
 
@@ -46,10 +47,11 @@ Ready to get started with WhaleTUI? Check out our [Installation Guide](installat
 WhaleTUI is built with a modular architecture that separates concerns and promotes maintainability:
 
 - **Core Application**: Main application logic and coordination
-- **Domain Services**: Business logic for Docker operations
-- **UI Layer**: Terminal user interface components
-- **Docker Client**: Integration with Docker Engine
-- **SSH Client**: Remote host connectivity
+- **Domain Services**: Business logic for Docker operations (containers, images, networks, volumes, swarm)
+- **UI Layer**: Terminal user interface components with keyboard-driven navigation
+- **Docker Client**: Integration with Docker Engine API
+- **SSH Client**: Remote host connectivity for secure management
+- **Theme System**: Customizable appearance and color schemes
 
 ## Contributing
 

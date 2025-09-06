@@ -98,13 +98,13 @@ View all available volumes with key information:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ WhaleTUI - Docker Volumes                                                  │
+│ WhaleTUI - Docker Volumes                                                   │
 ├─────────────────────────────────────────────────────────────────────────────┘
-│ DRIVER    VOLUME NAME      MOUNT POINT                    SIZE    STATUS   │
-│ local     postgres_data    /var/lib/docker/volumes/...    2.1GB   in use   │
-│ local     redis_cache      /var/lib/docker/volumes/...    156MB   in use   │
-│ local     app_logs         /var/lib/docker/volumes/...    45MB    in use   │
-│ local     backup_storage   /var/lib/docker/volumes/...    0B      unused   │
+│ DRIVER    VOLUME NAME      MOUNT POINT                    SIZE    STATUS    │
+│ local     postgres_data    /var/lib/docker/volumes/...    2.1GB   in use    │
+│ local     redis_cache      /var/lib/docker/volumes/...    156MB   in use    │
+│ local     app_logs         /var/lib/docker/volumes/...    45MB    in use    │
+│ local     backup_storage   /var/lib/docker/volumes/...    0B      unused    │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -423,13 +423,12 @@ WhaleTUI seamlessly integrates volume management with other Docker operations:
 
 > **Note**: Some features marked as TBD (To Be Determined) may not be fully implemented in the current version of WhaleTUI. Check the latest release notes for current feature availability.
 
-### Context Menus
+### Available Actions
 
 Use keyboard shortcuts and navigation for quick access to:
-- Volume inspection
-- Container management
-- Backup operations
-- Removal options
+- Volume inspection and details
+- Viewing volume information
+- Container management (via Docker CLI)
 
 ## Next Steps
 

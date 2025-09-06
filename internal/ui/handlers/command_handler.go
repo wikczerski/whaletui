@@ -196,21 +196,12 @@ func (ch *CommandHandler) handleViewSwitchCommand(command string) bool {
 // getViewMappings returns the mapping of command aliases to view names
 func (ch *CommandHandler) getViewMappings() map[string]string {
 	return map[string]string{
-		"containers":     constants.ViewContainers,
-		"c":              constants.ViewContainers,
-		"images":         constants.ViewImages,
-		"i":              constants.ViewImages,
-		"volumes":        constants.ViewVolumes,
-		"v":              constants.ViewVolumes,
-		"networks":       constants.ViewNetworks,
-		"n":              constants.ViewNetworks,
-		"swarm services": constants.ViewSwarmServices,
-		"swarm":          constants.ViewSwarmServices,
-		"services":       constants.ViewSwarmServices,
-		"s":              constants.ViewSwarmServices,
-		"swarm nodes":    constants.ViewSwarmNodes,
-		"nodes":          constants.ViewSwarmNodes,
-		"w":              constants.ViewSwarmNodes,
+		"containers": constants.ViewContainers,
+		"images":     constants.ViewImages,
+		"volumes":    constants.ViewVolumes,
+		"networks":   constants.ViewNetworks,
+		"services":   constants.ViewSwarmServices,
+		"nodes":      constants.ViewSwarmNodes,
 	}
 }
 

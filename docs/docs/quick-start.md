@@ -30,19 +30,24 @@ You should see the WhaleTUI interface appear with a clean, organized layout.
 
 ### 1. Navigate the Interface
 
-WhaleTUI uses a command-based interface for different Docker resources:
+WhaleTUI uses command mode for switching between different Docker resources:
 
-- **Containers**: Press `:` then type `containers` to view and manage running and stopped containers
-- **Images**: Press `:` then type `images` to browse available Docker images
-- **Networks**: Press `:` then type `networks` to manage Docker networks
-- **Volumes**: Press `:` then type `volumes` to handle Docker volumes
-- **Swarm**: Press `:` then type `swarm` to access Docker Swarm features (if enabled)
+- Press `:` to enter command mode
+- Type one of the following commands:
+  - `containers` - View and manage running and stopped containers
+  - `images` - Browse available Docker images
+  - `volumes` - Handle Docker volumes
+  - `networks` - Manage Docker networks
+  - `swarm` - Access Docker Swarm services
+  - `services` - Access Docker Swarm services (alternative)
+  - `nodes` - View Docker Swarm nodes
+- Press `Enter` to execute the command
 
-Use `Tab` to switch between tabs and `↑/↓` arrows to navigate within each tab.
+Use `↑/↓` arrows to navigate within each view and `Enter` to select items.
 
 ### 2. View Your Containers
 
-Start by checking the **Containers** tab to see what's currently running on your system.
+Start by pressing `:` then typing `containers` to view the **Containers** view and see what's currently running on your system.
 
 If you don't have any containers running, you can start one:
 
@@ -55,97 +60,103 @@ docker run -d --name nginx-test nginx:alpine
 
 With a container running, you can:
 
-- **Start/Stop**: Use the action buttons or keyboard shortcuts
-- **View Logs**: Select a container using arrow keys and press `l` to see real-time logs
-- **Execute Commands**: Press `e` to run a single command, or `a` to attach to interactive shell
-- **Inspect**: Press `I` to view detailed container information
+- **Start/Stop**: Press `s` to start or `S` to stop containers
+- **Restart**: Press `r` to restart a container
+- **Delete**: Press `d` to delete a container
+- **View Logs**: Press `l` to see real-time logs
+- **Inspect**: Press `i` to view detailed container information
 
 ## Essential Keyboard Shortcuts
 
-| Key | Action |
-|-----|--------|
-| `:` | Open command view for view switching |
+### Navigation
+| Command | Action |
+|---------|--------|
 | `:containers` | Switch to Containers view |
 | `:images` | Switch to Images view |
-| `:networks` | Switch to Networks view |
 | `:volumes` | Switch to Volumes view |
-| `:swarm` | Switch to Swarm view |
+| `:networks` | Switch to Networks view |
+| `:swarm` | Switch to Swarm Services view |
+| `:services` | Switch to Swarm Services view (alternative) |
+| `:nodes` | Switch to Swarm Nodes view |
 | `↑/↓` | Navigate items |
-| `Enter` | Select item or execute action |
-| `Space` | Toggle selection |
-| `l` | View logs |
-| `e` | Execute single command |
-| `a` | Attach to interactive shell |
-| `i` | Inspect item |
-| `d` | Delete item |
-| `r` | Refresh view |
-| `q` | Quit application |
+| `Enter` | Select item or view details |
+| `ESC` | Close modal or go back |
+
+### Global Actions
+| Key | Action |
+|-----|--------|
+| `F5` | Refresh current view |
 | `?` | Show help |
+| `Ctrl+C` or `q` | Quit application |
+
+### Container Actions
+| Key | Action |
+|-----|--------|
+| `s` | Start container |
+| `S` | Stop container |
+| `r` | Restart container |
+| `d` | Delete container |
+| `l` | View logs |
+| `i` | Inspect container |
 
 ## Common Operations
 
 ### Starting a Container
 
-1. Navigate to the **Images** tab
-2. Select an image (e.g., `nginx:alpine`)
-3. Press `Enter` or use the "Run" action
-4. Configure container options if prompted
-5. Press `Enter` to start the container
+1. Press `:` then type `images` to navigate to the **Images** view
+2. Select an image (e.g., `nginx:alpine`) using arrow keys
+3. Press `Enter` to view image details
+4. Use available actions to run the container
 
 ### Stopping a Container
 
-1. Go to the **Containers** tab
-2. Select a running container
-3. Press `S` or use the "Stop" action
-4. Confirm the action
+1. Press `:` then type `containers` to go to the **Containers** view
+2. Select a running container using arrow keys
+3. Press `S` to stop the container
+4. Confirm the action if prompted
 
 ### Viewing Container Logs
 
-1. Select a container in the **Containers** tab
-2. Press `L` to open the logs view
+1. Select a container in the **Containers** view
+2. Press `l` to open the logs view
 3. Use `↑/↓` to scroll through logs
-4. Press `Q` to return to the main view
+4. Press `ESC` to return to the main view
 
-### Executing Commands
+### Inspecting Containers
 
-1. Select a running container
-2. Press `E` to open an interactive shell
-3. Type your commands as usual
-4. Press `Ctrl+D` or type `exit` to close the shell
+1. Select a container in the **Containers** view
+2. Press `i` to inspect the container
+3. View detailed information in JSON format
+4. Press `ESC` to return to the main view
 
 ## Configuration
 
 ### Basic Settings
 
-WhaleTUI can be configured through a configuration file. Create `~/.config/whaletui/config.yaml`:
+WhaleTUI can be configured through a configuration file. Create `~/.whaletui/config.json`:
 
-```yaml
-docker:
-  host: "unix:///var/run/docker.sock"
-  timeout: 30s
-
-ui:
-  theme: "dark"
-  refresh_rate: 1s
-  show_help: true
-
-logging:
-  level: "info"
+```json
+{
+  "refresh_interval": 5,
+  "log_level": "INFO",
+  "log_file_path": "./logs/whaletui.log",
+  "docker_host": "unix:///var/run/docker.sock",
+  "theme": "default",
+  "remote_host": "",
+  "remote_user": "",
+  "remote_port": 2375
+}
 ```
 
 ### Themes
 
 WhaleTUI supports multiple themes:
 
-- **Dark**: Dark theme provided in repository
 - **Default**: Default theme loaded when none provided
-- **Custom**: Define your own color scheme
+- **Dark**: Dark theme provided in repository
+- **Custom**: Define your own color scheme using YAML or JSON
 
-Change themes in the configuration file or use the `--theme` flag:
-
-```bash
-whaletui --theme <theme_file_path>
-```
+Change themes in the configuration file by setting the `theme` field to your desired theme name.
 
 ## Next Steps
 
@@ -153,7 +164,7 @@ Now that you're comfortable with the basics:
 
 1. **Explore Concepts**: Dive deeper into [Docker concepts](concepts/containers.md)
 2. **Customize Your Setup**: Learn about [Configuration Options](installation.md#configuration)
-3. **Connect to Remote Hosts**: Set up [SSH Connections](concepts/containers.md#executing-commands)
+3. **Connect to Remote Hosts**: Set up SSH connections for remote Docker management
 4. **Advanced Operations**: Master [Swarm management](concepts/swarm.md)
 
 ## Troubleshooting
