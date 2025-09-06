@@ -36,20 +36,311 @@ commandMode:
   placeholder: "#666666" # Medium gray placeholder (matching shell)
   title: "#00FF00"      # Bright green title (matching header)
 
-# Character limits for table columns
+# Table column configurations with percentage-based widths
 tableLimits:
-  id: 12          # Container/Image IDs
-  name: 25        # Container/Volume names (reduced from 30)
-  image: 35       # Image names (reduced from 40)
-  status: 15      # Status messages (reduced from 20)
-  state: 10       # State values (reduced from 15)
-  ports: 20       # Port mappings (reduced from 25)
-  created: 15     # Created timestamps (reduced from 20)
-  size: 12        # Size values (reduced from 15)
-  driver: 12      # Volume drivers (reduced from 15)
-  mountpoint: 40  # Mount points (reduced from 50)
-  repository: 30  # Image repositories (reduced from 35)
-  tag: 15         # Image tags (reduced from 20)
-  network: 20     # Network names (reduced from 25)
-  scope: 10       # Network scope (reduced from 15)
-  description: 40 # General descriptions (reduced from 50)
+  views:
+    containers:
+      columns:
+        id:
+          limit: 12
+          width_percent: 12      # 20% of terminal width
+          min_width: 12          # Minimum 12 characters
+          max_width: 30          # Maximum 30 characters
+          visible: true
+          alignment: "left"
+          display_name: "Container ID"
+        name:
+          limit: 25
+          width_percent: 25      # 25% of terminal width
+          min_width: 15          # Minimum 15 characters
+          max_width: 40          # Maximum 40 characters
+          visible: true
+          alignment: "left"
+          display_name: "Name"
+        image:
+          limit: 35
+          width_percent: 30      # 30% of terminal width
+          min_width: 20          # Minimum 20 characters
+          max_width: 50          # Maximum 50 characters
+          visible: true
+          alignment: "left"
+          display_name: "Image"
+        status:
+          limit: 20
+          width_percent: 15      # 15% of terminal width
+          min_width: 8           # Minimum 8 characters
+          max_width: 20          # Maximum 20 characters
+          visible: true
+          alignment: "right"
+          display_name: "Status"
+        state:
+          limit: 15
+          width_percent: 10      # 10% of terminal width
+          min_width: 6           # Minimum 6 characters
+          max_width: 15          # Maximum 15 characters
+          visible: true
+          alignment: "right"
+          display_name: "State"
+        ports:
+          limit: 25
+          width_percent: 25      # 25% of terminal width
+          min_width: 15          # Minimum 15 characters
+          max_width: 40          # Maximum 40 characters
+          visible: true
+          alignment: "right"
+          display_name: "Ports"
+        created:
+          limit: 25
+          width_percent: 15      # 25% of terminal width
+          min_width: 15          # Minimum 15 characters
+          max_width: 40          # Maximum 40 characters
+          visible: true
+          alignment: "right"
+          display_name: "Created"
+
+    images:
+      columns:
+        id:
+          limit: 12
+          width_percent: 15      # 15% of terminal width
+          min_width: 10          # Minimum 10 characters
+          max_width: 20          # Maximum 20 characters
+          visible: true
+          alignment: "left"
+          display_name: "Image ID"
+        repository:
+          limit: 40
+          width_percent: 38      # 45% of terminal width
+          min_width: 25          # Minimum 25 characters
+          max_width: 70          # Maximum 70 characters
+          visible: true
+          alignment: "left"
+          display_name: "Repository"
+        tag:
+          limit: 20
+          width_percent: 10
+          min_width: 10
+          max_width: 30
+          visible: true
+          alignment: "left"
+          display_name: "Tag"
+        size:
+          limit: 15
+          width_percent: 15      # 15% of terminal width
+          min_width: 10          # Minimum 10 characters
+          max_width: 20          # Maximum 20 characters
+          visible: true
+          alignment: "right"
+          display_name: "Size"
+        created:
+          limit: 30
+          width_percent: 20      # 20% of terminal width
+          min_width: 15          # Minimum 15 characters
+          max_width: 30          # Maximum 30 characters
+          visible: true
+          alignment: "right"
+          display_name: "Created"
+
+    volumes:
+      columns:
+        name:
+          limit: 30
+          width_percent: 35      # 35% of terminal width
+          min_width: 20          # Minimum 20 characters
+          max_width: 50          # Maximum 50 characters
+          visible: true
+          alignment: "left"
+          display_name: "Volume Name"
+        driver:
+          limit: 15
+          width_percent: 15      # 15% of terminal width
+          min_width: 10          # Minimum 10 characters
+          max_width: 25          # Maximum 25 characters
+          visible: true
+          alignment: "left"
+          display_name: "Driver"
+        mountpoint:
+          limit: 50
+          width_percent: 50      # 50% of terminal width
+          min_width: 30          # Minimum 30 characters
+          max_width: 80          # Maximum 80 characters
+          visible: true
+          alignment: "left"
+          display_name: "Mount Point"
+        created:
+          limit: 25
+          width_percent: 15      # 25% of terminal width
+          min_width: 15          # Minimum 15 characters
+          max_width: 40          # Maximum 40 characters
+          visible: true
+          alignment: "right"
+          display_name: "Created"
+        size:
+          limit: 15
+          width_percent: 15      # 15% of terminal width
+          min_width: 10          # Minimum 10 characters
+          max_width: 20          # Maximum 20 characters
+          visible: true
+          alignment: "right"
+          display_name: "Size"
+
+    networks:
+      columns:
+        id:
+          limit: 12
+          width_percent: 15      # 15% of terminal width
+          min_width: 10          # Minimum 10 characters
+          max_width: 20          # Maximum 20 characters
+          visible: true
+          alignment: "left"
+          display_name: "Network ID"
+        name:
+          limit: 25
+          width_percent: 30      # 30% of terminal width
+          min_width: 15          # Minimum 15 characters
+          max_width: 40          # Maximum 40 characters
+          visible: true
+          alignment: "left"
+          display_name: "Network Name"
+        driver:
+          limit: 15
+          width_percent: 15      # 15% of terminal width
+          min_width: 10          # Minimum 10 characters
+          max_width: 25          # Maximum 25 characters
+          visible: true
+          alignment: "left"
+          display_name: "Driver"
+        scope:
+          limit: 10
+          width_percent: 10      # 10% of terminal width
+          min_width: 6           # Minimum 6 characters
+          max_width: 15          # Maximum 15 characters
+          visible: true
+          alignment: "center"
+          display_name: "Scope"
+        created:
+          limit: 25
+          width_percent: 15      # 25% of terminal width
+          min_width: 15          # Minimum 15 characters
+          max_width: 40          # Maximum 40 characters
+          visible: true
+          alignment: "right"
+          display_name: "Created"
+        subnet:
+          limit: 20
+          width_percent: 25      # 25% of terminal width
+          min_width: 15          # Minimum 15 characters
+          max_width: 35          # Maximum 35 characters
+          visible: true
+          alignment: "left"
+          display_name: "Subnet"
+        gateway:
+          limit: 20
+          width_percent: 20      # 20% of terminal width
+          min_width: 15          # Minimum 15 characters
+          max_width: 30          # Maximum 30 characters
+          visible: true
+          alignment: "left"
+          display_name: "Gateway"
+
+    "Swarm Nodes":
+      columns:
+        id:
+          limit: 12
+          width_percent: 15      # 15% of terminal width
+          min_width: 10          # Minimum 10 characters
+          max_width: 20          # Maximum 20 characters
+          visible: true
+          alignment: "left"
+          display_name: "Node ID"
+        name:
+          limit: 25
+          width_percent: 25      # 25% of terminal width
+          min_width: 15          # Minimum 15 characters
+          max_width: 40          # Maximum 40 characters
+          visible: true
+          alignment: "left"
+          display_name: "Node Name"
+        status:
+          limit: 15
+          width_percent: 15      # 15% of terminal width
+          min_width: 8           # Minimum 8 characters
+          max_width: 20          # Maximum 20 characters
+          visible: true
+          alignment: "center"
+          display_name: "Status"
+        availability:
+          limit: 15
+          width_percent: 15      # 15% of terminal width
+          min_width: 10          # Minimum 10 characters
+          max_width: 20          # Maximum 20 characters
+          visible: true
+          alignment: "center"
+          display_name: "Availability"
+        role:
+          limit: 10
+          width_percent: 10      # 10% of terminal width
+          min_width: 6           # Minimum 6 characters
+          max_width: 15          # Maximum 15 characters
+          visible: true
+          alignment: "center"
+          display_name: "Role"
+        engine:
+          limit: 25
+          width_percent: 15      # 20% of terminal width
+          min_width: 15          # Minimum 15 characters
+          max_width: 35          # Maximum 35 characters
+          visible: true
+          alignment: "left"
+          display_name: "Engine"
+        manager_status:
+          limit: 15
+          width_percent: 15      # 15% of terminal width
+          min_width: 10          # Minimum 10 characters
+          max_width: 20          # Maximum 20 characters
+          visible: true
+          alignment: "center"
+          display_name: "Manager Status"
+
+    "Swarm Services":
+      columns:
+        id:
+          limit: 12
+          width_percent: 15      # 15% of terminal width
+          min_width: 10          # Minimum 10 characters
+          max_width: 20          # Maximum 20 characters
+          visible: true
+          alignment: "left"
+          display_name: "Service ID"
+        name:
+          limit: 25
+          width_percent: 30      # 30% of terminal width
+          min_width: 15          # Minimum 15 characters
+          max_width: 50          # Maximum 50 characters
+          visible: true
+          alignment: "left"
+          display_name: "Service Name"
+        mode:
+          limit: 15
+          width_percent: 15      # 15% of terminal width
+          min_width: 10          # Minimum 10 characters
+          max_width: 20          # Maximum 20 characters
+          visible: true
+          alignment: "center"
+          display_name: "Mode"
+        replicas:
+          limit: 15
+          width_percent: 15      # 15% of terminal width
+          min_width: 8           # Minimum 8 characters
+          max_width: 20          # Maximum 20 characters
+          visible: true
+          alignment: "center"
+          display_name: "Replicas"
+        image:
+          limit: 35
+          width_percent: 25      # 25% of terminal width
+          min_width: 20          # Minimum 20 characters
+          max_width: 50          # Maximum 50 characters
+          visible: true
+          alignment: "left"
+          display_name: "Image"

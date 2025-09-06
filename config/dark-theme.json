@@ -39,20 +39,283 @@
     "title": "#00FF00"
   },
   "tableLimits": {
-    "id": 12,
-    "name": 25,
-    "image": 35,
-    "status": 15,
-    "state": 10,
-    "ports": 20,
-    "created": 15,
-    "size": 12,
-    "driver": 12,
-    "mountpoint": 40,
-    "repository": 30,
-    "tag": 15,
-    "network": 20,
-    "scope": 10,
-    "description": 40
+    "views": {
+      "containers": {
+        "columns": {
+          "id": {
+            "limit": 12,
+            "width_percent": 20,
+            "min_width": 12,
+            "max_width": 30,
+            "visible": true,
+            "alignment": "right",
+            "display_name": "Container ID"
+          },
+          "name": {
+            "limit": 25,
+            "width_percent": 25,
+            "min_width": 15,
+            "max_width": 40,
+            "visible": true,
+            "alignment": "left",
+            "display_name": "Name"
+          },
+          "image": {
+            "limit": 35,
+            "width_percent": 30,
+            "min_width": 20,
+            "max_width": 50,
+            "visible": true,
+            "alignment": "left",
+            "display_name": "Image"
+          },
+          "status": {
+            "limit": 15,
+            "width_percent": 15,
+            "min_width": 8,
+            "max_width": 20,
+            "visible": true,
+            "alignment": "center",
+            "display_name": "Status"
+          },
+          "state": {
+            "limit": 10,
+            "width_percent": 10,
+            "min_width": 6,
+            "max_width": 15,
+            "visible": true,
+            "alignment": "center",
+            "display_name": "State"
+          }
+        }
+      },
+      "images": {
+        "columns": {
+          "repository": {
+            "limit": 40,
+            "width_percent": 45,
+            "min_width": 25,
+            "max_width": 70,
+            "visible": true,
+            "alignment": "left",
+            "display_name": "Repository"
+          },
+          "tag": {
+            "limit": 20,
+            "width_percent": 20,
+            "min_width": 10,
+            "max_width": 30,
+            "visible": true,
+            "alignment": "left",
+            "display_name": "Tag"
+          },
+          "size": {
+            "limit": 15,
+            "width_percent": 15,
+            "min_width": 10,
+            "max_width": 20,
+            "visible": true,
+            "alignment": "right",
+            "display_name": "Size"
+          },
+          "created": {
+            "limit": 20,
+            "width_percent": 20,
+            "min_width": 15,
+            "max_width": 30,
+            "visible": true,
+            "alignment": "left",
+            "display_name": "Created"
+          }
+        }
+      },
+      "volumes": {
+        "columns": {
+          "name": {
+            "limit": 30,
+            "width_percent": 35,
+            "min_width": 20,
+            "max_width": 50,
+            "visible": true,
+            "alignment": "left",
+            "display_name": "Volume Name"
+          },
+          "driver": {
+            "limit": 15,
+            "width_percent": 15,
+            "min_width": 10,
+            "max_width": 25,
+            "visible": true,
+            "alignment": "left",
+            "display_name": "Driver"
+          },
+          "mountpoint": {
+            "limit": 50,
+            "width_percent": 50,
+            "min_width": 30,
+            "max_width": 80,
+            "visible": true,
+            "alignment": "left",
+            "display_name": "Mount Point"
+          }
+        }
+      },
+      "networks": {
+        "columns": {
+          "name": {
+            "limit": 25,
+            "width_percent": 30,
+            "min_width": 15,
+            "max_width": 40,
+            "visible": true,
+            "alignment": "left",
+            "display_name": "Network Name"
+          },
+          "driver": {
+            "limit": 15,
+            "width_percent": 15,
+            "min_width": 10,
+            "max_width": 25,
+            "visible": true,
+            "alignment": "left",
+            "display_name": "Driver"
+          },
+          "scope": {
+            "limit": 10,
+            "width_percent": 10,
+            "min_width": 6,
+            "max_width": 15,
+            "visible": true,
+            "alignment": "center",
+            "display_name": "Scope"
+          },
+          "subnet": {
+            "limit": 20,
+            "width_percent": 25,
+            "min_width": 15,
+            "max_width": 35,
+            "visible": true,
+            "alignment": "left",
+            "display_name": "Subnet"
+          },
+          "gateway": {
+            "limit": 20,
+            "width_percent": 20,
+            "min_width": 15,
+            "max_width": 30,
+            "visible": true,
+            "alignment": "left",
+            "display_name": "Gateway"
+          }
+        }
+      },
+      "Swarm Nodes": {
+        "columns": {
+          "id": {
+            "limit": 12,
+            "width_percent": 15,
+            "min_width": 10,
+            "max_width": 20,
+            "visible": true,
+            "alignment": "right",
+            "display_name": "Node ID"
+          },
+          "name": {
+            "limit": 25,
+            "width_percent": 25,
+            "min_width": 15,
+            "max_width": 40,
+            "visible": true,
+            "alignment": "left",
+            "display_name": "Node Name"
+          },
+          "status": {
+            "limit": 15,
+            "width_percent": 15,
+            "min_width": 8,
+            "max_width": 20,
+            "visible": true,
+            "alignment": "center",
+            "display_name": "Status"
+          },
+          "availability": {
+            "limit": 15,
+            "width_percent": 15,
+            "min_width": 10,
+            "max_width": 20,
+            "visible": true,
+            "alignment": "center",
+            "display_name": "Availability"
+          },
+          "role": {
+            "limit": 10,
+            "width_percent": 10,
+            "min_width": 6,
+            "max_width": 15,
+            "visible": true,
+            "alignment": "center",
+            "display_name": "Role"
+          },
+          "engine": {
+            "limit": 25,
+            "width_percent": 20,
+            "min_width": 15,
+            "max_width": 35,
+            "visible": true,
+            "alignment": "left",
+            "display_name": "Engine"
+          }
+        }
+      },
+      "Swarm Services": {
+        "columns": {
+          "id": {
+            "limit": 12,
+            "width_percent": 15,
+            "min_width": 10,
+            "max_width": 20,
+            "visible": true,
+            "alignment": "right",
+            "display_name": "Service ID"
+          },
+          "name": {
+            "limit": 25,
+            "width_percent": 30,
+            "min_width": 15,
+            "max_width": 50,
+            "visible": true,
+            "alignment": "left",
+            "display_name": "Service Name"
+          },
+          "mode": {
+            "limit": 15,
+            "width_percent": 15,
+            "min_width": 10,
+            "max_width": 20,
+            "visible": true,
+            "alignment": "center",
+            "display_name": "Mode"
+          },
+          "replicas": {
+            "limit": 15,
+            "width_percent": 15,
+            "min_width": 8,
+            "max_width": 20,
+            "visible": true,
+            "alignment": "center",
+            "display_name": "Replicas"
+          },
+          "image": {
+            "limit": 35,
+            "width_percent": 25,
+            "min_width": 20,
+            "max_width": 50,
+            "visible": true,
+            "alignment": "left",
+            "display_name": "Image"
+          }
+        }
+      }
+    }
   }
 }

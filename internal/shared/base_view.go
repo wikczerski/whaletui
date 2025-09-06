@@ -272,7 +272,12 @@ func (bv *BaseView[T]) updateItemsAndTable(items []T) {
 	bv.table.SetFixed(1, 0)
 
 	// Ensure headers are always visible
-	builders.NewTableBuilder().SetupHeaders(bv.table, bv.headers)
+	if bv.formatter != nil && len(bv.columnTypes) > 0 {
+		builders.NewTableBuilder().SetupHeadersWithConfigForView(
+			bv.table, bv.headers, bv.columnTypes, bv.formatter, bv.viewName)
+	} else {
+		builders.NewTableBuilder().SetupHeaders(bv.table, bv.headers)
+	}
 
 	// Only populate rows if we have items and a formatter
 	if bv.FormatRow != nil && len(items) > 0 {
@@ -294,8 +299,8 @@ func (bv *BaseView[T]) populateTableRows(items []T) {
 
 		// Use character limits if formatter and column types are available
 		if bv.formatter != nil && len(bv.columnTypes) > 0 {
-			builders.NewTableBuilder().SetupRowWithLimits(
-				bv.table, i+1, cells, bv.columnTypes, rowColor, bv.formatter)
+			builders.NewTableBuilder().SetupRowWithLimitsForView(
+				bv.table, i+1, cells, bv.columnTypes, rowColor, bv.formatter, bv.viewName)
 		} else {
 			builders.NewTableBuilder().SetupRow(bv.table, i+1, cells, rowColor)
 		}

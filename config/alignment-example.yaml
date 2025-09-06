@@ -1,0 +1,203 @@
+# Example configuration file demonstrating per-view column configuration
+# This file shows how to customize table columns (alignment, width, visibility) in WhaleTUI
+#
+# Default column widths are now automatically applied:
+# - ID columns: 15 characters
+# - Name columns: 35 characters  
+# - Image columns: 45 characters
+# - Status columns: 25 characters
+# - Size columns: 18 characters
+# - And many more sensible defaults for better readability
+#
+# NEW: Per-view configurations allow different settings for each view:
+# - containers: Container-specific column settings
+# - images: Image-specific column settings  
+# - volumes: Volume-specific column settings
+# - networks: Network-specific column settings
+# - swarm/services: Swarm service-specific column settings
+# - swarm/nodes: Swarm node-specific column settings
+
+colors:
+  header: "yellow"
+  border: "white"
+  text: "white"
+  background: "default"
+  success: "green"
+  warning: "yellow"
+  error: "red"
+  info: "blue"
+
+# Table configuration
+tableLimits:
+  # Per-view column configurations
+  views:
+    containers:
+      columns:
+        id:
+          limit: 12
+          width_percent: 15      # 25% of terminal width
+          min_width: 15          # Minimum 15 characters
+          max_width: 40          # Maximum 40 characters
+          visible: true
+          alignment: "left"
+          display_name: "Container ID"
+        name:
+          limit: 25
+          width: 30
+          visible: true
+          alignment: "left"
+          display_name: "Container Name"
+        image:
+          limit: 40
+          width: 40
+          visible: true
+          alignment: "left"
+          display_name: "Image"
+        status:
+          limit: 20
+          width: 18
+          visible: true
+          alignment: "right"
+          display_name: "Status"
+        state:
+          limit: 12
+          width: 15
+          visible: true
+          alignment: "right"
+          display_name: "State"
+        ports:
+          limit: 30
+          width: 35
+          visible: true
+          alignment: "right"
+          display_name: "Ports"
+        created:
+          limit: 25
+          width: 22
+          visible: true
+          alignment: "right"
+          display_name: "Created"
+      custom_columns:
+        uptime:
+          limit: 15
+          width: 18
+          visible: true
+          alignment: "right"
+          display_name: "Uptime"
+
+    images:
+      columns:
+        id:
+          limit: 12
+          width: 15
+          visible: true
+          alignment: "center"
+          display_name: "Image ID"
+        repository:
+          limit: 40
+          width: 50
+          visible: true
+          alignment: "left"
+          display_name: "Repository"
+        tag:
+          limit: 20
+          width: 25
+          visible: true
+          alignment: "left"
+          display_name: "Tag"
+        size:
+          limit: 15
+          width: 18
+          visible: true
+          alignment: "right"
+          display_name: "Size"
+        created:
+          limit: 20
+          width: 22
+          visible: true
+          alignment: "right"
+          display_name: "Created"
+        containers:
+          limit: 10
+          width: 12
+          visible: true
+          alignment: "right"
+          display_name: "Containers"
+      custom_columns:
+        layers:
+          limit: 10
+          width: 12
+          visible: true
+          alignment: "right"
+          display_name: "Layers"
+
+    volumes:
+      columns:
+        name:
+          limit: 30
+          width: 35
+          visible: true
+          alignment: "left"
+          display_name: "Volume Name"
+        driver:
+          limit: 15
+          width: 18
+          visible: true
+          alignment: "left"
+          display_name: "Driver"
+        mountpoint:
+          limit: 50
+          width: 60
+          visible: true
+          alignment: "left"
+          display_name: "Mount Point"
+        created:
+          limit: 20
+          width: 22
+          visible: true
+          alignment: "right"
+          display_name: "Created"
+        size:
+          limit: 15
+          width: 18
+          visible: true
+          alignment: "right"
+          display_name: "Size"
+      custom_columns:
+        usage:
+          limit: 15
+          width: 18
+          visible: true
+          alignment: "right"
+          display_name: "Usage %"
+
+# Shell theme configuration
+shell:
+  border: "white"
+  title: "yellow"
+  text: "white"
+  background: "default"
+  cmd:
+    label: "white"
+    border: "white"
+    text: "white"
+    background: "default"
+    placeholder: "gray"
+
+# Container exec theme configuration
+containerExec:
+  label: "white"
+  border: "white"
+  text: "white"
+  background: "default"
+  placeholder: "gray"
+  title: "yellow"
+
+# Command mode theme configuration
+commandMode:
+  label: "white"
+  border: "white"
+  text: "white"
+  background: "default"
+  placeholder: "gray"
+  title: "yellow"
