@@ -471,21 +471,22 @@ WhaleTUI seamlessly integrates swarm management with other Docker operations:
 
 ### Keyboard Shortcuts
 
-- `:swarm` - Switch to Swarm view
-- `n` - View nodes (TBD - may not be implemented yet)
-- `v` - View services (TBD - may not be implemented yet)
-- `t` - View tasks (TBD - may not be implemented yet)
+- `:swarm` - Switch to Swarm Services view
+- `:services` - Switch to Swarm Services view (alternative)
+- `:nodes` - Switch to Swarm Nodes view
 - `Enter` - Inspect selected item
+- `i` - Inspect selected item
+- `ESC` - Close modal or go back
 
-> **Note**: Some features marked as TBD (To Be Determined) may not be fully implemented in the current version of WhaleTUI. Check the latest release notes for current feature availability.
+> **Note**: Swarm management in WhaleTUI provides views for both services and nodes. For creating, modifying, and removing swarm resources, use the Docker CLI directly.
 
-### Context Menus
+### Available Actions
 
 Use keyboard shortcuts and navigation for quick access to:
-- Service management
-- Node operations
-- Stack deployment
-- Configuration editing
+- Service inspection and details
+- Node inspection and details
+- Viewing swarm information
+- Container management (via Docker CLI)
 
 ## Next Steps
 

@@ -38,9 +38,9 @@ Each container displays key information:
 
 ```bash
 # Using WhaleTUI UI
-1. Navigate to Containers tab
-2. Select a stopped container
-3. Press 's' to start a container
+1. Press ':' then type 'containers' to navigate to Containers view
+2. Select a stopped container using arrow keys
+3. Press 's' to start the container
 4. Container will begin running
 
 # Using Docker CLI (alternative)
@@ -51,8 +51,8 @@ docker start <container_id>
 
 ```bash
 # Using WhaleTUI UI
-1. Select a running container
-2. Press 'S' to stop a container
+1. Select a running container using arrow keys
+2. Press 'S' to stop the container
 3. Container will stop gracefully
 
 # Using Docker CLI (alternative)
@@ -63,8 +63,8 @@ docker stop <container_id>
 
 ```bash
 # Using WhaleTUI UI
-1. Select a container (running or stopped)
-2. Press 'r' to restart a container
+1. Select a container (running or stopped) using arrow keys
+2. Press 'r' to restart the container
 3. Container will restart with the same configuration
 
 # Using Docker CLI (alternative)
@@ -91,53 +91,23 @@ docker rm <container_id>
 
 ```bash
 # Using WhaleTUI UI
-1. Select a container
+1. Select a container using arrow keys
 2. Press 'l' to open logs view
-3. Navigate through log entries
-4. Press 'Enter' to return to main view
+3. Navigate through log entries using arrow keys
+4. Press 'ESC' to return to main view
 
 # Using Docker CLI (alternative)
 docker logs <container_id>
 ```
 
-### Executing Commands
-
-```bash
-# Using WhaleTUI UI - Single Command Execution
-1. Select a running container using arrow keys
-2. Press 'e' to execute a single command
-3. Enter the command to run
-4. View command output
-5. Return to container list
-
-# Using WhaleTUI UI - Interactive Shell (Attach)
-1. Select a running container using arrow keys
-2. Press 'a' to attach to container's main process
-3. Interact with the running application
-4. Use Ctrl+C or Ctrl+D to detach
-
-# Using Docker CLI - Single Command
-docker exec <container_id> <command>
-docker exec my-container ls -la
-
-# Using Docker CLI - Interactive Shell
-docker exec -it <container_id> /bin/bash
-docker attach <container_id>
-```
-
-### Key Differences
-
-- **Exec (`e`)**: Runs a single command and returns to WhaleTUI
-- **Attach (`a`)**: Connects to the container's main process for interactive use
-
 ### Inspecting Containers
 
 ```bash
 # Using WhaleTUI UI
-1. Select a container
-2. Press 'i' to view detailed information
-3. Review configuration, networking, and resources
-4. Press 'BackSpace' to return to main view
+1. Select a container using arrow keys
+2. Press 'i' to inspect the container
+3. View detailed information in JSON format
+4. Press 'ESC' to return to main view
 
 # Using Docker CLI (alternative)
 docker inspect <container_id>
@@ -153,8 +123,7 @@ Containers can be configured with environment variables:
 # Set environment variables when running
 docker run -e VAR_NAME=value -e ANOTHER_VAR=value image_name
 
-# In WhaleTUI, use the Run dialog to configure environment variables
-# TBD
+# Environment variables can be configured when creating containers
 ```
 
 ### Port Mappings
@@ -165,8 +134,7 @@ Expose container ports to the host:
 # Map host port 8080 to container port 80
 docker run -p 8080:80 nginx
 
-# In WhaleTUI, configure port mappings in the Run dialog
-# TBD
+# Port mappings can be configured when creating containers
 ```
 
 ### Volume Mounts
@@ -177,8 +145,7 @@ Persist data between container runs:
 # Mount host directory to container
 docker run -v /host/path:/container/path image_name
 
-# In WhaleTUI, configure volume mounts in the Run dialog
-# TBD
+# Volume mounts can be configured when creating containers
 ```
 
 ## Container Resource Management
@@ -191,8 +158,7 @@ Set limits on container resource usage:
 # Limit memory and CPU
 docker run --memory=512m --cpus=1.0 image_name
 
-# In WhaleTUI, configure resource limits in the Run dialog
-# TBD
+# Resource limits can be configured when creating containers
 ```
 
 ### Resource Monitoring
@@ -230,8 +196,7 @@ Regularly clean up unused containers:
 # Remove stopped containers
 docker container prune
 
-# In WhaleTUI, use the Cleanup action to remove stopped containers
-# TBD
+# Use Docker CLI to clean up stopped containers
 ```
 
 ### Health Checks

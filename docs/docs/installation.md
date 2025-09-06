@@ -10,10 +10,10 @@ This guide will walk you through installing WhaleTUI on your system. WhaleTUI is
 
 ## Prerequisites
 
-Before installing WhaleTUI, ensure you have the following following prerequisites:
+Before installing WhaleTUI, ensure you have the following prerequisites:
 
 - **Docker**: WhaleTUI requires Docker to be installed and running on your system
-- **Go 1.21+**: Required for building from source
+- **Go 1.25+**: Required for building from source
 - **Git**: For cloning the repository
 
 ## Installation Methods
@@ -72,12 +72,12 @@ cd whaletui
 
 ```bash
 # Build for your current platform
-go build -o bin/whaletui cmd/root.go
+go build -o whaletui .
 
 # Build for specific platforms
-GOOS=linux GOARCH=amd64 go build -o bin/whaletui-linux-amd64 cmd/root.go
-GOOS=darwin GOARCH=amd64 go build -o bin/whaletui-darwin-amd64 cmd/root.go
-GOOS=windows GOARCH=amd64 go build -o bin/whaletui-windows-amd64.exe cmd/root.go
+GOOS=linux GOARCH=amd64 go build -o whaletui-linux-amd64 .
+GOOS=darwin GOARCH=amd64 go build -o whaletui-darwin-amd64 .
+GOOS=windows GOARCH=amd64 go build -o whaletui-windows-amd64.exe .
 ```
 
 #### Install the Built Binary
@@ -92,7 +92,7 @@ sudo mv bin/whaletui /usr/local/bin/
 If you have Go installed, you can install WhaleTUI directly:
 
 ```bash
-go install github.com/wikczerski/whaletui/cmd/root@latest
+go install github.com/wikczerski/whaletui@latest
 ```
 
 ## Verification
@@ -112,26 +112,24 @@ WhaleTUI version 1.0.0
 
 WhaleTUI uses configuration files to customize its behavior. The default configuration file is located at:
 
-- **Linux/macOS**: `~/.config/whaletui/config.yaml`
-- **Windows**: `%APPDATA%\whaletui\config.yaml`
+- **Linux/macOS**: `~/.whaletui/config.json`
+- **Windows**: `%USERPROFILE%\.whaletui\config.json`
 
 ### Basic Configuration
 
 Create a basic configuration file:
 
-```yaml
-# ~/.config/whaletui/config.yaml
-docker:
-  host: "unix:///var/run/docker.sock"
-  timeout: 30s
-
-ui:
-  theme: "dark"
-  refresh_rate: 1s
-
-logging:
-  level: "info"
-  file: "~/.local/share/whaletui/logs/whaletui.log"
+```json
+{
+  "refresh_interval": 5,
+  "log_level": "INFO",
+  "log_file_path": "./logs/whaletui.log",
+  "docker_host": "unix:///var/run/docker.sock",
+  "theme": "default",
+  "remote_host": "",
+  "remote_user": "",
+  "remote_port": 2375
+}
 ```
 
 ## Docker Integration
@@ -213,6 +211,5 @@ To remove WhaleTUI from your system:
 sudo rm /usr/local/bin/whaletui
 
 # Remove configuration files
-rm -rf ~/.config/whaletui
-rm -rf ~/.local/share/whaletui
+rm -rf ~/.whaletui
 ```

@@ -402,20 +402,18 @@ WhaleTUI seamlessly integrates network management with other Docker operations:
 ### Keyboard Shortcuts
 
 - `:networks` - Switch to Networks view
-- `c` - Create new network (TBD - may not be implemented yet)
-- `i` - Inspect network details (TBD - may not be implemented yet)
-- `r` - Remove network (TBD - may not be implemented yet)
 - `Enter` - View network details
+- `i` - Inspect network details
+- `ESC` - Close modal or go back
 
-> **Note**: Some features marked as TBD (To Be Determined) may not be fully implemented in the current version of WhaleTUI. Check the latest release notes for current feature availability.
+> **Note**: Network management in WhaleTUI currently focuses on viewing and inspecting networks. For creating, modifying, and removing networks, use the Docker CLI directly.
 
-### Context Menus
+### Available Actions
 
 Use keyboard shortcuts and navigation for quick access to:
-- Network inspection
-- Container management
-- Configuration editing
-- Removal options
+- Network inspection and details
+- Viewing network information
+- Container management (via Docker CLI)
 
 ## Next Steps
 

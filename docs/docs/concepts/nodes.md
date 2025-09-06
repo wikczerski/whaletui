@@ -351,22 +351,19 @@ WhaleTUI seamlessly integrates node management with other Docker operations:
 
 ### Keyboard Shortcuts
 
-- `:nodes` - Switch to Nodes view
-- `p` - Promote worker to manager (TBD - may not be implemented yet)
-- `d` - Demote manager to worker (TBD - may not be implemented yet)
-- `a` - Update node availability (TBD - may not be implemented yet)
+- `:nodes` - Switch to Swarm Nodes view
 - `Enter` - Inspect selected node
+- `i` - Inspect selected node
+- `ESC` - Close modal or go back
 
-> **Note**: Some features marked as TBD (To Be Determined) may not be fully implemented in the current version of WhaleTUI. Check the latest release notes for current feature availability.
+> **Note**: Node management in WhaleTUI currently focuses on viewing and inspecting nodes. For promoting, demoting, and updating node availability, use the Docker CLI directly.
 
-### Context Menus
+### Available Actions
 
 Use keyboard shortcuts and navigation for quick access to:
-- Node inspection
-- Role management
-- Availability updates
-- Resource monitoring
-- Configuration editing
+- Node inspection and details
+- Viewing node information
+- Service management (via Docker CLI)
 
 ## Next Steps
 
