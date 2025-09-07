@@ -69,3 +69,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: docs/build
           cname: wikczerski.github.io
+          force_orphan: true
