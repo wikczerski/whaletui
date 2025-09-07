@@ -176,6 +176,52 @@ func (_c *MockUIInterface_GetCurrentActions_Call) RunAndReturn(run func() map[ru
 	return _c
 }
 
+// GetCurrentView provides a mock function for the type MockUIInterface
+func (_mock *MockUIInterface) GetCurrentView() interface{} {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetCurrentView")
+	}
+
+	var r0 interface{}
+	if returnFunc, ok := ret.Get(0).(func() interface{}); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(interface{})
+		}
+	}
+	return r0
+}
+
+// MockUIInterface_GetCurrentView_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetCurrentView'
+type MockUIInterface_GetCurrentView_Call struct {
+	*mock.Call
+}
+
+// GetCurrentView is a helper method to define mock.On call
+func (_e *MockUIInterface_Expecter) GetCurrentView() *MockUIInterface_GetCurrentView_Call {
+	return &MockUIInterface_GetCurrentView_Call{Call: _e.mock.On("GetCurrentView")}
+}
+
+func (_c *MockUIInterface_GetCurrentView_Call) Run(run func()) *MockUIInterface_GetCurrentView_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockUIInterface_GetCurrentView_Call) Return(ifaceVal interface{}) *MockUIInterface_GetCurrentView_Call {
+	_c.Call.Return(ifaceVal)
+	return _c
+}
+
+func (_c *MockUIInterface_GetCurrentView_Call) RunAndReturn(run func() interface{}) *MockUIInterface_GetCurrentView_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetCurrentViewActions provides a mock function for the type MockUIInterface
 func (_mock *MockUIInterface) GetCurrentViewActions() string {
 	ret := _mock.Called()

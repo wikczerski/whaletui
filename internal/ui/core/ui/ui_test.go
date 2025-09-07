@@ -531,7 +531,9 @@ func TestUI_ServiceFactoryIntegration(t *testing.T) {
 func TestUI_CommandModeState_InitiallyInactive(t *testing.T) {
 	// Test basic UI structure without full initialization
 	ui := &UI{
-		commandHandler: &handlers.CommandHandler{},
+		commandHandler: &handlers.CommandHandler{
+			BaseInputHandler: &handlers.BaseInputHandler{},
+		},
 	}
 
 	assert.False(t, ui.commandHandler.IsActive())
@@ -540,7 +542,9 @@ func TestUI_CommandModeState_InitiallyInactive(t *testing.T) {
 func TestUI_CommandModeState_HandlerExists(t *testing.T) {
 	// Test basic UI structure without full initialization
 	ui := &UI{
-		commandHandler: &handlers.CommandHandler{},
+		commandHandler: &handlers.CommandHandler{
+			BaseInputHandler: &handlers.BaseInputHandler{},
+		},
 	}
 
 	assert.NotNil(t, ui.commandHandler)

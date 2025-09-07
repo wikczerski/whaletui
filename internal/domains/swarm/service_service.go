@@ -134,6 +134,21 @@ func (s *ServiceService) GetActionsString() string {
 	return "<i>: Inspect\n<s>: Scale\n<r>: Remove\n<l>: Logs"
 }
 
+// GetNavigation returns the available navigation options for swarm services as a map
+func (s *ServiceService) GetNavigation() map[rune]string {
+	return map[rune]string{
+		'↑': "Up",
+		'↓': "Down",
+		':': "Command",
+		'/': "Filter",
+	}
+}
+
+// GetNavigationString returns the available navigation options for swarm services as a formatted string
+func (s *ServiceService) GetNavigationString() string {
+	return "↑/↓: Navigate\n<:> Command mode\n/: Filter"
+}
+
 // convertToSharedService converts a Docker swarm service to shared service
 func (s *ServiceService) convertToSharedService(dockerService any) shared.SwarmService {
 	service, ok := dockerService.(swarm.Service)

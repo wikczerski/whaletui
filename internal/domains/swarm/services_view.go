@@ -24,7 +24,7 @@ type ServicesView struct {
 
 // NewServicesView creates a new swarm services view
 func NewServicesView(
-	ui interfaces.UIInterface,
+	ui shared.SharedUIInterface,
 	serviceService *ServiceService,
 	modalManager interfaces.ModalManagerInterface,
 	headerManager interfaces.HeaderManagerInterface,
@@ -624,7 +624,7 @@ func (v *ServicesView) getActions() map[rune]string {
 }
 
 // setupCharacterLimits sets up character limits for table columns
-func (v *ServicesView) setupCharacterLimits(ui interfaces.UIInterface) {
+func (v *ServicesView) setupCharacterLimits(ui shared.SharedUIInterface) {
 	// Define column types for swarm services table: ID, Name, Image, Mode, Replicas, Status, Created
 	columnTypes := []string{"id", "name", "image", "mode", "replicas", "status", "created"}
 	v.SetColumnTypes(columnTypes)

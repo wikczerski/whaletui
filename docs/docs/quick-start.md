@@ -45,7 +45,19 @@ WhaleTUI uses command mode for switching between different Docker resources:
 
 Use `↑/↓` arrows to navigate within each view and `Enter` to select items.
 
-### 2. View Your Containers
+### 2. Search and Filter Items
+
+WhaleTUI includes powerful search functionality to quickly find specific items:
+
+- Press `/` to enter search mode
+- Type your search term to filter items in real-time
+- Press `Enter` to keep the search active and hide the search input
+- Press `/` again to restore your previous search
+- Press `ESC` to clear the search and return to full view
+
+The search works across all visible columns and supports partial matches.
+
+### 3. View Your Containers
 
 Start by pressing `:` then typing `containers` to view the **Containers** view and see what's currently running on your system.
 
@@ -56,7 +68,7 @@ If you don't have any containers running, you can start one:
 docker run -d --name nginx-test nginx:alpine
 ```
 
-### 3. Basic Container Operations
+### 4. Basic Container Operations
 
 With a container running, you can:
 
@@ -81,6 +93,7 @@ With a container running, you can:
 | `↑/↓` | Navigate items |
 | `Enter` | Select item or view details |
 | `ESC` | Close modal or go back |
+| `/` | **Filter/Search** - Search and filter items in current view |
 
 ### Global Actions
 | Key | Action |

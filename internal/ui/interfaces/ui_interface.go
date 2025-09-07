@@ -59,4 +59,7 @@ type UIInterface interface {
 
 	// Shutdown management
 	GetShutdownChan() chan struct{}
+
+	// Search functionality
+	GetCurrentView() any
 }

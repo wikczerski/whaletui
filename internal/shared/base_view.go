@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -30,8 +31,8 @@ type ServiceFactoryInterface interface {
 	IsContainerServiceAvailable() bool
 }
 
-// UIInterface defines the interface that views need from the UI
-type UIInterface interface {
+// SharedUIInterface defines the interface that views need from the UI
+type SharedUIInterface interface {
 	// Basic UI methods
 	ShowError(error)
 	ShowInfo(string)
@@ -57,13 +58,19 @@ type UIInterface interface {
 
 // BaseView provides common functionality for all Docker resource views
 type BaseView[T any] struct {
-	ui       UIInterface
+	ui       SharedUIInterface
 	view     *tview.Flex
 	table    *tview.Table
 	items    []T
 	headers  []string
 	viewName string
 	log      *slog.Logger
+
+	// Search functionality
+	searchTerm     string
+	filteredItems  []T
+	originalItems  []T // Store original items separately from current display
+	isSearchActive bool
 
 	// Callbacks for specific behavior
 	ListItems           func(ctx context.Context) ([]T, error)
@@ -81,7 +88,7 @@ type BaseView[T any] struct {
 }
 
 // NewBaseView creates a new base view with common functionality
-func NewBaseView[T any](ui UIInterface, viewName string, headers []string) *BaseView[T] {
+func NewBaseView[T any](ui SharedUIInterface, viewName string, headers []string) *BaseView[T] {
 	view := builders.NewViewBuilder().CreateView()
 	table := builders.NewTableBuilder().CreateTable()
 	builders.NewTableBuilder().SetupHeaders(table, headers)
@@ -107,7 +114,7 @@ func (bv *BaseView[T]) GetView() tview.Primitive {
 }
 
 // GetUI returns the UI interface for this view
-func (bv *BaseView[T]) GetUI() UIInterface {
+func (bv *BaseView[T]) GetUI() SharedUIInterface {
 	return bv.ui
 }
 
@@ -142,7 +149,7 @@ func (bv *BaseView[T]) SetFormatter(formatter *utils.TableFormatter) {
 }
 
 // RefreshFormatter updates the formatter with the latest theme configuration
-func (bv *BaseView[T]) RefreshFormatter(ui UIInterface) {
+func (bv *BaseView[T]) RefreshFormatter(ui SharedUIInterface) {
 	if ui != nil {
 		themeManager := ui.GetThemeManager()
 		if themeManager != nil {
@@ -164,6 +171,10 @@ func (bv *BaseView[T]) GetSelectedItem() *T {
 
 // Refresh updates the view by fetching and displaying the latest items
 func (bv *BaseView[T]) Refresh() {
+	bv.log.Info("BaseView.Refresh called",
+		"isSearchActive", bv.isSearchActive,
+		"searchTerm", bv.searchTerm)
+
 	if bv.ListItems == nil {
 		return
 	}
@@ -177,7 +188,21 @@ func (bv *BaseView[T]) Refresh() {
 		return
 	}
 
-	bv.updateItemsAndTable(items)
+	bv.log.Info("Refresh got items from ListItems", "count", len(items))
+
+	// Store the original items
+	bv.originalItems = make([]T, len(items))
+	copy(bv.originalItems, items)
+
+	// If we're in search mode, apply local filtering
+	if bv.isSearchActive && bv.searchTerm != "" {
+		bv.log.Info("Refresh applying local filter")
+		filteredItems := bv.filterItems(bv.searchTerm)
+		bv.updateItemsAndTable(filteredItems)
+	} else {
+		bv.log.Info("Refresh showing all items")
+		bv.updateItemsAndTable(items)
+	}
 }
 
 // ShowItemDetails displays detailed information about a selected item
@@ -261,6 +286,13 @@ func (bv *BaseView[T]) handleActionKey(event *tcell.EventKey, item T) *tcell.Eve
 func (bv *BaseView[T]) updateItemsAndTable(items []T) {
 	// Store items first to ensure they're available for selection
 	bv.items = items
+
+	// Always store as original items when not in search mode
+	// This ensures we have the original data for filtering
+	if !bv.isSearchActive {
+		bv.originalItems = make([]T, len(items))
+		copy(bv.originalItems, items)
+	}
 
 	// Completely clear the table to prevent leftover content
 	bv.table.Clear()
@@ -420,4 +452,87 @@ func (bv *BaseView[T]) createDetailsView(item T) tview.Primitive {
 	details.SetText(fmt.Sprintf("ID: %s\nName: %s", bv.GetItemID(item), bv.GetItemName(item)))
 
 	return details
+}
+
+// Search filters the items based on the search term
+func (bv *BaseView[T]) Search(searchTerm string) {
+	bv.log.Info("BaseView.Search called", "term", searchTerm)
+	bv.searchTerm = searchTerm
+	bv.isSearchActive = searchTerm != ""
+	bv.log.Info("Search state set", "isSearchActive", bv.isSearchActive)
+
+	if bv.isSearchActive {
+		bv.log.Info("Using local filtering")
+		// Use local filtering
+		bv.filteredItems = bv.filterItems(searchTerm)
+		bv.updateItemsAndTable(bv.filteredItems)
+	} else {
+		bv.log.Info("Clearing search")
+		// Show all original items
+		bv.updateItemsAndTable(bv.originalItems)
+	}
+}
+
+// ClearSearch clears the search and shows all items
+func (bv *BaseView[T]) ClearSearch() {
+	bv.searchTerm = ""
+	bv.isSearchActive = false
+	bv.filteredItems = nil
+	bv.updateItemsAndTable(bv.originalItems)
+}
+
+// IsSearchActive returns whether search is currently active
+func (bv *BaseView[T]) IsSearchActive() bool {
+	return bv.isSearchActive
+}
+
+// GetSearchTerm returns the current search term
+func (bv *BaseView[T]) GetSearchTerm() string {
+	return bv.searchTerm
+}
+
+// filterItems filters items based on the search term
+func (bv *BaseView[T]) filterItems(searchTerm string) []T {
+	if searchTerm == "" {
+		return bv.originalItems
+	}
+
+	searchLower := strings.ToLower(searchTerm)
+	var filtered []T
+
+	for _, item := range bv.originalItems {
+		if bv.matchesSearch(item, searchLower) {
+			filtered = append(filtered, item)
+		}
+	}
+
+	return filtered
+}
+
+// matchesSearch checks if an item matches the search term
+func (bv *BaseView[T]) matchesSearch(item T, searchLower string) bool {
+	// Search in all visible columns by formatting the row and checking each cell
+	if bv.FormatRow != nil {
+		cells := bv.FormatRow(item)
+		for _, cell := range cells {
+			if strings.Contains(strings.ToLower(cell), searchLower) {
+				return true
+			}
+		}
+	}
+
+	// Also search in item ID and name if available
+	if bv.GetItemID != nil {
+		if strings.Contains(strings.ToLower(bv.GetItemID(item)), searchLower) {
+			return true
+		}
+	}
+
+	if bv.GetItemName != nil {
+		if strings.Contains(strings.ToLower(bv.GetItemName(item)), searchLower) {
+			return true
+		}
+	}
+
+	return false
 }

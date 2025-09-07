@@ -13,15 +13,15 @@ import (
 
 // CommandHandler manages command mode functionality
 type CommandHandler struct {
-	ui           interfaces.UIInterface
-	commandInput *tview.InputField
-	isActive     bool
-	errorTimer   *time.Timer // Timer for clearing error messages
+	*BaseInputHandler
+	errorTimer *time.Timer // Timer for clearing error messages
 }
 
 // NewCommandHandler creates a new command handler
 func NewCommandHandler(ui interfaces.UIInterface) *CommandHandler {
-	return &CommandHandler{ui: ui}
+	return &CommandHandler{
+		BaseInputHandler: NewBaseInputHandler(ui),
+	}
 }
 
 // CreateCommandInput creates and configures the command input field
@@ -29,41 +29,23 @@ func (ch *CommandHandler) CreateCommandInput() *tview.InputField {
 	ch.commandInput = tview.NewInputField()
 	ch.configureCommandInput()
 	ch.hideCommandInput()
+	ch.SetInput(ch.commandInput)
 	return ch.commandInput
 }
 
 // Enter activates command mode
 func (ch *CommandHandler) Enter() {
-	ch.isActive = true
+	ch.SetActive(true)
 	ch.showCommandInput()
-	mainFlex, ok := ch.ui.GetMainFlex().(*tview.Flex)
-	if !ok {
-		return
-	}
-	mainFlex.AddItem(ch.commandInput, 3, 1, true)
-	app, ok := ch.ui.GetApp().(*tview.Application)
-	if !ok {
-		return
-	}
-	app.SetFocus(ch.commandInput)
+	ch.ShowInput()
 }
 
 // Exit deactivates command mode
 func (ch *CommandHandler) Exit() {
-	ch.isActive = false
-	ch.clearError()
+	ch.SetActive(false)
+	ch.ClearError()
 	ch.cleanupCommandInput()
 	ch.restoreFocus()
-}
-
-// IsActive returns whether command mode is currently active
-func (ch *CommandHandler) IsActive() bool {
-	return ch.isActive
-}
-
-// GetInput returns the command input widget
-func (ch *CommandHandler) GetInput() *tview.InputField {
-	return ch.commandInput
 }
 
 // HandleInput processes command input
@@ -76,10 +58,11 @@ func (ch *CommandHandler) HandleInput(key tcell.Key) {
 		}
 		// If processCommand returns false, don't exit - let the error message show
 	case tcell.KeyEscape:
+		// In command mode, Escape exits
 		ch.Exit()
 	case tcell.KeyRune:
 		// User is typing - clear any error message
-		ch.clearError()
+		ch.ClearError()
 	}
 }
 
@@ -94,6 +77,7 @@ func (ch *CommandHandler) configureCommandInput() {
 // setupBasicStyling sets up the basic styling for the command input
 func (ch *CommandHandler) setupBasicStyling(themeManager *config.ThemeManager) {
 	ch.commandInput.SetLabel(": ")
+	ch.commandInput.SetTitle(" Command Mode ")
 	ch.commandInput.SetLabelColor(themeManager.GetCommandModeLabelColor())
 	ch.commandInput.SetFieldTextColor(themeManager.GetCommandModeTextColor())
 	ch.commandInput.SetBorder(true)
@@ -103,10 +87,10 @@ func (ch *CommandHandler) setupBasicStyling(themeManager *config.ThemeManager) {
 // setupAdvancedStyling sets up the advanced styling for the command input
 func (ch *CommandHandler) setupAdvancedStyling(themeManager *config.ThemeManager) {
 	ch.commandInput.SetTitle(" Command Mode ")
-	ch.commandInput.SetTitleColor(themeManager.GetCommandModeTitleColor())
-	ch.commandInput.SetBackgroundColor(themeManager.GetCommandModeBackgroundColor())
 	placeholder := "Type view name (containers, images, volumes, networks, swarm services, swarm nodes)"
 	ch.commandInput.SetPlaceholder(placeholder)
+	ch.commandInput.SetTitleColor(themeManager.GetCommandModeTitleColor())
+	ch.commandInput.SetBackgroundColor(themeManager.GetCommandModeBackgroundColor())
 	ch.commandInput.SetPlaceholderTextColor(themeManager.GetCommandModePlaceholderColor())
 }
 

@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -23,8 +24,16 @@ func (ui *UI) shouldSkipGlobalKeyBindings() bool {
 
 // routeKeyBinding routes the key binding to the appropriate handler
 func (ui *UI) routeKeyBinding(event *tcell.EventKey) *tcell.EventKey {
-	if ui.app.GetFocus() == ui.commandHandler.GetInput() {
+	currentFocus := ui.app.GetFocus()
+	commandInput := ui.commandHandler.GetInput()
+	searchInput := ui.searchHandler.GetInput()
+
+	if currentFocus == commandInput {
 		return ui.handleCommandModeKeyBindings(event)
+	}
+
+	if currentFocus == searchInput {
+		return ui.handleSearchModeKeyBindings(event)
 	}
 
 	if ui.isExecCommandInputActive() {
@@ -36,6 +45,38 @@ func (ui *UI) routeKeyBinding(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	return ui.handleNormalModeKeyBindings(event)
+}
+
+// handleSearchModeKeyBindings handles key bindings when in search mode
+func (ui *UI) handleSearchModeKeyBindings(event *tcell.EventKey) *tcell.EventKey {
+	// Handle special keys
+	switch event.Key() {
+	case tcell.KeyEnter:
+		ui.searchHandler.HandleInput(event.Key())
+		return nil
+	case tcell.KeyEscape:
+		ui.searchHandler.HandleInput(event.Key())
+		return nil
+	case tcell.KeyRune, tcell.KeyBackspace, tcell.KeyBackspace2:
+		// For typing and backspace, let the input field handle it first
+		// Then manually trigger search with the updated text
+		result := event
+		// Let the input field process the key first
+		if ui.searchHandler.GetInput() != nil {
+			// The input field will update its text, then we trigger search
+			go func() {
+				// Small delay to let the input field update
+				time.Sleep(1 * time.Millisecond)
+				text := ui.searchHandler.GetInput().GetText()
+				ui.log.Info("Key binding goroutine calling ProcessSearch", "text", text)
+				ui.searchHandler.ProcessSearch(text)
+			}()
+		}
+		return result
+	default:
+		// Let the input field handle other keys
+		return event
+	}
 }
 
 // handleCommandModeKeyBindings handles key bindings when in command mode
@@ -155,6 +196,11 @@ func (ui *UI) handleCommandModeKey(event *tcell.EventKey) bool {
 	if event.Rune() == ':' {
 		ui.log.Info("Entering command mode")
 		ui.commandHandler.Enter()
+		return true
+	}
+	if event.Rune() == '/' {
+		ui.log.Info("Entering search mode")
+		ui.searchHandler.Enter()
 		return true
 	}
 	return false

@@ -22,6 +22,7 @@ func (ui *UI) initializeManagers(themePath string) error {
 	ui.viewRegistry = core.NewViewRegistry()
 	// Managers are now passed as parameters to avoid circular imports
 	ui.commandHandler = handlers.NewCommandHandler(ui)
+	ui.searchHandler = handlers.NewSearchHandler(ui)
 
 	return nil
 }
@@ -52,6 +53,7 @@ func (ui *UI) setupHeaderAndCommandInput() {
 	ui.headerManager.UpdateNavigation()
 	ui.headerManager.UpdateActions()
 	ui.commandInput = ui.commandHandler.CreateCommandInput()
+	ui.searchInput = ui.searchHandler.CreateSearchInput()
 }
 
 // setupMainLayout sets up the main layout with proper heights and direction
