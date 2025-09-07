@@ -40,6 +40,7 @@ type UI struct {
 	viewRegistry   *core.ViewRegistry
 	headerManager  interfaces.HeaderManagerInterface
 	commandHandler *handlers.CommandHandler
+	searchHandler  *handlers.SearchHandler
 	modalManager   interfaces.ModalManagerInterface
 
 	// Individual views
@@ -65,6 +66,7 @@ type UI struct {
 	// UI components
 	headerSection *tview.Flex
 	commandInput  *tview.InputField
+	searchInput   *tview.InputField
 }
 
 // New creates a new UI

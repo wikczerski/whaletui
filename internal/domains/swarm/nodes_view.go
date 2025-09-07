@@ -25,7 +25,7 @@ type NodesView struct {
 // getUI safely gets the UI interface
 // NewNodesView creates a new swarm nodes view
 func NewNodesView(
-	ui shared.UIInterface,
+	ui interfaces.UIInterface,
 	nodeService *NodeService,
 	modalManager interfaces.ModalManagerInterface,
 	headerManager interfaces.HeaderManagerInterface,
@@ -49,7 +49,7 @@ func NewNodesView(
 	return view
 }
 
-func (v *NodesView) getUI() shared.UIInterface {
+func (v *NodesView) getUI() shared.SharedUIInterface {
 	return v.GetUI()
 }
 
@@ -473,7 +473,7 @@ func (v *NodesView) handleAction(key rune, node *shared.SwarmNode) {
 }
 
 // setupCharacterLimits sets up character limits for table columns
-func (v *NodesView) setupCharacterLimits(ui shared.UIInterface) {
+func (v *NodesView) setupCharacterLimits(ui interfaces.UIInterface) {
 	// Define column types for swarm nodes table:
 	// ID, Hostname, Role, Availability, Status, Manager Status, Engine Version, Address
 	columnTypes := []string{

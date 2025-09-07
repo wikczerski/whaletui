@@ -90,3 +90,18 @@ func (s *networkService) GetActionsString() string {
 	return "<r> Remove\n<h> History\n<f> Filter\n<t> Sort\n<i> Inspect\n<enter> Details\n" +
 		"<up/down> Navigate\n<?> Help\n<f5> Refresh\n<:> Command"
 }
+
+// GetNavigation returns the available navigation options for networks as a map
+func (s *networkService) GetNavigation() map[rune]string {
+	return map[rune]string{
+		'↑': "Up",
+		'↓': "Down",
+		':': "Command",
+		'/': "Filter",
+	}
+}
+
+// GetNavigationString returns the available navigation options for networks as a formatted string
+func (s *networkService) GetNavigationString() string {
+	return "↑/↓: Navigate\n<:> Command mode\n/: Filter"
+}

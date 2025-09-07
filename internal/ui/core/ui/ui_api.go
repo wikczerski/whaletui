@@ -184,6 +184,37 @@ func (ui *UI) GetViewRegistry() any {
 	return ui.viewRegistry
 }
 
+// GetCurrentView returns the currently active view
+func (ui *UI) GetCurrentView() any {
+	// Get the current view name from the view registry
+	currentView := ui.viewRegistry.GetCurrent()
+	currentViewName := ""
+	if currentView != nil {
+		currentViewName = currentView.Name
+	}
+
+	switch currentViewName {
+	case "containers":
+		return ui.containersView
+	case "images":
+		return ui.imagesView
+	case "volumes":
+		return ui.volumesView
+	case "networks":
+		return ui.networksView
+	case "logs":
+		return ui.logsView
+	case "shell":
+		return ui.shellView
+	case "swarm services":
+		return ui.swarmServicesView
+	case "swarm nodes":
+		return ui.swarmNodesView
+	default:
+		return nil
+	}
+}
+
 // GetMainFlex returns the main flex container
 func (ui *UI) GetMainFlex() any {
 	return ui.mainFlex

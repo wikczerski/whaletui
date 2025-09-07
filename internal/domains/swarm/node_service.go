@@ -119,6 +119,21 @@ func (n *NodeService) GetActionsString() string {
 	return "<i>: Inspect\n<a>: Update Availability\n<r>: Remove"
 }
 
+// GetNavigation returns the available navigation options for swarm nodes as a map
+func (n *NodeService) GetNavigation() map[rune]string {
+	return map[rune]string{
+		'↑': "Up",
+		'↓': "Down",
+		':': "Command",
+		'/': "Filter",
+	}
+}
+
+// GetNavigationString returns the available navigation options for swarm nodes as a formatted string
+func (n *NodeService) GetNavigationString() string {
+	return "↑/↓: Navigate\n<:> Command mode\n/: Filter"
+}
+
 // convertToSharedNode converts a Docker swarm node to shared node
 // nolint:gocritic // Docker API requires value parameter for compatibility
 func (n *NodeService) convertToSharedNode(node swarm.Node) shared.SwarmNode {

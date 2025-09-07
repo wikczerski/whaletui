@@ -13,6 +13,7 @@ A terminal-based Docker management tool inspired by k9s, providing an intuitive 
 - **Image Management** - Browse, pull, remove, and inspect Docker images
 - **Volume Management** - Manage Docker volumes and their data
 - **Network Management** - Configure and manage Docker networks
+- **Real-time Search & Filtering** - Quick search across all views with `/` key
 - **Real-time Monitoring** - Live updates of container status and resource usage
 - **Theme Support** - Customizable color schemes and UI appearance
 - **Column Configuration** - Customize table columns with responsive widths, alignment, and visibility
@@ -54,6 +55,19 @@ go build -o whaletui
 2. **Navigate the Interface** - Use arrow keys, Tab, and Enter to navigate
 
 3. **Container Operations** - Select containers and use keyboard shortcuts for actions
+
+4. **Search & Filter** - Press `/` to search and filter items across all views
+
+### Search & Filtering
+
+WhaleTUI includes powerful search functionality:
+
+- **Quick Search**: Press `/` to enter search mode
+- **Real-time Filtering**: Search updates as you type
+- **Cross-column Search**: Search across all visible columns
+- **Search Persistence**: Press `Enter` to keep search active
+- **Search Restoration**: Press `/` again to restore previous search
+- **Clear Search**: Press `ESC` to clear and return to full view
 
 ### Remote Host Connection
 

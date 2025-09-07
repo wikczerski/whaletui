@@ -2,9 +2,11 @@ package container
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/wikczerski/whaletui/internal/docker"
+	"github.com/wikczerski/whaletui/internal/logger"
 	"github.com/wikczerski/whaletui/internal/shared"
 	"github.com/wikczerski/whaletui/internal/shared/interfaces"
 )
@@ -12,6 +14,7 @@ import (
 type containerService struct {
 	*shared.BaseService[shared.Container]
 	operations *shared.CommonOperations
+	log        *slog.Logger
 }
 
 // NewContainerService creates a new container service
@@ -26,6 +29,7 @@ func NewContainerService(client *docker.Client) interfaces.ContainerService {
 	return &containerService{
 		BaseService: base,
 		operations:  ops,
+		log:         logger.GetLogger(),
 	}
 }
 
@@ -178,11 +182,12 @@ func (s *containerService) GetNavigation() map[rune]string {
 		'↑': "Up",
 		'↓': "Down",
 		':': "Command",
+		'/': "Filter",
 	}
 }
 
 // GetNavigationString returns the available navigation options for containers as a formatted string
 // This is where navigation for the current view starts
 func (s *containerService) GetNavigationString() string {
-	return "↑/↓: Navigate\n<:> Command mode"
+	return "↑/↓: Navigate\n<:> Command mode\n/: Filter"
 }

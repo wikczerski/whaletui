@@ -36,6 +36,50 @@ func (_m *MockDockerInfo) EXPECT() *MockDockerInfo_Expecter {
 	return &MockDockerInfo_Expecter{mock: &_m.Mock}
 }
 
+// GetConnectionMethod provides a mock function for the type MockDockerInfo
+func (_mock *MockDockerInfo) GetConnectionMethod() string {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetConnectionMethod")
+	}
+
+	var r0 string
+	if returnFunc, ok := ret.Get(0).(func() string); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+	return r0
+}
+
+// MockDockerInfo_GetConnectionMethod_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetConnectionMethod'
+type MockDockerInfo_GetConnectionMethod_Call struct {
+	*mock.Call
+}
+
+// GetConnectionMethod is a helper method to define mock.On call
+func (_e *MockDockerInfo_Expecter) GetConnectionMethod() *MockDockerInfo_GetConnectionMethod_Call {
+	return &MockDockerInfo_GetConnectionMethod_Call{Call: _e.mock.On("GetConnectionMethod")}
+}
+
+func (_c *MockDockerInfo_GetConnectionMethod_Call) Run(run func()) *MockDockerInfo_GetConnectionMethod_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockDockerInfo_GetConnectionMethod_Call) Return(s string) *MockDockerInfo_GetConnectionMethod_Call {
+	_c.Call.Return(s)
+	return _c
+}
+
+func (_c *MockDockerInfo_GetConnectionMethod_Call) RunAndReturn(run func() string) *MockDockerInfo_GetConnectionMethod_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetLoggingDriver provides a mock function for the type MockDockerInfo
 func (_mock *MockDockerInfo) GetLoggingDriver() string {
 	ret := _mock.Called()
