@@ -391,60 +391,77 @@ func extractTableLimits(other any) *TableLimits {
 
 // mergeConfigurationFields merges column configurations and view configurations
 func (tl *TableLimits) mergeConfigurationFields(other *TableLimits) {
-	// Merge global column configurations
-	if other.Columns != nil {
-		if tl.Columns == nil {
-			tl.Columns = make(map[string]ColumnConfig)
-		}
-		for key, value := range other.Columns {
-			if existing, exists := tl.Columns[key]; exists {
-				existing.MergeWith(value)
-				tl.Columns[key] = existing
-			} else {
-				tl.Columns[key] = value
-			}
+	tl.mergeGlobalColumns(other)
+	tl.mergeCustomColumns(other)
+	tl.mergeViewConfigurations(other)
+	tl.mergeAlignmentOverrides(other)
+}
+
+// mergeGlobalColumns merges global column configurations
+func (tl *TableLimits) mergeGlobalColumns(other *TableLimits) {
+	if other.Columns == nil {
+		return
+	}
+	if tl.Columns == nil {
+		tl.Columns = make(map[string]ColumnConfig)
+	}
+	for key, value := range other.Columns {
+		if existing, exists := tl.Columns[key]; exists {
+			existing.MergeWith(value)
+			tl.Columns[key] = existing
+		} else {
+			tl.Columns[key] = value
 		}
 	}
+}
 
-	// Merge global custom columns
-	if other.CustomColumns != nil {
-		if tl.CustomColumns == nil {
-			tl.CustomColumns = make(map[string]ColumnConfig)
-		}
-		for key, value := range other.CustomColumns {
-			if existing, exists := tl.CustomColumns[key]; exists {
-				existing.MergeWith(value)
-				tl.CustomColumns[key] = existing
-			} else {
-				tl.CustomColumns[key] = value
-			}
+// mergeCustomColumns merges global custom column configurations
+func (tl *TableLimits) mergeCustomColumns(other *TableLimits) {
+	if other.CustomColumns == nil {
+		return
+	}
+	if tl.CustomColumns == nil {
+		tl.CustomColumns = make(map[string]ColumnConfig)
+	}
+	for key, value := range other.CustomColumns {
+		if existing, exists := tl.CustomColumns[key]; exists {
+			existing.MergeWith(value)
+			tl.CustomColumns[key] = existing
+		} else {
+			tl.CustomColumns[key] = value
 		}
 	}
+}
 
-	// Merge per-view configurations
-	if other.Views != nil {
-		if tl.Views == nil {
-			tl.Views = make(map[string]ViewConfig)
-		}
-		for key, value := range other.Views {
-			if existing, exists := tl.Views[key]; exists {
-				existing.MergeWith(value)
-				tl.Views[key] = existing
-			} else {
-				tl.Views[key] = value
-			}
+// mergeViewConfigurations merges per-view configurations
+func (tl *TableLimits) mergeViewConfigurations(other *TableLimits) {
+	if other.Views == nil {
+		return
+	}
+	if tl.Views == nil {
+		tl.Views = make(map[string]ViewConfig)
+	}
+	for key, value := range other.Views {
+		if existing, exists := tl.Views[key]; exists {
+			existing.MergeWith(value)
+			tl.Views[key] = existing
+		} else {
+			tl.Views[key] = value
 		}
 	}
+}
 
-	// Merge alignment overrides (deprecated, use Columns instead)
-	if other.AlignmentOverrides != nil {
-		if tl.AlignmentOverrides == nil {
-			tl.AlignmentOverrides = make(map[string]string)
-		}
-		for key, value := range other.AlignmentOverrides {
-			if value != "" {
-				tl.AlignmentOverrides[key] = value
-			}
+// mergeAlignmentOverrides merges alignment overrides (deprecated)
+func (tl *TableLimits) mergeAlignmentOverrides(other *TableLimits) {
+	if other.AlignmentOverrides == nil {
+		return
+	}
+	if tl.AlignmentOverrides == nil {
+		tl.AlignmentOverrides = make(map[string]string)
+	}
+	for key, value := range other.AlignmentOverrides {
+		if value != "" {
+			tl.AlignmentOverrides[key] = value
 		}
 	}
 }

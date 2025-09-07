@@ -426,26 +426,23 @@ func (sf *ServiceFactory) SetCurrentService(serviceName string) {
 
 // getServiceByType returns the service based on the service type
 func (sf *ServiceFactory) getServiceByType(serviceType string) any {
-	switch serviceType {
-	case constants.ViewContainers:
-		return sf.ContainerService
-	case constants.ViewImages:
-		return sf.ImageService
-	case constants.ViewVolumes:
-		return sf.VolumeService
-	case constants.ViewNetworks:
-		return sf.NetworkService
-	case constants.ViewDockerInfo:
-		return sf.DockerInfoService
-	case constants.ViewLogs:
-		return sf.LogsService
-	case constants.ViewSwarmServices:
-		return sf.SwarmServiceService
-	case constants.ViewSwarmNodes:
-		return sf.SwarmNodeService
-	default:
-		return nil
+	// Map of service types to their corresponding services
+	serviceMap := map[string]any{
+		constants.ViewContainers:    sf.ContainerService,
+		constants.ViewImages:        sf.ImageService,
+		constants.ViewVolumes:       sf.VolumeService,
+		constants.ViewNetworks:      sf.NetworkService,
+		constants.ViewDockerInfo:    sf.DockerInfoService,
+		constants.ViewLogs:          sf.LogsService,
+		constants.ViewSwarmServices: sf.SwarmServiceService,
+		constants.ViewSwarmNodes:    sf.SwarmNodeService,
 	}
+
+	if service, exists := serviceMap[serviceType]; exists {
+		return service
+	}
+	// Return nil for unknown service types
+	return nil
 }
 
 // checkServiceAvailability checks if a specific service is available

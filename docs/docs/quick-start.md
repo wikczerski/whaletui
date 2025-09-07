@@ -158,6 +158,17 @@ WhaleTUI supports multiple themes:
 
 Change themes in the configuration file by setting the `theme` field to your desired theme name.
 
+### Column Configuration
+
+WhaleTUI provides extensive column customization options:
+
+- **Responsive Widths**: Set column widths as percentages of terminal width
+- **Alignment Control**: Right-align numerical data, left-align text
+- **Visibility Toggle**: Show/hide specific columns per view
+- **Custom Headers**: Set custom display names for columns
+
+Learn more about [Column Configuration](concepts/column-configuration.md) and see [Configuration Examples](concepts/configuration-examples.md) for practical setups.
+
 ## Next Steps
 
 Now that you're comfortable with the basics:

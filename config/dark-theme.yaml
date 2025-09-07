@@ -43,15 +43,15 @@ tableLimits:
       columns:
         id:
           limit: 12
-          width_percent: 12      # 20% of terminal width
+          width_percent: 14      # 20% of terminal width
           min_width: 12          # Minimum 12 characters
           max_width: 30          # Maximum 30 characters
           visible: true
-          alignment: "left"
+          alignment: "center"
           display_name: "Container ID"
         name:
-          limit: 25
-          width_percent: 25      # 25% of terminal width
+          limit: 30
+          width_percent: 30      # 25% of terminal width
           min_width: 15          # Minimum 15 characters
           max_width: 40          # Maximum 40 characters
           visible: true
@@ -66,10 +66,10 @@ tableLimits:
           alignment: "left"
           display_name: "Image"
         status:
-          limit: 20
-          width_percent: 15      # 15% of terminal width
+          limit: 18
+          width_percent: 18      # 15% of terminal width
           min_width: 8           # Minimum 8 characters
-          max_width: 20          # Maximum 20 characters
+          max_width: 30          # Maximum 20 characters
           visible: true
           alignment: "right"
           display_name: "Status"
@@ -83,7 +83,7 @@ tableLimits:
           display_name: "State"
         ports:
           limit: 25
-          width_percent: 25      # 25% of terminal width
+          width_percent: 10      # 25% of terminal width
           min_width: 15          # Minimum 15 characters
           max_width: 40          # Maximum 40 characters
           visible: true
@@ -91,7 +91,7 @@ tableLimits:
           display_name: "Ports"
         created:
           limit: 25
-          width_percent: 15      # 25% of terminal width
+          width_percent: 20      # 25% of terminal width
           min_width: 15          # Minimum 15 characters
           max_width: 40          # Maximum 40 characters
           visible: true
@@ -247,15 +247,15 @@ tableLimits:
       columns:
         id:
           limit: 12
-          width_percent: 15      # 15% of terminal width
-          min_width: 10          # Minimum 10 characters
+          width_percent: 14      # 15% of terminal width
+          min_width: 12          # Minimum 10 characters
           max_width: 20          # Maximum 20 characters
           visible: true
           alignment: "left"
           display_name: "Node ID"
         name:
           limit: 25
-          width_percent: 25      # 25% of terminal width
+          width_percent: 15      # 25% of terminal width
           min_width: 15          # Minimum 15 characters
           max_width: 40          # Maximum 40 characters
           visible: true
@@ -301,6 +301,14 @@ tableLimits:
           visible: true
           alignment: "center"
           display_name: "Manager Status"
+        hostname:
+          limit: 25
+          width_percent: 10      # 25% of terminal width
+          min_width: 15          # Minimum 15 characters
+          max_width: 40          # Maximum 40 characters
+          visible: true
+          alignment: "left"
+          display_name: "Hostname"
 
     "Swarm Services":
       columns:
@@ -344,3 +352,11 @@ tableLimits:
           visible: true
           alignment: "left"
           display_name: "Image"
+        status:
+          limit: 15
+          width_percent: 15      # 15% of terminal width
+          min_width: 8           # Minimum 8 characters
+          max_width: 20          # Maximum 20 characters
+          visible: true
+          alignment: "center"
+          display_name: "Status"

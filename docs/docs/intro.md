@@ -23,6 +23,7 @@ WhaleTUI is designed to make Docker container management more accessible and eff
 - **Real-time Logs**: Monitor container logs in real-time
 - **Interactive Shell**: Built-in shell for advanced operations
 - **Theme Support**: Customizable color schemes and UI appearance
+- **Column Configuration**: Customize table columns with responsive widths, alignment, and visibility controls
 
 ## Why Choose WhaleTUI?
 

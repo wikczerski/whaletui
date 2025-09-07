@@ -5,6 +5,7 @@ import (
 
 	"github.com/rivo/tview"
 	"github.com/wikczerski/whaletui/internal/config"
+	"github.com/wikczerski/whaletui/internal/ui/constants"
 )
 
 // TableFormatter handles text truncation and alignment for table columns based on configuration
@@ -33,7 +34,8 @@ func (tf *TableFormatter) FormatCell(text string, columnType string) string {
 
 // FormatCellForView formats a single cell with view-specific character limits applied
 func (tf *TableFormatter) FormatCellForView(
-	text string, columnType string, viewName string) string {
+	text string, columnType string, viewName string,
+) string {
 	config := tf.GetColumnConfigForView(columnType, viewName)
 	return TruncateText(text, config.Limit)
 }
@@ -44,7 +46,9 @@ func (tf *TableFormatter) FormatCellSmart(text string, columnType string) string
 }
 
 // FormatCellSmartForView formats a single cell with view-specific smart word boundary truncation
-func (tf *TableFormatter) FormatCellSmartForView(text string, columnType string, viewName string) string {
+func (tf *TableFormatter) FormatCellSmartForView(
+	text string, columnType string, viewName string,
+) string {
 	config := tf.GetColumnConfigForView(columnType, viewName)
 	return TruncateTextSmart(text, config.Limit)
 }
@@ -94,24 +98,9 @@ func (tf *TableFormatter) GetColumnConfigForView(columnType, viewName string) co
 	}
 
 	// Check per-view configuration first (highest priority)
-	if viewName != "" && tf.limits.Views != nil {
-		if viewConfig, exists := tf.limits.Views[viewName]; exists {
-			// Check in view-specific custom columns first
-			if viewConfig.CustomColumns != nil {
-				if customConfig, exists := viewConfig.CustomColumns[columnType]; exists {
-					defaultConfig.MergeWith(customConfig)
-					return defaultConfig
-				}
-			}
-
-			// Check in view-specific columns
-			if viewConfig.Columns != nil {
-				if columnConfig, exists := viewConfig.Columns[columnType]; exists {
-					defaultConfig.MergeWith(columnConfig)
-					return defaultConfig
-				}
-			}
-		}
+	if config := tf.getViewSpecificConfig(columnType, viewName); config != nil {
+		defaultConfig.MergeWith(*config)
+		return defaultConfig
 	}
 
 	// Check in global custom columns and merge
@@ -146,7 +135,9 @@ func (tf *TableFormatter) GetColumnWidthForView(columnType, viewName string) int
 
 // GetColumnWidthForViewWithTerminalSize returns the width for a specific column type in a specific view
 // with a given terminal width (0 means use default behavior)
-func (tf *TableFormatter) GetColumnWidthForViewWithTerminalSize(columnType, viewName string, terminalWidth int) int {
+func (tf *TableFormatter) GetColumnWidthForViewWithTerminalSize(
+	columnType, viewName string, terminalWidth int,
+) int {
 	config := tf.GetColumnConfigForView(columnType, viewName)
 
 	// If percentage width is specified, calculate from terminal width
@@ -232,176 +223,53 @@ func (tf *TableFormatter) parseAlignmentString(alignment string) int {
 	}
 }
 
+// getViewSpecificConfig returns view-specific configuration if found
+func (tf *TableFormatter) getViewSpecificConfig(columnType, viewName string) *config.ColumnConfig {
+	if viewName == "" || tf.limits.Views == nil {
+		return nil
+	}
+	viewConfig, exists := tf.limits.Views[viewName]
+	if !exists {
+		return nil
+	}
+	// Check in view-specific custom columns first
+	if viewConfig.CustomColumns != nil {
+		if customConfig, exists := viewConfig.CustomColumns[columnType]; exists {
+			return &customConfig
+		}
+	}
+	// Check in view-specific columns
+	if viewConfig.Columns != nil {
+		if columnConfig, exists := viewConfig.Columns[columnType]; exists {
+			return &columnConfig
+		}
+	}
+	return nil
+}
+
 // getDefaultAlignmentForColumn returns the default alignment for a column type
 func (tf *TableFormatter) getDefaultAlignmentForColumn(columnType string) int {
-	switch strings.ToLower(columnType) {
-	// Right-aligned columns for numerical data and IDs
-	case "id":
-		return tview.AlignRight
-	case "size":
-		return tview.AlignRight
-	case "containers":
-		return tview.AlignRight
-	case "created":
-		return tview.AlignRight
-	case "replicas":
-		return tview.AlignRight
-	case "engine_version":
-		return tview.AlignRight
-	// Left-aligned columns for text-based content
-	case "name":
-		return tview.AlignLeft
-	case "image":
-		return tview.AlignLeft
-	case "repository":
-		return tview.AlignLeft
-	case "tag":
-		return tview.AlignLeft
-	case "driver":
-		return tview.AlignLeft
-	case "mountpoint":
-		return tview.AlignLeft
-	case "network":
-		return tview.AlignLeft
-	case "scope":
-		return tview.AlignLeft
-	case "description":
-		return tview.AlignLeft
-	case "hostname":
-		return tview.AlignLeft
-	case "address":
-		return tview.AlignLeft
-	case "ports":
-		return tview.AlignLeft
-	// Status and state can be either - default to left for consistency
-	case "status":
-		return tview.AlignRight
-	case "state":
-		return tview.AlignRight
-	case "mode":
-		return tview.AlignLeft
-	case "role":
-		return tview.AlignLeft
-	case "availability":
-		return tview.AlignLeft
-	case "manager_status":
-		return tview.AlignLeft
-	default:
-		// Default to left alignment for unknown column types
-		return tview.AlignLeft
+	if alignment, exists := constants.DefaultColumnAlignments[strings.ToLower(columnType)]; exists {
+		return alignment
 	}
+	// Default to left alignment for unknown column types
+	return tview.AlignLeft
 }
 
 // getLimitForColumn returns the default character limit for a specific column type
 func (tf *TableFormatter) getLimitForColumn(columnType string) int {
-	switch strings.ToLower(columnType) {
-	case "id":
-		return 12 // Container/Image IDs
-	case "name":
-		return 30 // Container/Volume names
-	case "image":
-		return 40 // Image names
-	case "status":
-		return 20 // Status messages
-	case "state":
-		return 15 // State values
-	case "ports":
-		return 25 // Port mappings
-	case "created":
-		return 20 // Created timestamps
-	case "size":
-		return 15 // Size values
-	case "driver":
-		return 15 // Volume drivers
-	case "mountpoint":
-		return 50 // Mount points
-	case "repository":
-		return 35 // Image repositories
-	case "tag":
-		return 20 // Image tags
-	case "network":
-		return 25 // Network names
-	case "scope":
-		return 15 // Network scope
-	case "description":
-		return 50 // General descriptions
-	case "containers":
-		return 10 // Container count
-	case "replicas":
-		return 10 // Replica count
-	case "engine_version":
-		return 15 // Engine version
-	case "hostname":
-		return 20 // Hostname
-	case "address":
-		return 20 // IP addresses
-	case "mode":
-		return 15 // Swarm mode
-	case "role":
-		return 12 // Swarm role
-	case "availability":
-		return 15 // Swarm availability
-	case "manager_status":
-		return 20 // Manager status
-	default:
-		// Default limit for unknown column types
-		return 30
+	if limit, exists := constants.DefaultColumnLimits[strings.ToLower(columnType)]; exists {
+		return limit
 	}
+	// Default limit for unknown column types
+	return 30
 }
 
 // getDefaultWidthForColumn returns sensible default widths for each column type
 func (tf *TableFormatter) getDefaultWidthForColumn(columnType string) int {
-	switch strings.ToLower(columnType) {
-	case "id":
-		return 15 // Container/Image IDs - slightly wider than limit for readability
-	case "name":
-		return 35 // Container/Volume names - wider for better readability
-	case "image":
-		return 80 // Image names - often long repository paths
-	case "status":
-		return 25 // Status messages - need space for status text
-	case "state":
-		return 18 // State values - running, stopped, etc.
-	case "ports":
-		return 30 // Port mappings - 0.0.0.0:8080->80/tcp format
-	case "created":
-		return 22 // Created timestamps - ISO format dates
-	case "size":
-		return 18 // Size values - 1.2GB, 500MB format
-	case "driver":
-		return 18 // Volume drivers - local, nfs, etc.
-	case "mountpoint":
-		return 55 // Mount points - often long paths
-	case "repository":
-		return 40 // Image repositories - docker.io/library/nginx
-	case "tag":
-		return 25 // Image tags - latest, v1.0.0, etc.
-	case "network":
-		return 30 // Network names - bridge, host, custom networks
-	case "scope":
-		return 18 // Network scope - local, global
-	case "description":
-		return 55 // General descriptions - can be long
-	case "containers":
-		return 12 // Container count - just numbers
-	case "replicas":
-		return 10 // Replica count - just numbers
-	case "engine_version":
-		return 20 // Engine version - 20.10.0 format
-	case "hostname":
-		return 25 // Hostname - server names
-	case "address":
-		return 20 // IP addresses - 192.168.1.100 format
-	case "mode":
-		return 15 // Swarm mode - replicated, global
-	case "role":
-		return 12 // Swarm role - manager, worker
-	case "availability":
-		return 15 // Swarm availability - active, pause, drain
-	case "manager_status":
-		return 25 // Manager status - leader, reachable, etc.
-	default:
-		// Default width for unknown column types
-		return 25
+	if width, exists := constants.DefaultColumnWidths[strings.ToLower(columnType)]; exists {
+		return width
 	}
+	// Default width for unknown column types
+	return 25
 }
