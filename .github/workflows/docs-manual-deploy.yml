@@ -65,13 +65,36 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: docs/build
-          cname: wikczerski.github.io
-          force_orphan: true
-          enable_jekyll: false
-          user_name: 'github-actions[bot]'
-          user_email: 'github-actions[bot]@users.noreply.github.com'
+        run: |
+          # Remove existing gh-pages branch if it exists
+          git branch -D gh-pages 2>/dev/null || true
+
+          # Create new orphaned gh-pages branch
+          git checkout --orphan gh-pages
+
+          # Remove all files from staging
+          git rm -rf . || true
+
+          # Copy built files
+          cp -r docs/build/* .
+
+          # Add all files
+          git add .
+
+          # Create .nojekyll file
+          touch .nojekyll
+          git add .nojekyll
+
+          # Create CNAME file
+          echo "wikczerski.github.io" > CNAME
+          git add CNAME
+
+          # Commit and push
+          git commit -m "Deploy documentation from commit ${{ github.sha }}"
+          git push -f origin gh-pages
