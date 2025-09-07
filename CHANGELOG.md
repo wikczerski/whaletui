@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-01-27
+
+### Added
+- **SSH Tunneling as Primary Connection Method**: Implemented SSH tunneling with local TCP port creation on remote machines
+- **Comprehensive Column Configuration System**: Added percentage-based column widths with min/max constraints
+- **Per-View Column Configurations**: Support for containers, images, volumes, networks, Swarm Nodes, and Swarm Services
+- **Column Visibility and Alignment Controls**: Custom column visibility, alignment (left, right, center), and display names
+
+### Changed
+- **SSH Connection Architecture**: Removed socat/netcat fallback methods, SSH tunneling is now the only connection method
+- **Column Width System**: Replaced fixed character limits with flexible percentage-based width system
+- **Navigation Method**: Updated documentation to reflect command mode (`:`) navigation instead of single-letter shortcuts
+
+### Fixed
+- **SSH Tunnel Connection Management**: Proper connection management and cleanup for SSH tunnels
+- **UI Template Parameter Count**: Fixed template parameter count issues in UI components
+- **View Name Case Sensitivity**: Fixed case sensitivity issues in TableFormatter
+- **Documentation Accuracy**: Updated all documentation to reflect actual implementation
+
+### Technical Improvements
+- **Code Cleanup**: Removed deprecated socat/netcat files and fallback methods
+- **Test Coverage**: Updated tests to match new SSH client signature and port range logic
+- **Architecture Simplification**: Streamlined connection architecture with single SSH tunneling method
+
 ## [0.3.0] - 2025-01-27
 
 ### Added
