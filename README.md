@@ -15,6 +15,7 @@ A terminal-based Docker management tool inspired by k9s, providing an intuitive 
 - **Network Management** - Configure and manage Docker networks
 - **Real-time Monitoring** - Live updates of container status and resource usage
 - **Theme Support** - Customizable color schemes and UI appearance
+- **Column Configuration** - Customize table columns with responsive widths, alignment, and visibility
 - **Remote Host Support** - Connect to remote Docker hosts via SSH
 - **Log Viewing** - Real-time container logs with search and filtering
 
@@ -112,6 +113,47 @@ colors:
 whaletui --theme config/custom-theme.yaml
 whaletui --theme config/theme.json
 ```
+
+### 📊 Column Configuration
+
+Customize table columns with responsive widths, alignment, and visibility controls:
+
+**YAML Configuration Example:**
+```yaml
+tableLimits:
+  views:
+    containers:
+      columns:
+        name:
+          width_percent: 40
+          min_width: 20
+          max_width: 60
+          alignment: "left"
+          display_name: "Container Name"
+        status:
+          width_percent: 20
+          alignment: "right"
+        ports:
+          width_percent: 25
+          visible: true
+```
+
+**Key Features:**
+- **Percentage-based widths** with min/max constraints
+- **Per-view configurations** for different data types
+- **Column visibility control** to show/hide specific columns
+- **Custom alignment** (left, right, center) for better readability
+- **Display name customization** for column headers
+
+For detailed configuration options, see our [Column Configuration Guide](https://wikczerski.github.io/whaletui/docs/concepts/column-configuration) and [Configuration Examples](https://wikczerski.github.io/whaletui/docs/concepts/configuration-examples).
+
+## 📚 Documentation
+
+- **[Installation Guide](https://wikczerski.github.io/whaletui/docs/installation)** - Setup and installation instructions
+- **[Quick Start Guide](https://wikczerski.github.io/whaletui/docs/quick-start)** - Get up and running quickly
+- **[Column Configuration](https://wikczerski.github.io/whaletui/docs/concepts/column-configuration)** - Customize table columns and layouts
+- **[Configuration Examples](https://wikczerski.github.io/whaletui/docs/concepts/configuration-examples)** - Practical configuration examples
+- **[Docker Concepts](https://wikczerski.github.io/whaletui/docs/concepts/containers)** - Learn about Docker management with WhaleTUI
 
 ## 🏗️ Architecture
 

@@ -181,7 +181,8 @@ func (tb *TableBuilder) SetupHeadersWithConfigForViewWithTerminalSize(
 	visibleColumnIndex := 0
 	for i, header := range headers {
 		// Skip hidden columns
-		if formatter != nil && i < len(columnTypes) && !formatter.IsColumnVisibleForView(columnTypes[i], viewName) {
+		if formatter != nil && i < len(columnTypes) &&
+			!formatter.IsColumnVisibleForView(columnTypes[i], viewName) {
 			continue
 		}
 
@@ -199,24 +200,8 @@ func (tb *TableBuilder) SetupHeadersWithConfigForViewWithTerminalSize(
 
 		// Set fixed width if configured
 		if formatter != nil && i < len(columnTypes) {
-			// Get terminal width if not provided
-			if terminalWidth <= 0 {
-				terminalWidth = tb.getTerminalWidth(table)
-			}
-			width := formatter.GetColumnWidthForViewWithTerminalSize(columnTypes[i], viewName, terminalWidth)
-			if width > 0 {
-				cell.SetExpansion(0)
-				// Pad the header content to the desired width
-				if len(displayHeader) < width {
-					// Center-pad the header with spaces to reach desired width
-					padding := width - len(displayHeader)
-					leftPad := padding / 2
-					rightPad := padding - leftPad
-					displayHeader = fmt.Sprintf("%*s%s%*s", leftPad, "", displayHeader, rightPad, "")
-				}
-				// Update the cell with padded content
-				cell.SetText(displayHeader)
-			}
+			tb.applyHeaderWidth(displayHeader, cell, formatter,
+				columnTypes[i], viewName, terminalWidth, table)
 		}
 
 		table.SetCell(0, visibleColumnIndex, cell)
@@ -302,10 +287,12 @@ func (tb *TableBuilder) SetupRowWithLimitsForView(
 	formatter *utils.TableFormatter,
 	viewName string,
 ) {
-	tb.SetupRowWithLimitsForViewWithTerminalSize(table, row, cells, columnTypes, textColor, formatter, viewName, 0)
+	tb.SetupRowWithLimitsForViewWithTerminalSize(table, row, cells, columnTypes,
+		textColor, formatter, viewName, 0)
 }
 
-// SetupRowWithLimitsForViewWithTerminalSize sets up a table row with view-specific character limits and alignment applied
+// SetupRowWithLimitsForViewWithTerminalSize sets up a table row with view-specific character limits
+// and alignment applied
 // with a given terminal width for percentage-based width calculations
 func (tb *TableBuilder) SetupRowWithLimitsForViewWithTerminalSize(
 	table *tview.Table,
@@ -320,7 +307,8 @@ func (tb *TableBuilder) SetupRowWithLimitsForViewWithTerminalSize(
 	visibleColumnIndex := 0
 	for i, cell := range cells {
 		// Skip hidden columns
-		if formatter != nil && i < len(columnTypes) && !formatter.IsColumnVisibleForView(columnTypes[i], viewName) {
+		if formatter != nil && i < len(columnTypes) &&
+			!formatter.IsColumnVisibleForView(columnTypes[i], viewName) {
 			continue
 		}
 
@@ -340,33 +328,8 @@ func (tb *TableBuilder) SetupRowWithLimitsForViewWithTerminalSize(
 
 		// Set fixed width if configured
 		if formatter != nil && i < len(columnTypes) {
-			// Get terminal width if not provided
-			if terminalWidth <= 0 {
-				terminalWidth = tb.getTerminalWidth(table)
-			}
-			width := formatter.GetColumnWidthForViewWithTerminalSize(columnTypes[i], viewName, terminalWidth)
-			if width > 0 {
-				tableCell.SetExpansion(0)
-				// Pad the content to the desired width based on alignment
-				if len(formattedCell) < width {
-					switch alignment {
-					case tview.AlignRight:
-						// Left-pad with spaces for right alignment
-						formattedCell = fmt.Sprintf("%*s", width, formattedCell)
-					case tview.AlignCenter:
-						// Center-pad with spaces
-						padding := width - len(formattedCell)
-						leftPad := padding / 2
-						rightPad := padding - leftPad
-						formattedCell = fmt.Sprintf("%*s%s%*s", leftPad, "", formattedCell, rightPad, "")
-					default: // tview.AlignLeft
-						// Right-pad with spaces for left alignment
-						formattedCell = fmt.Sprintf("%-*s", width, formattedCell)
-					}
-				}
-				// Update the cell with padded content
-				tableCell.SetText(formattedCell)
-			}
+			tb.applyRowWidth(formattedCell, tableCell, formatter,
+				columnTypes[i], viewName, terminalWidth, table, alignment)
 		}
 
 		table.SetCell(row, visibleColumnIndex, tableCell)
@@ -635,4 +598,66 @@ func (tb *TableBuilder) getTerminalWidth(table *tview.Table) int {
 	// For now, use a reasonable default terminal width
 	// TODO: Implement proper terminal width detection
 	return 120
+}
+
+// applyHeaderWidth applies width configuration to a header cell
+func (tb *TableBuilder) applyHeaderWidth(displayHeader string, cell *tview.TableCell,
+	formatter *utils.TableFormatter, columnType, viewName string,
+	terminalWidth int, table *tview.Table,
+) {
+	// Get terminal width if not provided
+	if terminalWidth <= 0 {
+		terminalWidth = tb.getTerminalWidth(table)
+	}
+	width := formatter.GetColumnWidthForViewWithTerminalSize(
+		columnType, viewName, terminalWidth)
+	if width > 0 {
+		cell.SetExpansion(0)
+		// Pad the header content to the desired width
+		if len(displayHeader) < width {
+			// Center-pad the header with spaces to reach desired width
+			padding := width - len(displayHeader)
+			leftPad := padding / 2
+			rightPad := padding - leftPad
+			displayHeader = fmt.Sprintf("%*s%s%*s", leftPad, "", displayHeader,
+				rightPad, "")
+		}
+		// Update the cell with padded content
+		cell.SetText(displayHeader)
+	}
+}
+
+// applyRowWidth applies width configuration to a row cell
+func (tb *TableBuilder) applyRowWidth(formattedCell string, tableCell *tview.TableCell,
+	formatter *utils.TableFormatter, columnType, viewName string,
+	terminalWidth int, table *tview.Table, alignment int,
+) {
+	// Get terminal width if not provided
+	if terminalWidth <= 0 {
+		terminalWidth = tb.getTerminalWidth(table)
+	}
+	width := formatter.GetColumnWidthForViewWithTerminalSize(
+		columnType, viewName, terminalWidth)
+	if width > 0 {
+		tableCell.SetExpansion(0)
+		// Pad the content to the desired width based on alignment
+		if len(formattedCell) < width {
+			switch alignment {
+			case tview.AlignRight:
+				// Left-pad with spaces for right alignment
+				formattedCell = fmt.Sprintf("%*s", width, formattedCell)
+			case tview.AlignCenter:
+				// Center-pad with spaces
+				padding := width - len(formattedCell)
+				leftPad := padding / 2
+				rightPad := padding - leftPad
+				formattedCell = fmt.Sprintf("%*s%s%*s", leftPad, "", formattedCell, rightPad, "")
+			default: // tview.AlignLeft
+				// Right-pad with spaces for left alignment
+				formattedCell = fmt.Sprintf("%-*s", width, formattedCell)
+			}
+		}
+		// Update the cell with padded content
+		tableCell.SetText(formattedCell)
+	}
 }

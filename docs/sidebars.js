@@ -14,6 +14,8 @@ const sidebars = {
         'concepts/volumes',
         'concepts/swarm',
         'concepts/nodes',
+        'concepts/column-configuration',
+        'concepts/configuration-examples',
       ],
     },
     {

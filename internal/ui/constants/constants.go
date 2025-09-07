@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
 )
 
 // View names
@@ -210,3 +211,137 @@ const (
 	HeaderContentWidth    = 25 // Width for general content columns (fallback)
 	HeaderLogoWidth       = 20 // Width for logo column
 )
+
+// Default column character limits
+var DefaultColumnLimits = map[string]int{
+	// Container/Image IDs
+	"id": 12,
+	// Container/Volume names
+	"name": 30,
+	// Image names
+	"image": 35,
+	// Status messages
+	"status": 18,
+	// State values
+	"state": 15,
+	// Port mappings
+	"ports": 25,
+	// Created timestamps
+	"created": 25,
+	// Size values
+	"size": 15,
+	// Volume drivers
+	"driver": 15,
+	// Mount points
+	"mountpoint": 50,
+	// Image repositories
+	"repository": 40,
+	// Image tags
+	"tag": 20,
+	// Network names
+	"network": 25,
+	// Network scope
+	"scope": 10,
+	// General descriptions
+	"description": 50,
+	// Container count
+	"containers": 12,
+	// Replica count
+	"replicas": 10,
+	// Engine version
+	"engine_version": 25,
+	// Hostname
+	"hostname": 25,
+	// IP addresses
+	"address": 20,
+	// Swarm mode
+	"mode": 15,
+	// Swarm role
+	"role": 10,
+	// Swarm availability
+	"availability": 15,
+	// Manager status
+	"manager_status": 15,
+}
+
+// Default column widths
+var DefaultColumnWidths = map[string]int{
+	// Container/Image IDs - slightly wider than limit for readability
+	"id": 15,
+	// Container/Volume names - wider for better readability
+	"name": 35,
+	// Image names - often long repository paths
+	"image": 35,
+	// Status messages - need space for status text
+	"status": 18,
+	// State values - running, stopped, etc.
+	"state": 15,
+	// Port mappings - 0.0.0.0:8080->80/tcp format
+	"ports": 30,
+	// Created timestamps - ISO format dates
+	"created": 25,
+	// Size values - 1.2GB, 500MB format
+	"size": 15,
+	// Volume drivers - local, nfs, etc.
+	"driver": 15,
+	// Mount points - often long paths
+	"mountpoint": 55,
+	// Image repositories - docker.io/library/nginx
+	"repository": 40,
+	// Image tags - latest, v1.0.0, etc.
+	"tag": 20,
+	// Network names - bridge, host, custom networks
+	"network": 25,
+	// Network scope - local, global
+	"scope": 10,
+	// General descriptions - can be long
+	"description": 55,
+	// Container count - just numbers
+	"containers": 10,
+	// Replica count - just numbers
+	"replicas": 10,
+	// Engine version - 20.10.0 format
+	"engine_version": 25,
+	// Hostname - server names
+	"hostname": 25,
+	// IP addresses - 192.168.1.100 format
+	"address": 20,
+	// Swarm mode - replicated, global
+	"mode": 15,
+	// Swarm role - manager, worker
+	"role": 10,
+	// Swarm availability - active, pause, drain
+	"availability": 15,
+	// Manager status - leader, reachable, etc.
+	"manager_status": 15,
+}
+
+// Default column alignments
+var DefaultColumnAlignments = map[string]int{
+	// Right-aligned columns for numerical data and IDs
+	"id":             tview.AlignRight,
+	"size":           tview.AlignRight,
+	"containers":     tview.AlignRight,
+	"created":        tview.AlignRight,
+	"replicas":       tview.AlignRight,
+	"engine_version": tview.AlignRight,
+	"status":         tview.AlignRight,
+	"state":          tview.AlignRight,
+	// Left-aligned columns for text-based content
+	"name":           tview.AlignLeft,
+	"image":          tview.AlignLeft,
+	"repository":     tview.AlignLeft,
+	"tag":            tview.AlignLeft,
+	"driver":         tview.AlignLeft,
+	"mountpoint":     tview.AlignLeft,
+	"network":        tview.AlignLeft,
+	"scope":          tview.AlignLeft,
+	"description":    tview.AlignLeft,
+	"hostname":       tview.AlignLeft,
+	"address":        tview.AlignLeft,
+	"ports":          tview.AlignLeft,
+	"mode":           tview.AlignLeft,
+	"role":           tview.AlignLeft,
+	"availability":   tview.AlignLeft,
+	"manager_status": tview.AlignLeft,
+}

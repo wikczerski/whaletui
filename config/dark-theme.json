@@ -44,16 +44,16 @@
         "columns": {
           "id": {
             "limit": 12,
-            "width_percent": 20,
+            "width_percent": 14,
             "min_width": 12,
             "max_width": 30,
             "visible": true,
-            "alignment": "right",
+            "alignment": "center",
             "display_name": "Container ID"
           },
           "name": {
-            "limit": 25,
-            "width_percent": 25,
+            "limit": 30,
+            "width_percent": 30,
             "min_width": 15,
             "max_width": 40,
             "visible": true,
@@ -70,30 +70,57 @@
             "display_name": "Image"
           },
           "status": {
-            "limit": 15,
-            "width_percent": 15,
+            "limit": 18,
+            "width_percent": 18,
             "min_width": 8,
-            "max_width": 20,
+            "max_width": 30,
             "visible": true,
-            "alignment": "center",
+            "alignment": "right",
             "display_name": "Status"
           },
           "state": {
-            "limit": 10,
+            "limit": 15,
             "width_percent": 10,
             "min_width": 6,
             "max_width": 15,
             "visible": true,
-            "alignment": "center",
+            "alignment": "right",
             "display_name": "State"
+          },
+          "ports": {
+            "limit": 25,
+            "width_percent": 10,
+            "min_width": 15,
+            "max_width": 40,
+            "visible": true,
+            "alignment": "right",
+            "display_name": "Ports"
+          },
+          "created": {
+            "limit": 25,
+            "width_percent": 20,
+            "min_width": 15,
+            "max_width": 40,
+            "visible": true,
+            "alignment": "right",
+            "display_name": "Created"
           }
         }
       },
       "images": {
         "columns": {
+          "id": {
+            "limit": 12,
+            "width_percent": 15,
+            "min_width": 10,
+            "max_width": 20,
+            "visible": true,
+            "alignment": "left",
+            "display_name": "Image ID"
+          },
           "repository": {
             "limit": 40,
-            "width_percent": 45,
+            "width_percent": 38,
             "min_width": 25,
             "max_width": 70,
             "visible": true,
@@ -102,7 +129,7 @@
           },
           "tag": {
             "limit": 20,
-            "width_percent": 20,
+            "width_percent": 10,
             "min_width": 10,
             "max_width": 30,
             "visible": true,
@@ -119,12 +146,12 @@
             "display_name": "Size"
           },
           "created": {
-            "limit": 20,
+            "limit": 30,
             "width_percent": 20,
             "min_width": 15,
             "max_width": 30,
             "visible": true,
-            "alignment": "left",
+            "alignment": "right",
             "display_name": "Created"
           }
         }
@@ -157,11 +184,38 @@
             "visible": true,
             "alignment": "left",
             "display_name": "Mount Point"
+          },
+          "created": {
+            "limit": 25,
+            "width_percent": 15,
+            "min_width": 15,
+            "max_width": 40,
+            "visible": true,
+            "alignment": "right",
+            "display_name": "Created"
+          },
+          "size": {
+            "limit": 15,
+            "width_percent": 15,
+            "min_width": 10,
+            "max_width": 20,
+            "visible": true,
+            "alignment": "right",
+            "display_name": "Size"
           }
         }
       },
       "networks": {
         "columns": {
+          "id": {
+            "limit": 12,
+            "width_percent": 15,
+            "min_width": 10,
+            "max_width": 20,
+            "visible": true,
+            "alignment": "left",
+            "display_name": "Network ID"
+          },
           "name": {
             "limit": 25,
             "width_percent": 30,
@@ -188,6 +242,15 @@
             "visible": true,
             "alignment": "center",
             "display_name": "Scope"
+          },
+          "created": {
+            "limit": 25,
+            "width_percent": 15,
+            "min_width": 15,
+            "max_width": 40,
+            "visible": true,
+            "alignment": "right",
+            "display_name": "Created"
           },
           "subnet": {
             "limit": 20,
@@ -217,7 +280,7 @@
             "min_width": 10,
             "max_width": 20,
             "visible": true,
-            "alignment": "right",
+            "alignment": "left",
             "display_name": "Node ID"
           },
           "name": {
@@ -258,12 +321,21 @@
           },
           "engine": {
             "limit": 25,
-            "width_percent": 20,
+            "width_percent": 15,
             "min_width": 15,
             "max_width": 35,
             "visible": true,
             "alignment": "left",
             "display_name": "Engine"
+          },
+          "manager_status": {
+            "limit": 15,
+            "width_percent": 15,
+            "min_width": 10,
+            "max_width": 20,
+            "visible": true,
+            "alignment": "center",
+            "display_name": "Manager Status"
           }
         }
       },
@@ -275,7 +347,7 @@
             "min_width": 10,
             "max_width": 20,
             "visible": true,
-            "alignment": "right",
+            "alignment": "left",
             "display_name": "Service ID"
           },
           "name": {
@@ -313,6 +385,15 @@
             "visible": true,
             "alignment": "left",
             "display_name": "Image"
+          },
+          "status": {
+            "limit": 15,
+            "width_percent": 15,
+            "min_width": 8,
+            "max_width": 20,
+            "visible": true,
+            "alignment": "center",
+            "display_name": "Status"
           }
         }
       }

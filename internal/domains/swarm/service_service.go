@@ -224,20 +224,11 @@ func getServiceStatus(updateStatus *swarm.UpdateStatus) string {
 		return "running"
 	}
 
-	switch updateStatus.State {
-	case swarm.UpdateStateUpdating:
+	// Only transform states that need it (most states map to themselves)
+	if updateStatus.State == swarm.UpdateStateUpdating {
 		return "updating"
-	case "paused":
-		return "paused"
-	case "completed":
-		return "completed"
-	case "rollback_completed":
-		return "rollback_completed"
-	case "rollback_paused":
-		return "rollback_paused"
-	case "rollback_in_progress":
-		return "rollback_in_progress"
-	default:
-		return "running"
 	}
+
+	// For all other states, return the state as-is (they're already strings)
+	return string(updateStatus.State)
 }

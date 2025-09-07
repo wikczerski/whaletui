@@ -408,24 +408,21 @@ func (hm *HeaderManager) getServiceForView(
 	services interfaces.ServiceFactoryInterface,
 	viewName string,
 ) any {
-	switch viewName {
-	case constants.ViewContainers:
-		return services.GetContainerService()
-	case constants.ViewImages:
-		return services.GetImageService()
-	case constants.ViewVolumes:
-		return services.GetVolumeService()
-	case constants.ViewNetworks:
-		return services.GetNetworkService()
-	case constants.ViewSwarmServices:
-		return services.GetSwarmServiceService()
-	case constants.ViewSwarmNodes:
-		return services.GetSwarmNodeService()
-	case constants.ViewDockerInfo:
-		return services.GetDockerInfoService()
-	case constants.ViewLogs:
-		return services.GetLogsService()
-	default:
-		return nil
+	// Map of view names to their corresponding services
+	serviceMap := map[string]any{
+		constants.ViewContainers:    services.GetContainerService(),
+		constants.ViewImages:        services.GetImageService(),
+		constants.ViewVolumes:       services.GetVolumeService(),
+		constants.ViewNetworks:      services.GetNetworkService(),
+		constants.ViewSwarmServices: services.GetSwarmServiceService(),
+		constants.ViewSwarmNodes:    services.GetSwarmNodeService(),
+		constants.ViewDockerInfo:    services.GetDockerInfoService(),
+		constants.ViewLogs:          services.GetLogsService(),
 	}
+
+	if service, exists := serviceMap[viewName]; exists {
+		return service
+	}
+	// Return nil for unknown view names
+	return nil
 }
