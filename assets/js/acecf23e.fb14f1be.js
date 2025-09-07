@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkwhaletui_docs=self.webpackChunkwhaletui_docs||[]).push([[903],{1912:e=>{e.exports=JSON.parse('{"blogBasePath":"/whaletui/blog","blogTitle":"Blog","authorsListPath":"/whaletui/blog/authors"}')}}]);
