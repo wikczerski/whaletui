@@ -1,7 +1,11 @@
 ---
 slug: column-configuration-system
 title: Introducing the Column Configuration System
-authors: [whaletui-team]
+authors:
+  - name: wikczerski
+    title: Development Team
+    url: https://github.com/wikczerski/whaletui
+    image_url: https://github.com/wikczerski.png
 tags: [features, configuration, ui, customization]
 ---
 
