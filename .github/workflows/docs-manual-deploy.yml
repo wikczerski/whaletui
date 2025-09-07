@@ -72,3 +72,6 @@ jobs:
           publish_dir: docs/build
           cname: wikczerski.github.io
           force_orphan: true
+          enable_jekyll: false
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
