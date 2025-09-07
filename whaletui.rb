@@ -5,20 +5,20 @@
 class Whaletui < Formula
   desc "Docker CLI Dashboard"
   homepage "https://github.com/wikczerski/whaletui"
-  version "0.4.0"
+  version "0.5.0"
 
   on_macos do
     on_intel do
-      url "https://github.com/wikczerski/whaletui/releases/download/v0.4.0/whaletui_v0.4.0_Darwin_x86_64.tar.gz"
-      sha256 "fce7a471f874512b662cd63d0b20e8be0824515f3ac86f0d83ffc96b256fdb2f"
+      url "https://github.com/wikczerski/whaletui/releases/download/v0.5.0/whaletui_v0.5.0_Darwin_x86_64.tar.gz"
+      sha256 "6c05e20a64fe809b9869b40019ca800bbc6078ded242edf8b9b826f679dceeec"
 
       def install
         bin.install "whaletui" => "whaletui"
       end
     end
     on_arm do
-      url "https://github.com/wikczerski/whaletui/releases/download/v0.4.0/whaletui_v0.4.0_Darwin_arm64.tar.gz"
-      sha256 "773f6b042150b46213ca32559454e24f4b939b0775a138873d42c331e9295861"
+      url "https://github.com/wikczerski/whaletui/releases/download/v0.5.0/whaletui_v0.5.0_Darwin_arm64.tar.gz"
+      sha256 "fb34af1dbafb4f780521e6827bca7a2aa4ddc5fbedf642df4136d30f2d48793b"
 
       def install
         bin.install "whaletui" => "whaletui"
@@ -29,8 +29,8 @@ class Whaletui < Formula
   on_linux do
     on_intel do
       if Hardware::CPU.is_64_bit?
-        url "https://github.com/wikczerski/whaletui/releases/download/v0.4.0/whaletui_v0.4.0_Linux_x86_64.tar.gz"
-        sha256 "c7143edf4573f011ba45e06f974e01dd75f34523b3492fc3ca67abad54c60cc2"
+        url "https://github.com/wikczerski/whaletui/releases/download/v0.5.0/whaletui_v0.5.0_Linux_x86_64.tar.gz"
+        sha256 "96099d3c100df737af76726df8c24601039419b9a20f8dc5595b426e626e9f99"
 
         def install
           bin.install "whaletui" => "whaletui"
@@ -39,8 +39,8 @@ class Whaletui < Formula
     end
     on_arm do
       if Hardware::CPU.is_64_bit?
-        url "https://github.com/wikczerski/whaletui/releases/download/v0.4.0/whaletui_v0.4.0_Linux_arm64.tar.gz"
-        sha256 "91142bb128fc00326a188f995e928c9fc4986cb0756db3b9bcfcc11f7d992f0e"
+        url "https://github.com/wikczerski/whaletui/releases/download/v0.5.0/whaletui_v0.5.0_Linux_arm64.tar.gz"
+        sha256 "76cf47e54a238f47b6342012adce02e09aae3e6b89647c84ec7b9e8858132d1f"
 
         def install
           bin.install "whaletui" => "whaletui"
