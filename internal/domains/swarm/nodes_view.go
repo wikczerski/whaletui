@@ -34,9 +34,10 @@ func NewNodesView(
 		"ID", "Hostname", "Role", "Availability", "Status",
 		"Manager Status", "Engine Version", "Address",
 	}
+	baseView := shared.NewBaseView[shared.SwarmNode](ui, "swarm nodes", headers)
 
 	view := &NodesView{
-		BaseView:      shared.NewBaseView[shared.SwarmNode](ui, "Swarm Nodes", headers),
+		BaseView:      baseView,
 		nodeService:   nodeService,
 		modalManager:  modalManager,
 		headerManager: headerManager,
@@ -55,12 +56,22 @@ func (v *NodesView) getUI() shared.SharedUIInterface {
 
 // setupCallbacks sets up the callbacks for the base view
 func (v *NodesView) setupCallbacks() {
+	v.setupBasicCallbacks()
+	v.setupActionCallbacks()
+}
+
+// setupBasicCallbacks sets up the basic view callbacks
+func (v *NodesView) setupBasicCallbacks() {
 	v.ListItems = v.listNodes
 	v.FormatRow = func(n shared.SwarmNode) []string { return v.formatNodeRow(&n) }
 	v.GetItemID = func(n shared.SwarmNode) string { return v.getNodeID(&n) }
 	v.GetItemName = func(n shared.SwarmNode) string { return v.getNodeName(&n) }
-	v.GetActions = v.getActions
+}
+
+// setupActionCallbacks sets up the action-related callbacks
+func (v *NodesView) setupActionCallbacks() {
 	v.HandleKeyPress = func(key rune, n shared.SwarmNode) { v.handleAction(key, &n) }
+	v.GetActions = v.getActions
 }
 
 // listNodes lists all swarm nodes

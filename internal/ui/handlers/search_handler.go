@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"log/slog"
 	"reflect"
 
@@ -123,6 +124,7 @@ func (sh *SearchHandler) processSearch(searchTerm string) {
 	// Get the current view and try to call its search method
 	currentView := sh.getCurrentView()
 	if currentView != nil {
+		sh.log.Info("Current view found", "viewType", fmt.Sprintf("%T", currentView))
 		// Use reflection to call the Search method
 		viewValue := reflect.ValueOf(currentView)
 		searchMethod := viewValue.MethodByName("Search")
@@ -130,7 +132,14 @@ func (sh *SearchHandler) processSearch(searchTerm string) {
 		if searchMethod.IsValid() && !searchMethod.IsNil() {
 			sh.log.Info("Calling Search method via reflection", "searchTerm", searchTerm)
 			searchMethod.Call([]reflect.Value{reflect.ValueOf(searchTerm)})
+			sh.log.Info("Search method called successfully")
+		} else {
+			sh.log.Warn("Search method not found or invalid on current view",
+				"viewType", fmt.Sprintf("%T", currentView),
+			)
 		}
+	} else {
+		sh.log.Warn("No current view found for search")
 	}
 }
 
@@ -177,9 +186,14 @@ func (sh *SearchHandler) getCurrentView() any {
 	// Try to get the actual view from the UI
 	if uiWithViews, ok := sh.ui.(interface{ GetCurrentView() any }); ok {
 		currentView := uiWithViews.GetCurrentView()
+		sh.log.Info("getCurrentView called",
+			"currentView", currentView,
+			"viewType", fmt.Sprintf("%T", currentView),
+		)
 		return currentView
 	}
 
+	sh.log.Warn("UI does not implement GetCurrentView interface")
 	return nil
 }
 
