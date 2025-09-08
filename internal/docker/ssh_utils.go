@@ -127,6 +127,35 @@ func createSSHConnection(host string, log *slog.Logger) (*dockerssh.SSHConnectio
 	return sshConn, nil
 }
 
+// createSSHConnectionWithAuth creates an SSH connection with authentication options
+func createSSHConnectionWithAuth(
+	host string, keyPath, password string, log *slog.Logger,
+) (*dockerssh.SSHConnection, error) {
+	// Parse the host to extract username, hostname, and port
+	username, hostname, port, err := dockerssh.ParseSSHHost(host)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse SSH host: %w", err)
+	}
+
+	sshClient := dockerssh.NewSSHClientWithAuth(hostname, port, username, keyPath, password, log)
+
+	// Try SSH tunneling connection
+	sshConn, err := sshClient.ConnectWithFallback(2375)
+	if err != nil {
+		return nil, fmt.Errorf("failed to establish SSH connection: %w", err)
+	}
+
+	localProxyHost := sshConn.GetLocalProxyHost()
+	connectionMethod := sshConn.GetConnectionMethod()
+	log.Info("Created SSH connection with authentication",
+		"localProxy", localProxyHost,
+		"method", connectionMethod,
+		"keyPath", keyPath,
+		"hasPassword", password != "")
+	log.Info("🔗 Connection Method", "method", connectionMethod)
+	return sshConn, nil
+}
+
 // createDockerClientForProxy creates a Docker client for the local proxy
 func createDockerClientForProxy(sshConn *dockerssh.SSHConnection) (*client.Client, error) {
 	localProxyHost := sshConn.GetLocalProxyHost()

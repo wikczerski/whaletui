@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/wikczerski/whaletui/internal/app"
 	"github.com/wikczerski/whaletui/internal/config"
+	"golang.org/x/term"
 
 	"github.com/wikczerski/whaletui/internal/docker/dockerssh"
 	"github.com/wikczerski/whaletui/internal/logger"
@@ -24,6 +25,8 @@ var (
 	logLevel    string
 	logFilePath string
 	theme       string
+	sshKeyPath  string
+	sshPassword bool
 )
 
 var dockerErrorPatterns = []string{
@@ -147,6 +150,10 @@ func setupConnectFlags() {
 		String("user", "", "SSH username for remote host connection (not needed if host includes ssh:// scheme)")
 	connectCmd.Flags().Int("port", 2375, "Port for SSH fallback Docker proxy (default: 2375)")
 	connectCmd.Flags().Bool("diagnose", false, "Run SSH connection diagnostics before connecting")
+	connectCmd.Flags().
+		StringVar(&sshKeyPath, "ssh-key-path", "", "Path to SSH private key file for authentication")
+	connectCmd.Flags().
+		BoolVar(&sshPassword, "password", false, "Prompt for SSH password authentication")
 	_ = connectCmd.MarkFlagRequired("host")
 }
 
@@ -169,6 +176,9 @@ func runConnectCommand(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
+
+	// Apply SSH authentication options
+	applySSHOptions(cfg)
 
 	if diagnose {
 		runDiagnosticsIfRequested(host, user, port, log)
@@ -459,6 +469,37 @@ func applyFlagOverrides(cfg *config.Config) {
 	if theme != "" {
 		cfg.Theme = theme
 	}
+}
+
+// applySSHOptions applies SSH authentication options to the configuration
+func applySSHOptions(cfg *config.Config) {
+	if sshKeyPath != "" {
+		cfg.SSHKeyPath = sshKeyPath
+	}
+
+	if sshPassword {
+		password, err := promptForPassword()
+		if err != nil {
+			logger.Warn("Failed to get password input", "error", err)
+			return
+		}
+		cfg.SSHPassword = password
+	}
+}
+
+// promptForPassword securely prompts the user for a password
+func promptForPassword() (string, error) {
+	fmt.Print("Enter SSH password: ")
+
+	// Read password from stdin without echoing
+	passwordBytes, err := term.ReadPassword(int(os.Stdin.Fd()))
+	if err != nil {
+		return "", fmt.Errorf("failed to read password: %w", err)
+	}
+
+	fmt.Println() // Add newline after password input
+
+	return string(passwordBytes), nil
 }
 
 // setLogLevel sets the log level based on the configuration
