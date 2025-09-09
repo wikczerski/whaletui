@@ -33,7 +33,8 @@ class WhaleTUIController:
         self.timeout = timeout
         self.process: Optional[pexpect.spawn] = None
         self.logger = logging.getLogger(__name__)
-        self.theme_path: Optional[str] = None
+        # Set default theme path to the e2e config theme
+        self.theme_path: Optional[str] = "/app/whaletui/e2e/config/theme.yaml"
 
     def start(self, args: List[str] = None, env: dict = None) -> None:
         """
@@ -207,6 +208,106 @@ class WhaleTUIController:
         after = self.process.after if isinstance(self.process.after, str) else str(self.process.after)
         return before + after
 
+    def get_clean_screen_content(self) -> str:
+        """
+        Get the current screen content with proper line breaks and formatting.
+
+        Returns:
+            Clean screen content as string with proper line breaks
+        """
+        if not self.process:
+            return ""
+
+        # Get the raw output
+        raw_output = self.get_output()
+
+        # First, handle carriage returns by converting them to line breaks
+        # This is important for TUI apps that use \r to position cursor
+        processed_output = raw_output.replace('\r\n', '\n').replace('\r', '\n')
+
+        # Split by line breaks and clean up
+        lines = []
+        for line in processed_output.split('\n'):
+            # Remove ANSI escape sequences and control characters
+            import re
+            clean_line = re.sub(r'\x1b\[[0-9;]*m', '', line)  # Remove color codes
+            clean_line = re.sub(r'\x1b\[[0-9;]*[A-Za-z]', '', clean_line)  # Remove other escape sequences
+            clean_line = clean_line.replace('\x1b[0m', '').replace('\x1b[1m', '')
+            lines.append(clean_line)
+
+        # Filter out empty lines at the beginning and end
+        while lines and not lines[0].strip():
+            lines.pop(0)
+        while lines and not lines[-1].strip():
+            lines.pop()
+
+        # Special handling for TUI content that uses box drawing characters
+        # If we have a line with box drawing characters, try to split it properly
+        processed_lines = []
+        for line in lines:
+            if '║' in line and ('╔' in line or '╗' in line or '╚' in line or '╝' in line):
+                # This looks like a TUI table - try to split it into logical rows
+                # The TUI content is all on one line because of carriage returns
+                # We need to split it at logical boundaries to make it readable
+                import re
+
+                # Split the line into logical table rows
+                # Look for patterns that indicate row boundaries
+                table_rows = []
+
+                # First, try to split by looking for container ID patterns
+                # Pattern: ║ followed by spaces and a 12-character hex ID
+                container_pattern = r'║\s+[a-f0-9]{12}'
+                matches = list(re.finditer(container_pattern, line))
+
+                if matches:
+                    # Split at container ID positions, but keep the full row together
+                    last_pos = 0
+                    for i, match in enumerate(matches):
+                        if match.start() > last_pos:
+                            # Add content before this match
+                            before_content = line[last_pos:match.start()].strip()
+                            if before_content:
+                                table_rows.append(before_content)
+
+                        # Find the end of this row (next container ID or end of line)
+                        next_start = matches[i + 1].start() if i + 1 < len(matches) else len(line)
+                        row_content = line[match.start():next_start].strip()
+                        if row_content:
+                            table_rows.append(row_content)
+
+                        last_pos = next_start
+
+                    # Add any remaining content
+                    if last_pos < len(line):
+                        remaining_content = line[last_pos:].strip()
+                        if remaining_content:
+                            table_rows.append(remaining_content)
+                else:
+                    # Fallback: try to split by other patterns
+                    # Look for header and footer patterns
+                    header_pattern = r'╔[^║]*╗'
+                    footer_pattern = r'╚[^║]*╝'
+
+                    # Try to split by header first
+                    header_match = re.search(header_pattern, line)
+                    if header_match:
+                        table_rows.append(header_match.group().strip())
+                        remaining = line[header_match.end():].strip()
+                        if remaining:
+                            table_rows.append(remaining)
+                    else:
+                        # If no clear patterns, just add the line as is
+                        table_rows.append(line)
+
+                # Add all table rows as separate lines
+                processed_lines.extend(table_rows)
+            else:
+                processed_lines.append(line)
+
+        # Join lines and ensure proper formatting
+        return '\n'.join(processed_lines)
+
     def get_screen_content(self) -> str:
         """
         Get the current screen content.
@@ -214,7 +315,7 @@ class WhaleTUIController:
         Returns:
             Current screen content as string
         """
-        return self.get_output()
+        return self.get_clean_screen_content()
 
     def wait_for_screen(self, expected_content: str, timeout: int = None) -> bool:
         """
@@ -273,24 +374,65 @@ class WhaleTUIController:
 
     def take_screenshot(self, filename: str) -> None:
         """
-        Take a screenshot of the current screen.
+        Take a screenshot of the current screen as text content.
 
         Args:
-            filename: Name of the screenshot file
+            filename: Name of the screenshot file (will be saved as .txt)
         """
-        screenshots_dir = Path(__file__).parent / "screenshots"
+        screenshots_dir = Path("/app/test-data/screenshots")
         screenshots_dir.mkdir(exist_ok=True)
+
+        # Ensure the filename has .txt extension for text content
+        if not filename.endswith('.txt'):
+            filename = filename.replace('.png', '.txt')
 
         screenshot_path = screenshots_dir / filename
 
-        with open(screenshot_path, 'w', encoding='utf-8') as f:
-            f.write(self.get_screen_content())
+        # Get screen content and format it properly line by line
+        screen_content = self.get_screen_content()
 
-        self.logger.info(f"Screenshot saved to: {screenshot_path}")
+        with open(screenshot_path, 'w', encoding='utf-8') as f:
+            # Write each line separately for better readability
+            lines = screen_content.split('\n')
+            for line in lines:
+                # Ensure each line ends with a newline
+                f.write(line.rstrip() + '\n')
+
+        self.logger.info(f"Text screenshot saved to: {screenshot_path}")
+
+    def take_png_screenshot(self, filename: str) -> None:
+        """
+        Take an actual PNG screenshot of the terminal (requires additional setup).
+        This is a placeholder for future PNG screenshot functionality.
+
+        Args:
+            filename: Name of the screenshot file (will be saved as .png)
+        """
+        screenshots_dir = Path("/app/test-data/screenshots")
+        screenshots_dir.mkdir(exist_ok=True)
+
+        # Ensure the filename has .png extension
+        if not filename.endswith('.png'):
+            filename = filename.replace('.txt', '.png')
+
+        screenshot_path = screenshots_dir / filename
+
+        # For now, save as text with PNG extension as fallback
+        # TODO: Implement actual PNG screenshot using terminal screenshot libraries
+        screen_content = self.get_screen_content()
+
+        with open(screenshot_path, 'w', encoding='utf-8') as f:
+            f.write("# PNG Screenshot (Text Fallback)\n")
+            f.write("# This is a text representation of the screen content\n")
+            f.write("# To get actual PNG screenshots, implement terminal screenshot library\n\n")
+            for line in screen_content.split('\n'):
+                f.write(line + '\n')
+
+        self.logger.info(f"PNG screenshot (text fallback) saved to: {screenshot_path}")
 
     def navigate_to_view(self, view_name: str) -> bool:
         """
-        Navigate to a specific view in the application.
+        Navigate to a specific view in the application using command mode.
 
         Args:
             view_name: Name of the view to navigate to
@@ -299,11 +441,11 @@ class WhaleTUIController:
             True if navigation successful, False otherwise
         """
         view_commands = {
-            'containers': 'c',
-            'images': 'i',
-            'volumes': 'v',
-            'networks': 'n',
-            'swarm': 's',
+            'containers': 'containers',
+            'images': 'images',
+            'volumes': 'volumes',
+            'networks': 'networks',
+            'swarm': 'services',
             'nodes': 'nodes',
             'services': 'services'
         }
@@ -313,11 +455,24 @@ class WhaleTUIController:
             self.logger.error(f"Unknown view: {view_name}")
             return False
 
-        self.send_text(command)
-        time.sleep(1)  # Wait for view to load
+        try:
+            # Enter command mode with ':'
+            self.send_key(':')
+            time.sleep(0.5)  # Wait for command mode to be active
 
-        # Check if we're in the expected view
-        return self.wait_for_screen(view_name, timeout=5)
+            # Send the navigation command
+            self.send_text(command)
+            time.sleep(0.5)
+
+            # Press Enter to execute the command
+            self.send_key('\r')
+            time.sleep(1)  # Wait for view to load
+
+            # Check if we're in the expected view
+            return self.wait_for_screen(view_name, timeout=5)
+        except Exception as e:
+            self.logger.error(f"Error navigating to {view_name}: {e}")
+            return False
 
     def search(self, search_term: str) -> bool:
         """
@@ -338,7 +493,7 @@ class WhaleTUIController:
         time.sleep(0.5)
 
         # Press Enter to execute search
-        self.send_key('Enter')
+        self.send_key('\r')
         time.sleep(1)
 
         return True
