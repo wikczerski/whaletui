@@ -14,7 +14,7 @@ sys.path.insert(0, str(project_root))
 
 # Debug: Print paths for troubleshooting
 print(f"DEBUG: project_root = {project_root}")
-print(f"DEBUG: Docker binary exists = {Path('/app/whaletui/whaletui').exists()}")
+print(f"DEBUG: Docker binary exists = {Path('/opt/whaletui-linux').exists()}")
 print(f"DEBUG: Current working directory = {Path.cwd()}")
 
 from e2e.whaletui_controller import WhaleTUIController
@@ -25,7 +25,7 @@ from tests.utils.test_helpers import TestHelpers
 def whaletui_binary():
     """Build and return the path to the WhaleTUI binary."""
     # Check for binary in Docker container location first
-    docker_binary_path = Path("/app/whaletui/whaletui")
+    docker_binary_path = Path("/opt/whaletui-linux")
     if docker_binary_path.exists():
         print(f"DEBUG: Using Docker binary at {docker_binary_path}")
         return str(docker_binary_path)
@@ -36,7 +36,7 @@ def whaletui_binary():
         # Build the binary if it doesn't exist
         print("Building WhaleTUI binary...")
         result = subprocess.run(
-            ["go", "build", "-o", "whaletui.exe", "."],
+            ["go", "build", "-o", "whaletui-linux", "."],
             cwd=project_root,
             capture_output=True,
             text=True

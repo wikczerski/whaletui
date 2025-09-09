@@ -41,8 +41,7 @@ class TestUIInteractions:
         assert whaletui_app.wait_for_screen("Details", timeout=10)
 
         # Navigate to containers view
-        whaletui_app.send_text("c")
-        time.sleep(2)
+        assert whaletui_app.navigate_to_view("containers")
 
         # Open filter
         whaletui_app.send_key('/')
@@ -94,8 +93,7 @@ class TestUIInteractions:
         assert whaletui_app.wait_for_screen("Details", timeout=10)
 
         # Navigate to containers view
-        whaletui_app.send_text("c")
-        time.sleep(2)
+        assert whaletui_app.navigate_to_view("containers")
 
         # Press 't' for sort
         whaletui_app.send_key('t')
@@ -136,8 +134,7 @@ class TestUIInteractions:
         assert whaletui_app.wait_for_screen("Details", timeout=10)
 
         # Navigate to containers view
-        whaletui_app.send_text("c")
-        time.sleep(2)
+        assert whaletui_app.navigate_to_view("containers")
 
         # Press Enter for details
         whaletui_app.send_key('Enter')
@@ -182,8 +179,7 @@ class TestUIInteractions:
         assert whaletui_app.wait_for_screen("Details", timeout=10)
 
         # Navigate to containers view
-        whaletui_app.send_text("c")
-        time.sleep(2)
+        assert whaletui_app.navigate_to_view("containers")
 
         # Press 'l' for logs
         whaletui_app.send_key('l')
@@ -228,8 +224,7 @@ class TestUIInteractions:
         assert whaletui_app.wait_for_screen("Details", timeout=10)
 
         # Navigate to containers view
-        whaletui_app.send_text("c")
-        time.sleep(2)
+        assert whaletui_app.navigate_to_view("containers")
 
         # Press 'i' for inspect
         whaletui_app.send_key('i')
@@ -274,8 +269,7 @@ class TestUIInteractions:
         assert whaletui_app.wait_for_screen("Details", timeout=10)
 
         # Navigate to containers view
-        whaletui_app.send_text("c")
-        time.sleep(2)
+        assert whaletui_app.navigate_to_view("containers")
 
         # Press 'a' for attach
         whaletui_app.send_key('a')
@@ -320,8 +314,7 @@ class TestUIInteractions:
         assert whaletui_app.wait_for_screen("Details", timeout=10)
 
         # Navigate to containers view
-        whaletui_app.send_text("c")
-        time.sleep(2)
+        assert whaletui_app.navigate_to_view("containers")
 
         # Press 'h' for history
         whaletui_app.send_key('h')
@@ -368,8 +361,7 @@ class TestUIInteractions:
         assert whaletui_app.wait_for_screen("Details", timeout=10)
 
         # Navigate to containers view
-        whaletui_app.send_text("c")
-        time.sleep(2)
+        assert whaletui_app.navigate_to_view("containers")
 
         # Press ':' for command prompt
         whaletui_app.send_key(':')
@@ -420,8 +412,7 @@ class TestUIInteractions:
         assert whaletui_app.wait_for_screen("Details", timeout=10)
 
         # Navigate to containers view
-        whaletui_app.send_text("c")
-        time.sleep(2)
+        assert whaletui_app.navigate_to_view("containers")
 
         # Press 'r' for restart
         whaletui_app.send_key('r')
@@ -460,8 +451,7 @@ class TestUIInteractions:
         assert whaletui_app.wait_for_screen("Details", timeout=10)
 
         # Navigate to containers view
-        whaletui_app.send_text("c")
-        time.sleep(2)
+        assert whaletui_app.navigate_to_view("containers")
 
         # Press 'd' for delete
         whaletui_app.send_key('d')
@@ -500,8 +490,7 @@ class TestUIInteractions:
         assert whaletui_app.wait_for_screen("Details", timeout=10)
 
         # Navigate to containers view
-        whaletui_app.send_text("c")
-        time.sleep(2)
+        assert whaletui_app.navigate_to_view("containers")
 
         # Press 'r' for refresh
         whaletui_app.send_key('r')
@@ -547,8 +536,7 @@ class TestUIInteractions:
         assert whaletui_app.wait_for_screen("Details", timeout=10)
 
         # Navigate to containers view
-        whaletui_app.send_text("c")
-        time.sleep(2)
+        assert whaletui_app.navigate_to_view("containers")
 
         # Perform multiple interactions
         interactions = [
@@ -652,8 +640,7 @@ class TestUIInteractions:
         assert whaletui_app.wait_for_screen("Details", timeout=10)
 
         # Navigate to containers view
-        whaletui_app.send_text("c")
-        time.sleep(2)
+        assert whaletui_app.navigate_to_view("containers")
 
         # Perform rapid interactions
         for i in range(50):
@@ -663,10 +650,10 @@ class TestUIInteractions:
             time.sleep(0.05)
 
         # Test rapid view switching
-        views = ["c", "i", "v", "n", "s"]
+        views = ["containers", "images", "volumes", "networks", "swarm"]
         for i in range(20):
             view = views[i % len(views)]
-            whaletui_app.send_text(view)
+            whaletui_app.navigate_to_view(view)
             time.sleep(0.1)
 
         # Application should still be running
