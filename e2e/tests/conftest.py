@@ -25,7 +25,7 @@ from tests.utils.test_helpers import TestHelpers
 def whaletui_binary():
     """Build and return the path to the WhaleTUI binary."""
     # Check for binary in Docker container location first
-    docker_binary_path = Path("/app/whaletui/whaletui-linux")
+    docker_binary_path = Path("/app/whaletui/whaletui")
     if docker_binary_path.exists():
         print(f"DEBUG: Using Docker binary at {docker_binary_path}")
         return str(docker_binary_path)
