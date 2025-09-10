@@ -10,15 +10,18 @@ import (
 	"time"
 
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/term"
 )
 
 // SSHClient handles SSH connections for Docker access
 type SSHClient struct {
-	host   string
-	port   string
-	user   string
-	config *ssh.ClientConfig
-	log    *slog.Logger
+	host     string
+	port     string
+	user     string
+	config   *ssh.ClientConfig
+	log      *slog.Logger
+	keyPath  string
+	password string
 }
 
 // NewSSHClient creates a new SSH client
@@ -27,13 +30,33 @@ func NewSSHClient(host, port, user string, log *slog.Logger) *SSHClient {
 		host:   host,
 		port:   port,
 		user:   user,
-		config: createSSHConfig(user, log),
+		config: createSSHConfig(user, log, "", ""),
 		log:    log,
 	}
 }
 
+// NewSSHClientWithAuth creates a new SSH client with authentication options
+func NewSSHClientWithAuth(
+	host, port, user, keyPath, password string,
+	log *slog.Logger,
+) *SSHClient {
+	return &SSHClient{
+		host:     host,
+		port:     port,
+		user:     user,
+		config:   createSSHConfig(user, log, keyPath, password),
+		log:      log,
+		keyPath:  keyPath,
+		password: password,
+	}
+}
+
 // createSSHConfig creates the SSH client configuration
-func createSSHConfig(username string, log *slog.Logger) *ssh.ClientConfig {
+func createSSHConfig(
+	username string,
+	log *slog.Logger,
+	keyPath, password string,
+) *ssh.ClientConfig {
 	config := &ssh.ClientConfig{
 		User:            username,
 		Auth:            []ssh.AuthMethod{},
@@ -42,52 +65,79 @@ func createSSHConfig(username string, log *slog.Logger) *ssh.ClientConfig {
 	}
 
 	// Try to use SSH key authentication
-	if err := addSSHKeyAuth(config, log); err != nil {
+	if err := addSSHKeyAuth(config, log, keyPath); err != nil {
 		log.Warn("Failed to add SSH key authentication", "error", err)
 	}
 
-	// Add password authentication as fallback
-	config.Auth = append(config.Auth, ssh.PasswordCallback(func() (string, error) {
-		return "", errors.New("password authentication not implemented")
-	}))
+	// Add password authentication
+	if password != "" {
+		config.Auth = append(config.Auth, ssh.Password(password))
+		log.Info("Added password authentication")
+	} else {
+		// Add interactive password callback as fallback
+		config.Auth = append(config.Auth, ssh.PasswordCallback(func() (string, error) {
+			return promptForSSHPassword()
+		}))
+	}
 
 	return config
 }
 
 // addSSHKeyAuth adds SSH key authentication to the config
-func addSSHKeyAuth(config *ssh.ClientConfig, log *slog.Logger) error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return fmt.Errorf("failed to get home directory: %w", err)
-	}
-
-	keyPaths := []string{
-		filepath.Join(homeDir, ".ssh", "id_rsa"),
-		filepath.Join(homeDir, ".ssh", "id_ed25519"),
-		filepath.Join(homeDir, ".ssh", "id_ecdsa"),
-	}
+func addSSHKeyAuth(config *ssh.ClientConfig, log *slog.Logger, customKeyPath string) error {
+	keyPaths := getSSHKeyPaths(customKeyPath)
 
 	for _, keyPath := range keyPaths {
-		if _, err := os.Stat(keyPath); err == nil {
-			key, err := os.ReadFile(keyPath) //nolint:gosec // SSH key file reading is necessary
-			if err != nil {
-				log.Warn("Failed to read SSH key", "path", keyPath, "error", err)
-				continue
-			}
-
-			signer, err := ssh.ParsePrivateKey(key)
-			if err != nil {
-				log.Warn("Failed to parse SSH key", "path", keyPath, "error", err)
-				continue
-			}
-
-			config.Auth = append(config.Auth, ssh.PublicKeys(signer))
-			log.Info("Added SSH key authentication", "path", keyPath)
+		if err := trySSHKeyAuth(config, log, keyPath); err == nil {
 			return nil
 		}
 	}
 
+	if customKeyPath != "" {
+		return fmt.Errorf("SSH key not found at specified path: %s", customKeyPath)
+	}
 	return errors.New("no SSH keys found")
+}
+
+// getSSHKeyPaths returns the list of SSH key paths to try
+func getSSHKeyPaths(customKeyPath string) []string {
+	if customKeyPath != "" {
+		return []string{customKeyPath}
+	}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return []string{}
+	}
+
+	return []string{
+		filepath.Join(homeDir, ".ssh", "id_rsa"),
+		filepath.Join(homeDir, ".ssh", "id_ed25519"),
+		filepath.Join(homeDir, ".ssh", "id_ecdsa"),
+	}
+}
+
+// trySSHKeyAuth attempts to use a specific SSH key for authentication
+func trySSHKeyAuth(config *ssh.ClientConfig, log *slog.Logger, keyPath string) error {
+	if _, err := os.Stat(keyPath); err != nil {
+		return err
+	}
+
+	key, err := os.ReadFile(keyPath) //nolint:gosec // SSH key file reading is necessary
+	if err != nil {
+		log.Warn("Failed to read SSH key", "path", keyPath, "error", err)
+		return err
+	}
+
+	signer, err := ssh.ParsePrivateKey(key)
+	if err != nil {
+		log.Warn("Failed to parse SSH key", "path", keyPath, "error", err)
+		return err
+	}
+
+	config.Auth = append(config.Auth, ssh.PublicKeys(signer))
+	log.Info("Added SSH key authentication", "path", keyPath)
+	return nil
 }
 
 // ConnectWithFallback establishes an SSH connection using SSH tunneling only
@@ -280,4 +330,19 @@ func findAvailablePort() (int, error) {
 		return 0, errors.New("failed to get TCP address")
 	}
 	return addr.Port, nil
+}
+
+// promptForSSHPassword securely prompts the user for a password
+func promptForSSHPassword() (string, error) {
+	fmt.Print("SSH key authentication failed. Enter SSH password: ")
+
+	// Read password from stdin without echoing
+	passwordBytes, err := term.ReadPassword(int(os.Stdin.Fd()))
+	if err != nil {
+		return "", fmt.Errorf("failed to read password: %w", err)
+	}
+
+	fmt.Println() // Add newline after password input
+
+	return string(passwordBytes), nil
 }

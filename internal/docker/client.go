@@ -49,7 +49,7 @@ func New(cfg *config.Config) (*Client, error) {
 	return client, nil
 }
 
-// createSSHDockerClient creates a Docker client via SSH connection
+// createSSHDockerClient creates a Docker client via SSH connection with authentication
 func createSSHDockerClient(cfg *config.Config, log *slog.Logger) (*Client, error) {
 	log.Info("Attempting SSH connection for Docker client", "host", cfg.RemoteHost)
 
@@ -57,6 +57,16 @@ func createSSHDockerClient(cfg *config.Config, log *slog.Logger) (*Client, error
 	host, err := extractHostFromURL(cfg.RemoteHost)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract host from SSH URL: %w", err)
+	}
+
+	// Use authentication options if provided
+	if cfg.SSHKeyPath != "" || cfg.SSHPassword != "" {
+		sshConn, err := createSSHConnectionWithAuth(host, cfg.SSHKeyPath, cfg.SSHPassword, log)
+		if err != nil {
+			return nil, err
+		}
+
+		return tryCreateDockerClient(cfg, log, host, sshConn)
 	}
 
 	// Use SSH tunneling for remote connections

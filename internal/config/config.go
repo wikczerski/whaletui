@@ -21,6 +21,8 @@ type Config struct {
 	RemoteHost      string `json:"remote_host,omitempty"`
 	RemoteUser      string `json:"remote_user,omitempty"`
 	RemotePort      int    `json:"remote_port,omitempty"`
+	SSHKeyPath      string `json:"ssh_key_path,omitempty"`
+	SSHPassword     string `json:"ssh_password,omitempty"`
 }
 
 // DefaultConfig returns the default configuration
