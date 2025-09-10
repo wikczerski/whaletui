@@ -128,6 +128,13 @@ func (bv *BaseView[T]) GetItems() []T {
 	return bv.items
 }
 
+// SetItems sets the items for testing purposes
+func (bv *BaseView[T]) SetItems(items []T) {
+	bv.items = items
+	bv.originalItems = make([]T, len(items))
+	copy(bv.originalItems, items)
+}
+
 // GetTitle returns the view title for testing purposes
 func (bv *BaseView[T]) GetTitle() string {
 	return bv.viewName
@@ -456,15 +463,19 @@ func (bv *BaseView[T]) createDetailsView(item T) tview.Primitive {
 
 // Search filters the items based on the search term
 func (bv *BaseView[T]) Search(searchTerm string) {
-	bv.log.Info("BaseView.Search called", "term", searchTerm)
+	bv.log.Info("BaseView.Search called", "term", searchTerm, "viewName", bv.viewName)
 	bv.searchTerm = searchTerm
 	bv.isSearchActive = searchTerm != ""
-	bv.log.Info("Search state set", "isSearchActive", bv.isSearchActive)
+	bv.log.Info("Search state set",
+		"isSearchActive", bv.isSearchActive,
+		"originalItemsCount", len(bv.originalItems),
+	)
 
 	if bv.isSearchActive {
 		bv.log.Info("Using local filtering")
 		// Use local filtering
 		bv.filteredItems = bv.filterItems(searchTerm)
+		bv.log.Info("Filtered items", "filteredCount", len(bv.filteredItems))
 		bv.updateItemsAndTable(bv.filteredItems)
 	} else {
 		bv.log.Info("Clearing search")
@@ -500,12 +511,17 @@ func (bv *BaseView[T]) filterItems(searchTerm string) []T {
 	searchLower := strings.ToLower(searchTerm)
 	var filtered []T
 
-	for _, item := range bv.originalItems {
-		if bv.matchesSearch(item, searchLower) {
+	bv.log.Info("Filtering items", "searchTerm", searchTerm, "originalCount", len(bv.originalItems))
+
+	for i, item := range bv.originalItems {
+		matches := bv.matchesSearch(item, searchLower)
+		if matches {
 			filtered = append(filtered, item)
+			bv.log.Info("Item matches", "index", i, "item", fmt.Sprintf("%+v", item))
 		}
 	}
 
+	bv.log.Info("Filtering complete", "filteredCount", len(filtered))
 	return filtered
 }
 

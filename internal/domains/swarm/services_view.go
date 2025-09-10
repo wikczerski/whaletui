@@ -30,9 +30,10 @@ func NewServicesView(
 	headerManager interfaces.HeaderManagerInterface,
 ) *ServicesView {
 	headers := []string{"ID", "Name", "Image", "Mode", "Replicas", "Status", "Created"}
+	baseView := shared.NewBaseView[shared.SwarmService](ui, "swarm services", headers)
 
 	view := &ServicesView{
-		BaseView:       shared.NewBaseView[shared.SwarmService](ui, "Swarm Services", headers),
+		BaseView:       baseView,
 		serviceService: serviceService,
 		modalManager:   modalManager,
 		headerManager:  headerManager,
@@ -548,12 +549,22 @@ func (v *ServicesView) displayServiceLogs(selectedService *shared.SwarmService, 
 
 // setupCallbacks sets up the callbacks for the base view
 func (v *ServicesView) setupCallbacks() {
+	v.setupBasicCallbacks()
+	v.setupActionCallbacks()
+}
+
+// setupBasicCallbacks sets up the basic view callbacks
+func (v *ServicesView) setupBasicCallbacks() {
 	v.ListItems = v.listServices
 	v.FormatRow = func(s shared.SwarmService) []string { return v.formatServiceRow(&s) }
 	v.GetItemID = func(s shared.SwarmService) string { return v.getServiceID(&s) }
 	v.GetItemName = func(s shared.SwarmService) string { return v.getServiceName(&s) }
-	v.GetActions = v.getActions
+}
+
+// setupActionCallbacks sets up the action-related callbacks
+func (v *ServicesView) setupActionCallbacks() {
 	v.HandleKeyPress = func(key rune, s shared.SwarmService) { v.handleAction(key, &s) }
+	v.GetActions = v.getActions
 }
 
 // handleAction handles action key presses for swarm services

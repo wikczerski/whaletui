@@ -193,6 +193,11 @@ func (ui *UI) GetCurrentView() any {
 		currentViewName = currentView.Name
 	}
 
+	ui.log.Info("GetCurrentView called",
+		"currentViewName", currentViewName,
+		"currentView", currentView,
+	)
+
 	switch currentViewName {
 	case "containers":
 		return ui.containersView
@@ -206,9 +211,9 @@ func (ui *UI) GetCurrentView() any {
 		return ui.logsView
 	case "shell":
 		return ui.shellView
-	case "swarm services":
+	case "swarmServices":
 		return ui.swarmServicesView
-	case "swarm nodes":
+	case "swarmNodes":
 		return ui.swarmNodesView
 	default:
 		return nil
