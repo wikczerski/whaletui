@@ -2,6 +2,7 @@ package logger
 
 import (
 	"os"
+	"regexp"
 	"testing"
 )
 
@@ -90,9 +91,24 @@ func TestDefaultLogPath(t *testing.T) {
 	// Test that default path is used when empty string is provided
 	SetLevelWithPath("DEBUG", "")
 
-	// Verify default log file exists
-	defaultPath := "./logs/whaletui.log"
-	if _, err := os.Stat(defaultPath); os.IsNotExist(err) {
+	// Verify default log file exists (now with date-time format)
+	logPath := GetLogFilePath()
+	if logPath == "" {
+		t.Fatal("Log file path should be set")
+	}
+
+	// Check that the log file path follows the expected date-time format
+	expectedPattern := `^\./logs/whaletui-\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.\d{3}\.log$`
+	matched, err := regexp.MatchString(expectedPattern, logPath)
+	if err != nil {
+		t.Fatalf("Error matching pattern: %v", err)
+	}
+	if !matched {
+		t.Fatalf("Log file path should match date-time format, got: %s", logPath)
+	}
+
+	// Verify the log file actually exists
+	if _, err := os.Stat(logPath); os.IsNotExist(err) {
 		t.Fatal("Default log file should be created")
 	}
 
