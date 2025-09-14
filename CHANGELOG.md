@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.4.1] - 2025-09-14
+## [0.5.1] - 2025-09-14
 
 ### Added
 - **Date-Time-Specific Log Files**: Implemented log file naming with millisecond precision
@@ -24,6 +24,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Log Management**: Enhanced log organization for multiple application instances
 - **Debugging Support**: Improved debugging capabilities with precise timestamp identification
 - **Test Validation**: Added regex pattern validation for date-time log file format
+
+## [0.5.0] - 2025-09-10
+
+### Added
+- **Comprehensive Search Functionality**: Real-time filtering and search across all resource types
+- **Search Handler**: New SearchHandler with UI-based filtering and search persistence
+- **Enhanced SSH Authentication**: Password support and custom SSH key paths for remote connections
+- **Search Navigation**: `/` key for quick search access across all views
+- **Search State Persistence**: Search state maintained and restored with `/` key
+
+### Changed
+- **Search Implementation**: Moved from service-level to UI-level filtering for better performance
+- **SSH Client**: Enhanced SSH client with improved authentication methods
+- **Navigation Controls**: Updated all views with search functionality and consistent behavior
+- **Base View Architecture**: Enhanced base view with search capabilities
+
+### Fixed
+- **SSH Authentication**: Improved SSH key authentication test compatibility with CI environments
+- **Search Functionality**: Enhanced search for swarm nodes and services
+- **UI Consistency**: Consistent search behavior across all resource types
+
+### Technical Improvements
+- **Search Performance**: Local UI filtering for faster search results
+- **SSH Security**: Enhanced SSH authentication with multiple methods
+- **Test Coverage**: Improved test coverage for SSH authentication scenarios
+- **Code Organization**: Better separation of search functionality
 
 ## [0.4.0] - 2025-09-07
 
