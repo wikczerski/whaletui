@@ -5,7 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.4.0] - 2025-01-27
+## [0.4.1] - 2025-09-14
+
+### Added
+- **Date-Time-Specific Log Files**: Implemented log file naming with millisecond precision
+- **Enhanced Log Organization**: Log files now use format `whaletui-YYYY-MM-DD_HH-MM-SS.mmm.log`
+- **Improved Debugging**: Better log file identification for debugging and troubleshooting
+
+### Changed
+- **Log File Naming**: Default log files now include timestamp with milliseconds
+- **Log Path Generation**: Updated `generateDateSpecificLogPath()` function for date-time format
+
+### Fixed
+- **Test Coverage**: Updated `TestDefaultLogPath` to validate new date-time format
+- **Backward Compatibility**: Custom log file paths continue to work as before
+
+### Technical Improvements
+- **Log Management**: Enhanced log organization for multiple application instances
+- **Debugging Support**: Improved debugging capabilities with precise timestamp identification
+- **Test Validation**: Added regex pattern validation for date-time log file format
+
+## [0.4.0] - 2025-09-07
 
 ### Added
 - **SSH Tunneling as Primary Connection Method**: Implemented SSH tunneling with local TCP port creation on remote machines
@@ -29,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Test Coverage**: Updated tests to match new SSH client signature and port range logic
 - **Architecture Simplification**: Streamlined connection architecture with single SSH tunneling method
 
-## [0.3.0] - 2025-01-27
+## [0.3.0] - 2025-09-03
 
 ### Added
 - **Configurable Table Columns**: New character limit configuration for table columns to improve readability
