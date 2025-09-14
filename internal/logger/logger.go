@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 )
 
 var (
@@ -167,9 +168,16 @@ func canCreateLogFile(logFilePath string) bool {
 // getDefaultLogPath returns the default log path if none is provided
 func getDefaultLogPath(logFilePath string) string {
 	if logFilePath == "" {
-		return "./logs/whaletui.log"
+		return generateDateSpecificLogPath()
 	}
 	return logFilePath
+}
+
+// generateDateSpecificLogPath generates a log file path with the current date and time
+func generateDateSpecificLogPath() string {
+	now := time.Now()
+	dateTimeStr := now.Format("2006-01-02_15-04-05.000")
+	return fmt.Sprintf("./logs/whaletui-%s.log", dateTimeStr)
 }
 
 // setupLogFile sets up the global log file variables
@@ -211,14 +219,8 @@ func createLogsDirectory(logFilePath string) error {
 // openLogFile opens the log file for writing
 func openLogFile(logFilePath string) (*os.File, error) {
 	const fileMode = 0o600
-	const defaultLogPath = "./logs/whaletui.log"
 
-	// Use a constant path to avoid gosec warning
-	if logFilePath == defaultLogPath {
-		return os.OpenFile(defaultLogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, fileMode)
-	}
-
-	// For non-default paths, validate the path to prevent directory traversal
+	// Validate the path to prevent directory traversal
 	if !isValidLogPath(logFilePath) {
 		return nil, fmt.Errorf("invalid log file path: %s", logFilePath)
 	}
