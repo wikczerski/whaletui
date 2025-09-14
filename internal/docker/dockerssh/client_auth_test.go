@@ -3,6 +3,7 @@ package dockerssh
 import (
 	"log/slog"
 	"os"
+	"strings"
 	"testing"
 
 	"golang.org/x/crypto/ssh"
@@ -89,11 +90,6 @@ func TestAddSSHKeyAuth(t *testing.T) {
 		wantErr       bool
 	}{
 		{
-			name:          "no custom key path",
-			customKeyPath: "",
-			wantErr:       false, // May succeed if default keys exist
-		},
-		{
 			name:          "custom key path that doesn't exist",
 			customKeyPath: "/nonexistent/key",
 			wantErr:       true,
@@ -115,6 +111,35 @@ func TestAddSSHKeyAuth(t *testing.T) {
 			if !tt.wantErr && err != nil {
 				t.Errorf("Expected no error but got: %v", err)
 			}
+
+			// Verify that the error message is appropriate
+			if err != nil {
+				if !strings.Contains(err.Error(), "SSH key not found at specified path") {
+					t.Errorf("Expected 'SSH key not found at specified path' error, got: %v", err)
+				}
+			}
 		})
 	}
+}
+
+func TestAddSSHKeyAuth_NoCustomKeyPath(t *testing.T) {
+	log := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+
+	config := &ssh.ClientConfig{
+		Auth: []ssh.AuthMethod{},
+	}
+
+	err := addSSHKeyAuth(config, log, "")
+	// This test may pass or fail depending on whether SSH keys exist on the system
+	// In CI environments, it will typically fail with "no SSH keys found"
+	// On local development machines with SSH keys, it may succeed
+	// We just verify that the function doesn't panic and returns a reasonable result
+	if err != nil {
+		// If there's an error, it should be about missing SSH keys
+		if !strings.Contains(err.Error(), "no SSH keys found") &&
+			!strings.Contains(err.Error(), "SSH key not found") {
+			t.Errorf("Unexpected error type: %v", err)
+		}
+	}
+	// If there's no error, that's also acceptable (SSH keys were found)
 }
