@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2025-09-15
+
+### Update
+- **Dependabot**: bumped golang.org/x/crypto from 0.41.0 to 0.42.0
+                  and
+                  bumped golang.org/x/term from 0.34.0 to 0.35.0
+
 ## [0.5.1] - 2025-09-14
 
 ### Added
