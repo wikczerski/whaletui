@@ -400,7 +400,7 @@ func (c *Client) ListSwarmServices(ctx context.Context) ([]swarm.Service, error)
 		return nil, err
 	}
 
-	services, err := c.cli.ServiceList(ctx, types.ServiceListOptions{})
+	services, err := c.cli.ServiceList(ctx, swarm.ServiceListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list swarm services: %w", err)
 	}
@@ -418,7 +418,7 @@ func (c *Client) InspectSwarmService(ctx context.Context, id string) (swarm.Serv
 		return swarm.Service{}, err
 	}
 
-	service, _, err := c.cli.ServiceInspectWithRaw(ctx, id, types.ServiceInspectOptions{})
+	service, _, err := c.cli.ServiceInspectWithRaw(ctx, id, swarm.ServiceInspectOptions{})
 	if err != nil {
 		return swarm.Service{}, fmt.Errorf("failed to inspect swarm service %s: %w", id, err)
 	}
@@ -442,7 +442,7 @@ func (c *Client) UpdateSwarmService(
 		return err
 	}
 
-	response, err := c.cli.ServiceUpdate(ctx, id, version, spec, types.ServiceUpdateOptions{})
+	response, err := c.cli.ServiceUpdate(ctx, id, version, spec, swarm.ServiceUpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to update swarm service %s: %w", id, err)
 	}
@@ -492,7 +492,7 @@ func (c *Client) ListSwarmNodes(ctx context.Context) ([]swarm.Node, error) {
 		return nil, err
 	}
 
-	nodes, err := c.cli.NodeList(ctx, types.NodeListOptions{})
+	nodes, err := c.cli.NodeList(ctx, swarm.NodeListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list swarm nodes: %w", err)
 	}
@@ -547,7 +547,7 @@ func (c *Client) RemoveSwarmNode(ctx context.Context, id string, force bool) err
 		return err
 	}
 
-	options := types.NodeRemoveOptions{
+	options := swarm.NodeRemoveOptions{
 		Force: force,
 	}
 
