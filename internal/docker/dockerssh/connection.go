@@ -40,6 +40,11 @@ func (s *SSHConnection) GetConnectionMethod() string {
 		return "Unknown"
 	}
 
+	// If we have a tunnel client, use its connection method
+	if s.tunnelClient != nil {
+		return s.tunnelClient.GetConnectionMethod()
+	}
+
 	if s.connectionType != "" {
 		return s.connectionType
 	}
