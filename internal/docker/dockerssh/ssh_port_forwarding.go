@@ -14,12 +14,13 @@ import (
 
 // SSHTunnelClient handles SSH tunneling with local TCP port creation on remote machine
 type SSHTunnelClient struct {
-	client          *ssh.Client
-	log             *slog.Logger
-	listener        net.Listener
-	remoteLocalPort int
-	localPort       int
-	remotePID       string
+	client           *ssh.Client
+	log              *slog.Logger
+	listener         net.Listener
+	remoteLocalPort  int
+	localPort        int
+	remotePID        string
+	connectionMethod string // Track which method was used (primary or fallback)
 }
 
 // NewSSHTunnelClient creates a new SSH tunnel client
@@ -113,6 +114,9 @@ func (s *SSHTunnelClient) Close() error {
 
 // GetConnectionMethod returns the connection method name
 func (s *SSHTunnelClient) GetConnectionMethod() string {
+	if s.connectionMethod != "" {
+		return s.connectionMethod
+	}
 	return "SSH Tunnel"
 }
 
@@ -214,7 +218,33 @@ func (s *SSHTunnelClient) createLocalTCPPortOnRemote() error {
 
 // tryCreateTCPPortWithMethods tries to create TCP port using different methods
 func (s *SSHTunnelClient) tryCreateTCPPortWithMethods(remotePort int) error {
-	methods := []struct {
+	methods := s.getPrimaryMethods(remotePort)
+
+	// Try the primary methods first
+	for _, method := range methods {
+		if err := s.tryCreateTCPPort(method.name, method.cmd); err != nil {
+			s.log.Warn("Failed to create TCP port with method",
+				"method", method.name, "error", err)
+			continue
+		}
+
+		s.log.Info("Successfully created local TCP port on remote",
+			"method", method.name, "port", remotePort)
+		s.connectionMethod = fmt.Sprintf("SSH Tunnel (%s)", method.name)
+		return nil
+	}
+
+	// If primary methods fail, try fallback methods using built-in tools
+	s.log.Info("Primary methods failed, trying fallback methods using built-in tools")
+	return s.tryCreateTCPPortWithFallbackMethods(remotePort)
+}
+
+// getPrimaryMethods returns the primary methods for creating TCP ports
+func (s *SSHTunnelClient) getPrimaryMethods(remotePort int) []struct {
+	name string
+	cmd  string
+} {
+	return []struct {
 		name string
 		cmd  string
 	}{
@@ -238,20 +268,144 @@ func (s *SSHTunnelClient) tryCreateTCPPortWithMethods(remotePort int) error {
 				remotePort),
 		},
 	}
+}
 
-	for _, method := range methods {
+// tryCreateTCPPortWithFallbackMethods tries to create TCP port using built-in tools
+//
+//nolint:revive // Function is complex but necessary for fallback methods
+func (s *SSHTunnelClient) tryCreateTCPPortWithFallbackMethods(remotePort int) error {
+	fallbackMethods := []struct {
+		name string
+		cmd  string
+	}{
+		{
+			"python3",
+			fmt.Sprintf(
+				`nohup python3 -c "
+import socket, os, sys, threading, signal, time
+import sys
+
+def handle_client(client_socket, addr):
+    try:
+        with open('/var/run/docker.sock', 'rb') as docker_sock:
+            while True:
+                data = client_socket.recv(4096)
+                if not data:
+                    break
+                docker_sock.write(data)
+                docker_sock.flush()
+                response = docker_sock.read(4096)
+                if response:
+                    client_socket.send(response)
+    except Exception:
+        pass
+    finally:
+        client_socket.close()
+
+def signal_handler(signum, frame):
+    sys.exit(0)
+
+signal.signal(signal.SIGTERM, signal_handler)
+signal.signal(signal.SIGINT, signal_handler)
+
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+server.bind(('127.0.0.1', %d))
+server.listen(1)
+
+while True:
+    try:
+        client_socket, addr = server.accept()
+        thread = threading.Thread(target=handle_client, args=(client_socket, addr))
+        thread.daemon = True
+        thread.start()
+    except Exception:
+        break
+" >/dev/null 2>&1 &`, remotePort),
+		},
+		{
+			"python",
+			fmt.Sprintf(
+				`nohup python -c "
+import socket, os, sys, threading, signal, time
+import sys
+
+def handle_client(client_socket, addr):
+    try:
+        with open('/var/run/docker.sock', 'rb') as docker_sock:
+            while True:
+                data = client_socket.recv(4096)
+                if not data:
+                    break
+                docker_sock.write(data)
+                docker_sock.flush()
+                response = docker_sock.read(4096)
+                if response:
+                    client_socket.send(response)
+    except Exception:
+        pass
+    finally:
+        client_socket.close()
+
+def signal_handler(signum, frame):
+    sys.exit(0)
+
+signal.signal(signal.SIGTERM, signal_handler)
+signal.signal(signal.SIGINT, signal_handler)
+
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+server.bind(('127.0.0.1', %d))
+server.listen(1)
+
+while True:
+    try:
+        client_socket, addr = server.accept()
+        thread = threading.Thread(target=handle_client, args=(client_socket, addr))
+        thread.daemon = True
+        thread.start()
+    except Exception:
+        break
+" >/dev/null 2>&1 &`, remotePort),
+		},
+		{
+			"bash",
+			fmt.Sprintf(
+				`nohup bash -c '
+set -e
+exec 3<>/var/run/docker.sock
+while true; do
+    timeout 1 bash -c "exec 4<>/dev/tcp/127.0.0.1/%d" 2>/dev/null || break
+    {
+        while IFS= read -r line <&4; do
+            echo "$line" >&3
+            read -r response <&3
+            echo "$response" >&4
+        done
+    } &
+    wait
+    exec 4<&-
+    exec 4>&-
+done
+' >/dev/null 2>&1 &`, remotePort),
+		},
+	}
+
+	for _, method := range fallbackMethods {
 		if err := s.tryCreateTCPPort(method.name, method.cmd); err != nil {
-			s.log.Warn("Failed to create TCP port with method", "method", method.name, "error", err)
+			s.log.Warn("Failed to create TCP port with fallback method",
+				"method", method.name, "error", err)
 			continue
 		}
 
-		s.log.Info("Successfully created local TCP port on remote",
+		s.log.Info("Successfully created local TCP port on remote using fallback method",
 			"method", method.name,
 			"port", remotePort)
+		s.connectionMethod = fmt.Sprintf("SSH Tunnel (fallback %s)", method.name)
 		return nil
 	}
 
-	return errors.New("failed to create TCP port with any method")
+	return errors.New("failed to create TCP port with any fallback method")
 }
 
 // findAvailableRemotePort finds an available port on the remote machine
@@ -346,14 +500,31 @@ func (s *SSHTunnelClient) verifyTCPPortCreation() error {
 
 // getRemoteProcessPID gets the PID of the remote process for cleanup
 func (s *SSHTunnelClient) getRemoteProcessPID(session *ssh.Session) error {
-	pidCmd := fmt.Sprintf(
-		"lsof -ti:%d || fuser %d/tcp 2>/dev/null || echo 'unknown'",
-		s.remoteLocalPort, s.remoteLocalPort)
-	pidOutput, err := session.Output(pidCmd)
-	if err == nil {
-		s.remotePID = strings.TrimSpace(string(pidOutput))
-		s.log.Info("Found remote process PID", "pid", s.remotePID)
+	// Try multiple methods to find the process PID
+	pidMethods := []string{
+		fmt.Sprintf("lsof -ti:%d", s.remoteLocalPort),
+		fmt.Sprintf("fuser %d/tcp 2>/dev/null", s.remoteLocalPort),
+		fmt.Sprintf("ps aux | grep -E '(python|python3|bash).*%d' | "+
+			"grep -v grep | awk '{print $2}' | head -1", s.remoteLocalPort),
+		fmt.Sprintf("netstat -tlnp | grep ':%d ' | awk '{print $7}' | "+
+			"cut -d'/' -f1 | head -1", s.remoteLocalPort),
+		fmt.Sprintf("ss -tlnp | grep ':%d ' | awk '{print $6}' | "+
+			"cut -d',' -f2 | cut -d'=' -f2 | head -1", s.remoteLocalPort),
 	}
+
+	for _, pidCmd := range pidMethods {
+		pidOutput, err := session.Output(pidCmd)
+		if err == nil && len(strings.TrimSpace(string(pidOutput))) > 0 {
+			s.remotePID = strings.TrimSpace(string(pidOutput))
+			if s.remotePID != "" && s.remotePID != "unknown" {
+				s.log.Info("Found remote process PID", "pid", s.remotePID, "method", pidCmd)
+				return nil
+			}
+		}
+	}
+
+	s.remotePID = "unknown"
+	s.log.Warn("Could not find remote process PID")
 	return nil
 }
 
@@ -434,10 +605,6 @@ func (s *SSHTunnelClient) copyDataBidirectionally(localConn, remoteConn net.Conn
 
 // cleanupRemoteProcess cleans up the remote process that was created
 func (s *SSHTunnelClient) cleanupRemoteProcess() error {
-	if s.remotePID == "" || s.remotePID == "unknown" {
-		return nil
-	}
-
 	session, err := s.client.NewSession()
 	if err != nil {
 		return fmt.Errorf("failed to create cleanup session: %w", err)
@@ -448,12 +615,31 @@ func (s *SSHTunnelClient) cleanupRemoteProcess() error {
 		}
 	}()
 
-	// Kill the remote process
-	cmd := fmt.Sprintf("kill %s 2>/dev/null || true", s.remotePID)
-	if err := session.Run(cmd); err != nil {
-		s.log.Warn("Failed to kill remote process", "pid", s.remotePID, "error", err)
+	// If we have a specific PID, try to kill it
+	if s.remotePID != "" && s.remotePID != "unknown" {
+		cmd := fmt.Sprintf("kill %s 2>/dev/null || true", s.remotePID)
+		if err := session.Run(cmd); err != nil {
+			s.log.Warn("Failed to kill remote process by PID", "pid", s.remotePID, "error", err)
+		} else {
+			s.log.Info("Cleaned up remote process by PID", "pid", s.remotePID)
+		}
 	}
 
-	s.log.Info("Cleaned up remote process", "pid", s.remotePID)
+	// Also try to kill any processes listening on our port using multiple methods
+	cleanupCommands := []string{
+		fmt.Sprintf("lsof -ti:%d | xargs kill -9 2>/dev/null || true", s.remoteLocalPort),
+		fmt.Sprintf("fuser -k %d/tcp 2>/dev/null || true", s.remoteLocalPort),
+		fmt.Sprintf("pkill -f 'python.*%d' 2>/dev/null || true", s.remoteLocalPort),
+		fmt.Sprintf("pkill -f 'python3.*%d' 2>/dev/null || true", s.remoteLocalPort),
+		fmt.Sprintf("pkill -f 'bash.*%d' 2>/dev/null || true", s.remoteLocalPort),
+	}
+
+	for _, cmd := range cleanupCommands {
+		if err := session.Run(cmd); err != nil {
+			s.log.Debug("Cleanup command failed", "cmd", cmd, "error", err)
+		}
+	}
+
+	s.log.Info("Completed cleanup of remote processes", "port", s.remoteLocalPort)
 	return nil
 }
