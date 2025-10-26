@@ -18,7 +18,6 @@ type UIInterface interface {
 	ShowConfirm(string, func(bool))
 	ShowServiceScaleModal(string, uint64, func(int))
 	ShowNodeAvailabilityModal(string, string, func(string))
-	ShowContextualHelp(string, string)
 	ShowRetryDialog(string, error, func() error, func())
 	ShowFallbackDialog(string, error, []string, func(string))
 
@@ -37,7 +36,6 @@ type UIInterface interface {
 	// Additional methods needed by managers
 	GetMainFlex() any
 	SwitchView(string)
-	ShowHelp()
 
 	// Additional methods needed by handlers
 	GetPages() any

@@ -16,7 +16,8 @@ A terminal-based Docker management tool inspired by k9s, providing an intuitive 
 - **Real-time Search & Filtering** - Quick search across all views with `/` key
 - **Real-time Monitoring** - Live updates of container status and resource usage
 - **Theme Support** - Customizable color schemes and UI appearance
-- **Column Configuration** - Customize table columns with responsive widths, alignment, and visibility
+- **Column Configuration** - Customize table columns with:
+                          responsive widths, alignment, and visibility
 - **Remote Host Support** - Connect to remote Docker hosts via SSH
 - **Log Viewing** - Real-time container logs with search and filtering
 
@@ -27,13 +28,15 @@ A terminal-based Docker management tool inspired by k9s, providing an intuitive 
 - **Docker Desktop** or **Docker Engine** - [Download Docker](https://docker.com/products/docker-desktop/)
 - **Cross-platform support**: Windows, Linux, macOS
 
-> **Note:** You only need Go 1.25.0+ if you want to build from source. Pre-built binaries do not require Go to be installed.
+> **Note:** You only need Go 1.25.0+ if you want to build from source.
+Pre-built binaries do not require Go to be installed.
 
 ### Installation
 
 For detailed installation instructions, visit our [Installation Guide](https://wikczerski.github.io/whaletui/docs/installation).
 
 **Quick commands:**
+
 ```bash
 # Clone and build
 git clone https://github.com/wikczerski/whaletui.git
@@ -102,6 +105,7 @@ whaletui supports connecting to remote Docker hosts using the `connect` subcomma
 whaletui supports multiple theme formats for customizing the UI appearance:
 
 **JSON Theme Example:**
+
 ```json
 {
   "colors": {
@@ -114,6 +118,7 @@ whaletui supports multiple theme formats for customizing the UI appearance:
 ```
 
 **YAML Theme Example:**
+
 ```yaml
 colors:
   primary: "#00ff00"
@@ -123,6 +128,7 @@ colors:
 ```
 
 **Apply a theme:**
+
 ```bash
 whaletui --theme config/custom-theme.yaml
 whaletui --theme config/theme.json
@@ -133,6 +139,7 @@ whaletui --theme config/theme.json
 Customize table columns with responsive widths, alignment, and visibility controls:
 
 **YAML Configuration Example:**
+
 ```yaml
 tableLimits:
   views:
@@ -153,6 +160,7 @@ tableLimits:
 ```
 
 **Key Features:**
+
 - **Percentage-based widths** with min/max constraints
 - **Per-view configurations** for different data types
 - **Column visibility control** to show/hide specific columns
@@ -231,6 +239,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ## License
 
 This project is licensed under the GNU Affero General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+
 ## Acknowledgments
 
 - Inspired by [k9s](https://k9scli.io/) for Kubernetes management

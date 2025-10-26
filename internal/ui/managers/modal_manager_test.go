@@ -26,11 +26,6 @@ func TestNewModalManager(t *testing.T) {
 	assert.NotNil(t, manager)
 }
 
-func TestModalManager_ShowHelp_DoesNotPanic(t *testing.T) {
-	manager := newModalManagerWithUI(t)
-	assert.NotPanics(t, func() { manager.ShowHelp() })
-}
-
 func TestModalManager_ShowError_DoesNotPanic(t *testing.T) {
 	manager := newModalManagerWithUI(t)
 	assert.NotPanics(t, func() { manager.ShowError(errors.New("test error")) })
@@ -40,5 +35,3 @@ func TestModalManager_ShowConfirm_DoesNotPanic(t *testing.T) {
 	manager := newModalManagerWithUI(t)
 	assert.NotPanics(t, func() { manager.ShowConfirm("confirm?", func(bool) {}) })
 }
-
-// Private helpers like createModal/buildHelpText are not tested directly.

@@ -2,6 +2,9 @@
 
 # Build the executable for current platform with whaletui as the name
 build:
+	go build -o whaletui .
+
+build-win:
 	go build -o whaletui.exe .
 
 # Build with automatic version injection (Unix/Linux/macOS)

@@ -4,13 +4,6 @@ import (
 	"github.com/rivo/tview"
 )
 
-// showHelp shows the help modal
-func (ui *UI) showHelp() {
-	if ui.modalManager != nil {
-		ui.modalManager.ShowHelp()
-	}
-}
-
 // showError shows an error modal
 func (ui *UI) showError(err error) {
 	if ui.modalManager != nil {
@@ -22,13 +15,6 @@ func (ui *UI) showError(err error) {
 func (ui *UI) showInfo(message string) {
 	if ui.modalManager != nil {
 		ui.modalManager.ShowInfo(message)
-	}
-}
-
-// showContextualHelp shows context-sensitive help modal
-func (ui *UI) showContextualHelp(context, operation string) {
-	if ui.modalManager != nil {
-		ui.modalManager.ShowContextualHelp(context, operation)
 	}
 }
 

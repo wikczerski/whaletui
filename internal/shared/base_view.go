@@ -43,7 +43,6 @@ type SharedUIInterface interface {
 	// Advanced UI methods
 	ShowServiceScaleModal(string, uint64, func(int))
 	ShowNodeAvailabilityModal(string, string, func(string))
-	ShowContextualHelp(string, string)
 	ShowRetryDialog(string, error, func() error, func())
 	ShowFallbackDialog(string, error, []string, func(string))
 

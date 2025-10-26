@@ -19,15 +19,6 @@ func NewModalManager(ui interfaces.UIInterface) *ModalManager {
 	return &ModalManager{ui: ui}
 }
 
-// ShowHelp displays the help modal with keyboard shortcuts
-func (mm *ModalManager) ShowHelp() {
-	helpText := mm.buildHelpText()
-	modal := mm.createModal(helpText, []string{"Close"})
-
-	mm.setupHelpModalHandlers(modal)
-	mm.addHelpModalToUI(modal)
-}
-
 // ShowError displays an error modal
 func (mm *ModalManager) ShowError(err error) {
 	errorText := fmt.Sprintf("Error: %v", err)
@@ -56,31 +47,6 @@ func (mm *ModalManager) ShowInfo(message string) {
 	})
 
 	mm.showInfoModal(modal)
-}
-
-// ShowContextualHelp displays context-sensitive help modal
-func (mm *ModalManager) ShowContextualHelp(context, operation string) {
-	helpContent := mm.generateContextualHelp(context, operation)
-	modal := mm.createModal(helpContent, []string{"OK"})
-
-	// Add done function to handle OK button click
-	modal.SetDoneFunc(func(_ int, _ string) {
-		mm.closeContextualHelpModalAndRestoreFocus()
-	})
-
-	// Add keyboard handling for ESC key to close modal
-	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEscape {
-			mm.closeContextualHelpModalAndRestoreFocus()
-			return nil // Consume the event
-		}
-		return event
-	})
-
-	mm.addContextualHelpModalToPages(modal)
-
-	// Set focus to the modal so it can receive keyboard input
-	mm.setFocusToModal(modal)
 }
 
 // ShowConfirm displays a confirmation modal with Yes/No buttons
@@ -124,7 +90,7 @@ func (mm *ModalManager) ShowNodeAvailabilityModal(
 	content := mm.createNodeAvailabilityContent(nodeName, currentAvailability)
 
 	// Create modal with help button
-	modal := mm.createModal(content, []string{"Active", "Pause", "Drain", "Help", "Cancel"})
+	modal := mm.createModal(content, []string{"Active", "Pause", "Drain", "Cancel"})
 
 	// Add done function to handle button clicks
 	modal.SetDoneFunc(func(_ int, buttonLabel string) {
@@ -144,7 +110,11 @@ func (mm *ModalManager) ShowNodeAvailabilityModal(
 	mm.addNodeAvailabilityModalToPages(modal)
 
 	// Set focus to the modal so it can receive keyboard input
-	mm.setFocusToModal(modal)
+	app, ok := mm.ui.GetApp().(*tview.Application)
+	if !ok {
+		return
+	}
+	app.SetFocus(modal)
 }
 
 // ShowRetryDialog displays a retry dialog with automatic retry logic
@@ -178,7 +148,11 @@ func (mm *ModalManager) ShowRetryDialog(
 	mm.addRetryDialogToPages(modal)
 
 	// Set focus to the modal so it can receive keyboard input
-	mm.setFocusToModal(modal)
+	app, ok := mm.ui.GetApp().(*tview.Application)
+	if !ok {
+		return
+	}
+	app.SetFocus(modal)
 }
 
 // ShowFallbackDialog displays a fallback operations dialog
@@ -191,7 +165,6 @@ func (mm *ModalManager) ShowFallbackDialog(
 	content := mm.createFallbackContent(operation, err)
 	buttons := mm.createFallbackButtons(fallbackOptions)
 	modal := mm.createModal(content, buttons)
-
 	mm.setupFallbackModalHandlers(modal, onFallback)
 	mm.showFallbackModal(modal)
 }
@@ -277,10 +250,6 @@ func (mm *ModalManager) createScaleForm(
 			mm.closeScaleModalAndRestoreFocus()
 			onConfirm(replicas)
 		}).
-		AddButton("Help", func() {
-			// Show contextual help for service scaling
-			mm.ShowContextualHelp("swarm_services", "scale")
-		}).
 		AddButton("Cancel", func() {
 			// Close modal without action
 			mm.closeScaleModalAndRestoreFocus()
@@ -330,21 +299,27 @@ func (mm *ModalManager) handleNodeAvailabilityButtonClick(
 ) {
 	switch buttonLabel {
 	case "Active":
+		mm.closeNodeAvailabilityModal()
 		onConfirm("active")
-		mm.closeNodeAvailabilityModalAndRestoreFocus()
 	case "Pause":
+		mm.closeNodeAvailabilityModal()
 		onConfirm("pause")
-		mm.closeNodeAvailabilityModalAndRestoreFocus()
 	case "Drain":
+		mm.closeNodeAvailabilityModal()
 		onConfirm("drain")
-		mm.closeNodeAvailabilityModalAndRestoreFocus()
-	case "Help":
-		// Show contextual help for node availability updates
-		mm.ShowContextualHelp("swarm_nodes", "update_availability")
 	case "Cancel":
 		// Close the modal without action
-		mm.closeNodeAvailabilityModalAndRestoreFocus()
+		mm.closeNodeAvailabilityModal()
 	}
+}
+
+// closeNodeAvailabilityModal closes the node availability modal
+func (mm *ModalManager) closeNodeAvailabilityModal() {
+	pages, ok := mm.ui.GetPages().(*tview.Pages)
+	if !ok {
+		return
+	}
+	pages.RemovePage("availability_modal")
 }
 
 // closeNodeAvailabilityModalAndRestoreFocus closes the node availability modal and restores focus
@@ -471,6 +446,7 @@ func (mm *ModalManager) showFallbackModal(modal *tview.Modal) {
 	}
 	pages.AddPage("fallback_modal", modal, true, true)
 
+	// Set focus to the modal so it can receive keyboard input
 	app, ok := mm.ui.GetApp().(*tview.Application)
 	if !ok {
 		return
@@ -483,602 +459,6 @@ func (mm *ModalManager) createModal(text string, buttons []string) *tview.Modal 
 	return tview.NewModal().
 		SetText(text).
 		AddButtons(buttons)
-}
-
-// buildHelpText constructs the help text content
-func (mm *ModalManager) buildHelpText() string {
-	helpSections := mm.getHelpSections()
-	return mm.formatHelpText(helpSections)
-}
-
-// getHelpSections returns the help sections configuration
-func (mm *ModalManager) getHelpSections() []struct {
-	title   string
-	content []string
-} {
-	return []struct {
-		title   string
-		content []string
-	}{
-		mm.createGlobalHelpSection(),
-		mm.createNavigationHelpSection(),
-		mm.createTableNavigationHelpSection(),
-		mm.createContainerActionsHelpSection(),
-		mm.createImageActionsHelpSection(),
-		mm.createVolumeActionsHelpSection(),
-		mm.createNetworkActionsHelpSection(),
-		mm.createSwarmServiceActionsHelpSection(),
-		mm.createSwarmNodeActionsHelpSection(),
-		mm.createConfigurationHelpSection(),
-	}
-}
-
-// createGlobalHelpSection creates the global help section
-func (mm *ModalManager) createGlobalHelpSection() struct {
-	title   string
-	content []string
-} {
-	return struct {
-		title   string
-		content []string
-	}{
-		title: "Global",
-		content: []string{
-			"ESC       Close modal",
-			"Ctrl+C    Exit application",
-			"Q         Exit application",
-			"F5        Refresh",
-			"?         Show help",
-		},
-	}
-}
-
-// createNavigationHelpSection creates the navigation help section
-func (mm *ModalManager) createNavigationHelpSection() struct {
-	title   string
-	content []string
-} {
-	return struct {
-		title   string
-		content []string
-	}{
-		title: "Navigation",
-		content: []string{
-			"1, c      Containers view",
-			"2, i      Images view",
-			"3, v      Volumes view",
-			"4, n      Networks view",
-			"s         Swarm Services view",
-			"w         Swarm Nodes view",
-		},
-	}
-}
-
-// createTableNavigationHelpSection creates the table navigation help section
-func (mm *ModalManager) createTableNavigationHelpSection() struct {
-	title   string
-	content []string
-} {
-	return struct {
-		title   string
-		content []string
-	}{
-		title: "Table Navigation",
-		content: []string{
-			"↑/↓       Navigate rows",
-			"Enter     View details & actions",
-			"ESC       Close details",
-		},
-	}
-}
-
-// createContainerActionsHelpSection creates the container actions help section
-func (mm *ModalManager) createContainerActionsHelpSection() struct {
-	title   string
-	content []string
-} {
-	return struct {
-		title   string
-		content []string
-	}{
-		title: "Container Actions",
-		content: []string{
-			"s         Start container",
-			"S         Stop container",
-			"r         Restart container",
-			"d         Delete container",
-			"l         View logs",
-			"i         Inspect container",
-		},
-	}
-}
-
-// createImageActionsHelpSection creates the image actions help section
-func (mm *ModalManager) createImageActionsHelpSection() struct {
-	title   string
-	content []string
-} {
-	return struct {
-		title   string
-		content []string
-	}{
-		title: "Image Actions",
-		content: []string{
-			"d         Delete image",
-			"i         Inspect image",
-		},
-	}
-}
-
-// createVolumeActionsHelpSection creates the volume actions help section
-func (mm *ModalManager) createVolumeActionsHelpSection() struct {
-	title   string
-	content []string
-} {
-	return struct {
-		title   string
-		content []string
-	}{
-		title: "Volume Actions",
-		content: []string{
-			"d         Delete volume",
-			"i         Inspect volume",
-		},
-	}
-}
-
-// createNetworkActionsHelpSection creates the network actions help section
-func (mm *ModalManager) createNetworkActionsHelpSection() struct {
-	title   string
-	content []string
-} {
-	return struct {
-		title   string
-		content []string
-	}{
-		title: "Network Actions",
-		content: []string{
-			"d         Delete network",
-			"i         Inspect network",
-		},
-	}
-}
-
-// createSwarmServiceActionsHelpSection creates the swarm service actions help section
-func (mm *ModalManager) createSwarmServiceActionsHelpSection() struct {
-	title   string
-	content []string
-} {
-	return struct {
-		title   string
-		content []string
-	}{
-		title: "Swarm Service Actions",
-		content: []string{
-			"i         Inspect service",
-			"s         Scale service",
-			"r         Remove service",
-			"l         View logs",
-		},
-	}
-}
-
-// createSwarmNodeActionsHelpSection creates the swarm node actions help section
-func (mm *ModalManager) createSwarmNodeActionsHelpSection() struct {
-	title   string
-	content []string
-} {
-	return struct {
-		title   string
-		content []string
-	}{
-		title: "Swarm Node Actions",
-		content: []string{
-			"i         Inspect node",
-			"a         Update availability",
-			"r         Remove node",
-		},
-	}
-}
-
-// createConfigurationHelpSection creates the configuration help section
-func (mm *ModalManager) createConfigurationHelpSection() struct {
-	title   string
-	content []string
-} {
-	return struct {
-		title   string
-		content []string
-	}{
-		title: "Configuration",
-		content: []string{
-			":         Command mode",
-			"theme     Custom themes (YAML/JSON)",
-			"refresh   Auto-refresh settings",
-		},
-	}
-}
-
-// formatHelpText formats the help sections into a readable string
-func (mm *ModalManager) formatHelpText(helpSections []struct {
-	title   string
-	content []string
-},
-) string {
-	helpText := "whaletui Keyboard Shortcuts\n\n"
-	for _, section := range helpSections {
-		helpText += section.title + ":\n"
-		for _, item := range section.content {
-			helpText += "  " + item + "\n"
-		}
-		helpText += "\n"
-	}
-	return helpText
-}
-
-// generateContextualHelp creates context-sensitive help content
-func (mm *ModalManager) generateContextualHelp(context, operation string) string {
-	var helpContent string
-
-	switch context {
-	case "swarm_services":
-		helpContent = mm.generateSwarmServicesHelp(operation)
-	case "swarm_nodes":
-		helpContent = mm.generateSwarmNodesHelp(operation)
-	case "containers":
-		helpContent = mm.generateContainersHelp(operation)
-	case "images":
-		helpContent = mm.generateImagesHelp(operation)
-	case "networks":
-		helpContent = mm.generateNetworksHelp(operation)
-	case "volumes":
-		helpContent = mm.generateVolumesHelp(operation)
-	default:
-		helpContent = mm.generateGeneralHelp(operation)
-	}
-
-	return helpContent
-}
-
-// generateSwarmServicesHelp creates help content for swarm services context
-func (mm *ModalManager) generateSwarmServicesHelp(operation string) string {
-	switch operation {
-	case "scale":
-		return mm.getServiceScalingHelp()
-	case "remove":
-		return mm.getServiceRemovalHelp()
-	case "inspect":
-		return mm.getServiceInspectionHelp()
-	case "logs":
-		return mm.getServiceLogsHelp()
-	default:
-		return mm.getServiceGeneralHelp()
-	}
-}
-
-// getServiceScalingHelp returns help text for service scaling
-func (mm *ModalManager) getServiceScalingHelp() string {
-	return `🔧 Service Scaling Help
-
-Scaling a service changes the number of replicas running.
-
-What happens when you scale:
-• Docker Swarm will start/stop tasks to match the new replica count
-• Service remains available during scaling (rolling update)
-• Load balancer automatically distributes traffic
-
-Best practices:
-• Scale gradually for production services
-• Monitor resource usage after scaling
-• Consider using auto-scaling for variable workloads
-
-Common issues:
-• Insufficient resources on nodes
-• Service constraints preventing placement
-• Network connectivity issues
-
-Need more help? Check Docker Swarm documentation.`
-}
-
-// getServiceRemovalHelp returns help text for service removal
-func (mm *ModalManager) getServiceRemovalHelp() string {
-	return `⚠️ Service Removal Help
-
-Removing a service will permanently delete it.
-
-What happens when you remove:
-• All running tasks are stopped immediately
-• Service definition is removed from swarm
-• Load balancer stops routing traffic
-• Cannot be undone
-
-Before removing:
-• Ensure no critical dependencies
-• Backup service configuration if needed
-• Consider stopping instead of removing
-
-Alternatives to removal:
-• Scale to 0 replicas (pause service)
-• Update service configuration
-• Use service update for changes
-
-Need more help? Check Docker Swarm documentation.`
-}
-
-// getServiceInspectionHelp returns help text for service inspection
-func (mm *ModalManager) getServiceInspectionHelp() string {
-	return `🔍 Service Inspection Help
-
-Inspecting a service shows detailed information.
-
-What you can see:
-• Service configuration and settings
-• Current replica count and status
-• Network and volume mounts
-• Environment variables and labels
-• Update and rollback history
-
-Useful for:
-• Troubleshooting service issues
-• Understanding service configuration
-• Planning updates or changes
-• Debugging network problems
-
-Common inspection fields:
-• Spec: Service configuration
-• Endpoint: Network endpoints
-• UpdateStatus: Update progress
-• PreviousSpec: Previous configuration
-
-Need more help? Check Docker Swarm documentation.`
-}
-
-// getServiceLogsHelp returns help text for service logs
-func (mm *ModalManager) getServiceLogsHelp() string {
-	return `📋 Service Logs Help
-
-Viewing service logs helps with troubleshooting.
-
-What you can see:
-• Application output and errors
-• System messages and warnings
-• Network connection logs
-• Container startup/shutdown events
-
-Log viewing tips:
-• Logs may be truncated for performance
-• Use Docker CLI for full log access
-• Consider log aggregation for production
-• Monitor logs for error patterns
-
-Common log issues:
-• High log volume affecting performance
-• Missing logs due to rotation
-• Permission issues accessing logs
-• Network connectivity problems
-
-Need more help? Check Docker Swarm documentation.`
-}
-
-// getServiceGeneralHelp returns general help text for swarm services
-func (mm *ModalManager) getServiceGeneralHelp() string {
-	return `📚 Swarm Services Help
-
-Available operations:
-• Scale (s): Change number of replicas
-• Remove (r): Delete service permanently
-• Inspect (i): View detailed information
-• Logs (l): View service logs
-
-Navigation:
-• Use arrow keys to select services
-• Press 'h' for this help
-• Press 'q' to return to main view
-
-Need specific help? Select an operation first.`
-}
-
-// generateSwarmNodesHelp creates help content for swarm nodes context
-func (mm *ModalManager) generateSwarmNodesHelp(operation string) string {
-	switch operation {
-	case "update_availability":
-		return mm.getNodeAvailabilityHelp()
-	case "remove":
-		return mm.getNodeRemovalHelp()
-	case "inspect":
-		return mm.getNodeInspectionHelp()
-	default:
-		return mm.getNodeGeneralHelp()
-	}
-}
-
-// getNodeAvailabilityHelp returns help text for node availability updates
-func (mm *ModalManager) getNodeAvailabilityHelp() string {
-	return `🔄 Node Availability Help
-
-Changing node availability affects task placement.
-
-Availability options:
-• Active: Accepts new tasks (default)
-• Pause: No new tasks, existing tasks continue
-• Drain: No new tasks, existing tasks are rescheduled
-
-What happens when draining:
-• Running tasks are moved to other nodes
-• Service remains available during transition
-• Node becomes unavailable for new tasks
-• Useful for maintenance or updates
-
-Best practices:
-• Drain nodes before maintenance
-• Ensure sufficient capacity on other nodes
-• Monitor task rescheduling progress
-• Use pause for temporary unavailability
-
-Common issues:
-• Insufficient capacity on remaining nodes
-• Tasks that cannot be rescheduled
-• Network connectivity problems
-• Resource constraints preventing placement
-
-Need more help? Check Docker Swarm documentation.`
-}
-
-// getNodeRemovalHelp returns help text for node removal
-func (mm *ModalManager) getNodeRemovalHelp() string {
-	return `⚠️ Node Removal Help
-
-Removing a node affects swarm stability.
-
-What happens when you remove:
-• Node is forcefully removed from swarm
-• All tasks on the node are stopped
-• Swarm rebalances remaining tasks
-• Node must be re-added to rejoin
-
-⚠️ Important warnings:
-• Removing manager nodes affects swarm stability
-• Ensure sufficient manager nodes remain
-• Consider draining before removal
-• Backup swarm state if possible
-
-Before removing:
-• Drain the node first (recommended)
-• Ensure sufficient capacity remains
-• Check manager node count
-• Plan for service redistribution
-
-Need more help? Check Docker Swarm documentation.`
-}
-
-// getNodeInspectionHelp returns help text for node inspection
-func (mm *ModalManager) getNodeInspectionHelp() string {
-	return `🔍 Node Inspection Help
-
-Inspecting a node shows detailed information.
-
-What you can see:
-• Node status and availability
-• Resource usage and capacity
-• Engine version and plugins
-• Network configuration
-• Manager status (if applicable)
-
-Useful for:
-• Troubleshooting node issues
-• Planning capacity and scaling
-• Understanding node configuration
-• Debugging network problems
-
-Common inspection fields:
-• Status: Node health and readiness
-• Availability: Task placement preference
-• EngineVersion: Docker engine version
-• ManagerStatus: Manager role information
-
-Need more help? Check Docker Swarm documentation.`
-}
-
-// getNodeGeneralHelp returns general help text for swarm nodes
-func (mm *ModalManager) getNodeGeneralHelp() string {
-	return `📚 Swarm Nodes Help
-
-Available operations:
-• Update Availability (a): Change node availability
-• Remove (r): Remove node from swarm
-• Inspect (i): View detailed information
-
-Navigation:
-• Use arrow keys to select nodes
-• Press 'h' for this help
-• Press 'q' to return to main view
-
-Need specific help? Select an operation first.`
-}
-
-// generateContainersHelp creates help content for containers context
-func (mm *ModalManager) generateContainersHelp(_ string) string {
-	return `📚 Containers Help
-
-Available operations:
-• Start: Start a stopped container
-• Stop: Stop a running container
-• Remove: Delete a container
-• Inspect: View detailed information
-• Logs: View container logs
-
-Navigation:
-• Use arrow keys to select containers
-• Press 'h' for this help
-• Press 'q' to return to main view
-
-Need specific help? Select an operation first.`
-}
-
-// generateImagesHelp creates help content for images context
-func (mm *ModalManager) generateImagesHelp(_ string) string {
-	return `📚 Images Help
-
-Available operations:
-• Remove: Delete an image
-• Inspect: View detailed information
-• History: View image layers
-
-Navigation:
-• Use arrow keys to select images
-• Press 'h' for this help
-• Press 'q' to return to main view
-
-Need specific help? Select an operation first.`
-}
-
-// generateNetworksHelp creates help content for networks context
-func (mm *ModalManager) generateNetworksHelp(_ string) string {
-	return `📚 Networks Help
-
-Available operations:
-• Remove: Delete a network
-• Inspect: View detailed information
-
-Navigation:
-• Use arrow keys to select networks
-• Press 'h' for this help
-• Press 'q' to return to main view
-
-Need specific help? Select an operation first.`
-}
-
-// generateVolumesHelp creates help content for volumes context
-func (mm *ModalManager) generateVolumesHelp(_ string) string {
-	return `📚 Volumes Help
-
-Available operations:
-• Remove: Delete a volume
-• Inspect: View detailed information
-
-Navigation:
-• Use arrow keys to select volumes
-• Press 'h' for this help
-• Press 'q' to return to main view
-
-Need specific help? Select an operation first.`
-}
-
-// generateGeneralHelp creates general help content
-func (mm *ModalManager) generateGeneralHelp(_ string) string {
-	return `📚 General Help
-
-Available operations:
-• Navigate between views
-• Manage Docker resources
-• View system information
-
-Navigation:
-• Use arrow keys to navigate
-• Press 'h' for context-specific help
-• Press 'q' to return to previous view
-
-Need specific help? Navigate to a specific view first.`
 }
 
 // performAutomaticRetry performs automatic retry with progress indication
@@ -1250,59 +630,6 @@ func (mm *ModalManager) showConfirmModal(modal *tview.Modal) {
 	app.SetFocus(modal)
 }
 
-// setupHelpModalHandlers configures the event handlers for the help modal
-func (mm *ModalManager) setupHelpModalHandlers(modal *tview.Modal) {
-	// Add done function to handle Close button click
-	modal.SetDoneFunc(func(_ int, _ string) {
-		mm.closeHelpModal()
-	})
-
-	// Add keyboard handling for ESC key to close modal
-	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEscape {
-			mm.closeHelpModal()
-			return nil // Consume the event
-		}
-		return event
-	})
-}
-
-// closeHelpModal closes the help modal and restores focus
-func (mm *ModalManager) closeHelpModal() {
-	pages, ok := mm.ui.GetPages().(*tview.Pages)
-	if !ok {
-		return
-	}
-	pages.RemovePage("help_modal")
-
-	// Restore focus to the main view after closing modal
-	if viewContainer := mm.ui.GetViewContainer(); viewContainer != nil {
-		if vc, ok := viewContainer.(*tview.Flex); ok {
-			app, ok := mm.ui.GetApp().(*tview.Application)
-			if !ok {
-				return
-			}
-			app.SetFocus(vc)
-		}
-	}
-}
-
-// addHelpModalToUI adds the help modal to the UI and sets focus
-func (mm *ModalManager) addHelpModalToUI(modal *tview.Modal) {
-	pages, ok := mm.ui.GetPages().(*tview.Pages)
-	if !ok {
-		return
-	}
-	pages.AddPage("help_modal", modal, true, true)
-
-	// Set focus to the modal so it can receive keyboard input
-	app, ok := mm.ui.GetApp().(*tview.Application)
-	if !ok {
-		return
-	}
-	app.SetFocus(modal)
-}
-
 // closeInfoModalAndRestoreFocus closes the info modal and restores focus
 func (mm *ModalManager) closeInfoModalAndRestoreFocus() {
 	pages, ok := mm.ui.GetPages().(*tview.Pages)
@@ -1319,6 +646,7 @@ func (mm *ModalManager) showInfoModal(modal *tview.Modal) {
 	if !ok {
 		return
 	}
+
 	pages.AddPage("info_modal", modal, true, true)
 
 	// Set focus to the modal so it can receive keyboard input
@@ -1326,6 +654,7 @@ func (mm *ModalManager) showInfoModal(modal *tview.Modal) {
 	if !ok {
 		return
 	}
+
 	app.SetFocus(modal)
 }
 
@@ -1340,16 +669,6 @@ func (mm *ModalManager) restoreFocusToMainView() {
 			app.SetFocus(vc)
 		}
 	}
-}
-
-// closeContextualHelpModalAndRestoreFocus closes the contextual help modal and restores focus
-func (mm *ModalManager) closeContextualHelpModalAndRestoreFocus() {
-	pages, ok := mm.ui.GetPages().(*tview.Pages)
-	if !ok {
-		return
-	}
-	pages.RemovePage("contextual_help_modal")
-	mm.restoreFocusToMainView()
 }
 
 // closeScaleModalAndRestoreFocus closes the scale modal and restores focus
@@ -1378,22 +697,4 @@ func (mm *ModalManager) setFocusToForm(form *tview.Form) {
 		return
 	}
 	app.SetFocus(form)
-}
-
-// addContextualHelpModalToPages adds the contextual help modal to the pages
-func (mm *ModalManager) addContextualHelpModalToPages(modal *tview.Modal) {
-	pages, ok := mm.ui.GetPages().(*tview.Pages)
-	if !ok {
-		return
-	}
-	pages.AddPage("contextual_help_modal", modal, true, true)
-}
-
-// setFocusToModal sets focus to the modal
-func (mm *ModalManager) setFocusToModal(modal *tview.Modal) {
-	app, ok := mm.ui.GetApp().(*tview.Application)
-	if !ok {
-		return
-	}
-	app.SetFocus(modal)
 }

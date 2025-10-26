@@ -22,7 +22,6 @@ type NodesView struct {
 	log           *slog.Logger
 }
 
-// getUI safely gets the UI interface
 // NewNodesView creates a new swarm nodes view
 func NewNodesView(
 	ui interfaces.UIInterface,

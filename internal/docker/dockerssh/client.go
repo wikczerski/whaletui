@@ -1,3 +1,4 @@
+// Package dockerssh Responsible for all connection to remote docker host
 package dockerssh
 
 import (

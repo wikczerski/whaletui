@@ -157,10 +157,6 @@ func (ch *CommandHandler) processCommandTypes(command string) bool {
 		return true
 	}
 
-	if ch.handleHelpCommand(command) {
-		return true
-	}
-
 	ch.handleUnknownCommand(command)
 	return false
 }
@@ -197,17 +193,6 @@ func (ch *CommandHandler) handleSystemCommand(command string) bool {
 		return true
 	case "reload", "r":
 		ch.handleReloadThemeCommand()
-		return true
-	}
-	return false
-}
-
-// handleHelpCommand handles help-related commands
-func (ch *CommandHandler) handleHelpCommand(command string) bool {
-	switch command {
-	case "help", "?":
-		ch.ui.ShowHelp()
-		ch.Exit()
 		return true
 	}
 	return false
@@ -338,8 +323,8 @@ func (ch *CommandHandler) clearError() {
 func (ch *CommandHandler) getAutocomplete(currentText string) []string {
 	suggestions := []string{
 		"containers", "images", "volumes", "networks",
-		"swarm services", "swarm nodes", "services", "nodes",
-		"quit", "q", "exit", "help", "?", "reload", "r",
+		"services", "nodes",
+		"quit", "q", "exit", "help", "reload", "r",
 	}
 
 	var matches []string

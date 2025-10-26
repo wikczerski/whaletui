@@ -222,15 +222,12 @@ func TestGetAutocomplete(t *testing.T) {
 	assert.Contains(t, suggestions, "images")
 	assert.Contains(t, suggestions, "volumes")
 	assert.Contains(t, suggestions, "networks")
-	assert.Contains(t, suggestions, "swarm services")
-	assert.Contains(t, suggestions, "swarm nodes")
 	assert.Contains(t, suggestions, "services")
 	assert.Contains(t, suggestions, "nodes")
 	assert.Contains(t, suggestions, "quit")
 	assert.Contains(t, suggestions, "q")
 	assert.Contains(t, suggestions, "exit")
 	assert.Contains(t, suggestions, "help")
-	assert.Contains(t, suggestions, "?")
 	assert.Contains(t, suggestions, "reload")
 	assert.Contains(t, suggestions, "r")
 
@@ -244,14 +241,7 @@ func TestGetAutocomplete(t *testing.T) {
 
 	suggestions = handler.getAutocomplete("s")
 	assert.Len(t, suggestions, 3)
-	assert.Contains(t, suggestions, "swarm services")
-	assert.Contains(t, suggestions, "swarm nodes")
 	assert.Contains(t, suggestions, "services")
-
-	suggestions = handler.getAutocomplete("swarm")
-	assert.Len(t, suggestions, 2)
-	assert.Contains(t, suggestions, "swarm services")
-	assert.Contains(t, suggestions, "swarm nodes")
 
 	suggestions = handler.getAutocomplete("xyz")
 	assert.Len(t, suggestions, 0)

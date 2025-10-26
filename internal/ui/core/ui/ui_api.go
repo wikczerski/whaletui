@@ -1,3 +1,4 @@
+// Package ui - core ui implementations
 package ui
 
 import (
@@ -76,11 +77,6 @@ func (ui *UI) ShowError(err error) {
 // ShowInfo displays an info message
 func (ui *UI) ShowInfo(message string) {
 	ui.showInfo(message)
-}
-
-// ShowContextualHelp displays context-sensitive help based on current operation
-func (ui *UI) ShowContextualHelp(context, operation string) {
-	ui.showContextualHelp(context, operation)
 }
 
 // ShowRetryDialog displays a retry dialog with automatic retry logic
@@ -228,11 +224,6 @@ func (ui *UI) GetMainFlex() any {
 // SwitchView switches to the specified view
 func (ui *UI) SwitchView(view string) {
 	ui.switchView(view)
-}
-
-// ShowHelp shows the help dialog
-func (ui *UI) ShowHelp() {
-	ui.showHelp()
 }
 
 // GetPages returns the pages container
