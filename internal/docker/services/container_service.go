@@ -30,7 +30,10 @@ func NewContainerService(cli *client.Client, log *slog.Logger) *ContainerService
 }
 
 // ListContainers lists all containers
-func (s *ContainerService) ListContainers(ctx context.Context, all bool) ([]domaintypes.Container, error) {
+func (s *ContainerService) ListContainers(
+	ctx context.Context,
+	all bool,
+) ([]domaintypes.Container, error) {
 	containers, err := s.getContainerList(ctx, all)
 	if err != nil {
 		return nil, err
@@ -42,7 +45,10 @@ func (s *ContainerService) ListContainers(ctx context.Context, all bool) ([]doma
 }
 
 // InspectContainer inspects a container
-func (s *ContainerService) InspectContainer(ctx context.Context, id string) (map[string]any, error) {
+func (s *ContainerService) InspectContainer(
+	ctx context.Context,
+	id string,
+) (map[string]any, error) {
 	container, err := s.cli.ContainerInspect(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("container inspect failed %s: %w", id, err)

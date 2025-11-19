@@ -6,7 +6,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
@@ -107,7 +106,10 @@ func (dh *DockerHelper) GetContainerState(containerID string) string {
 }
 
 // WaitForContainerState waits for a container to reach a specific state.
-func (dh *DockerHelper) WaitForContainerState(containerID, expectedState string, timeout time.Duration) {
+func (dh *DockerHelper) WaitForContainerState(
+	containerID, expectedState string,
+	timeout time.Duration,
+) {
 	dh.fw.t.Helper()
 
 	dh.fw.WaitForCondition(func() bool {
@@ -259,7 +261,13 @@ func (dh *DockerHelper) ScaleService(serviceID string, replicas uint64) {
 	service.Spec.Mode.Replicated.Replicas = &replicas
 
 	// Update service
-	_, err = client.ServiceUpdate(ctx, serviceID, service.Version, service.Spec, types.ServiceUpdateOptions{})
+	_, err = client.ServiceUpdate(
+		ctx,
+		serviceID,
+		service.Version,
+		service.Spec,
+		swarm.ServiceUpdateOptions{},
+	)
 	require.NoError(dh.fw.t, err, "Failed to scale service")
 }
 

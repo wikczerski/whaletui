@@ -81,7 +81,11 @@ func TestContainerRestart(t *testing.T) {
 	client := fw.GetDockerClient()
 
 	// Create and start container
-	containerName := fmt.Sprintf("%s-%d", framework.ContainerFixtures.Busybox.Name, time.Now().UnixNano())
+	containerName := fmt.Sprintf(
+		"%s-%d",
+		framework.ContainerFixtures.Busybox.Name,
+		time.Now().UnixNano(),
+	)
 	containerID := dh.CreateTestContainer(
 		containerName,
 		framework.ContainerFixtures.Busybox.Image,
@@ -172,7 +176,12 @@ func TestContainerInspect(t *testing.T) {
 	// Verify inspect data
 	assert.NotNil(t, inspect, "Inspect data should not be nil")
 	assert.Equal(t, containerID, inspect.ID, "Container ID should match")
-	assert.Contains(t, inspect.Name, framework.ContainerFixtures.Nginx.Name, "Container name should match")
+	assert.Contains(
+		t,
+		inspect.Name,
+		framework.ContainerFixtures.Nginx.Name,
+		"Container name should match",
+	)
 	assert.Equal(t, framework.ContainerFixtures.Nginx.Image, inspect.Config.Image, "Image should match")
 }
 

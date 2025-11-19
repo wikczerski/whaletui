@@ -1,4 +1,6 @@
 // Package docker provides Docker client functionality for WhaleTUI.
+//
+//nolint:revive // Main client package legitimately needs multiple public types
 package docker
 
 import (

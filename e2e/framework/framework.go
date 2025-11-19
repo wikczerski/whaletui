@@ -39,7 +39,10 @@ func NewTestFramework(t *testing.T) *TestFramework {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 
 	// Initialize Docker client
-	dockerClient, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	dockerClient, err := client.NewClientWithOpts(
+		client.FromEnv,
+		client.WithAPIVersionNegotiation(),
+	)
 	require.NoError(t, err, "Failed to create Docker client")
 
 	fw := &TestFramework{
@@ -120,7 +123,11 @@ func (fw *TestFramework) SimulateKeySequence(keys []tcell.Key, runes []rune) {
 }
 
 // WaitForCondition waits for a condition to be true or timeout.
-func (fw *TestFramework) WaitForCondition(condition func() bool, timeout time.Duration, message string) {
+func (fw *TestFramework) WaitForCondition(
+	condition func() bool,
+	timeout time.Duration,
+	message string,
+) {
 	fw.t.Helper()
 
 	deadline := time.Now().Add(timeout)
@@ -248,6 +255,9 @@ func (fw *TestFramework) Sleep(duration time.Duration) {
 }
 
 // Logf logs a formatted message.
-func (fw *TestFramework) Logf(format string, args ...interface{}) {
+func (fw *TestFramework) Logf(
+	format string,
+	args ...interface{},
+) {
 	fw.t.Logf(format, args...)
 }

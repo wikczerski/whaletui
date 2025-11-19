@@ -210,7 +210,10 @@ func (s *SwarmService) validateServiceLogsRequest(id string) error {
 	return utils.ValidateID(id, "service ID")
 }
 
-func (s *SwarmService) getServiceLogsResponse(ctx context.Context, id string) (io.ReadCloser, error) {
+func (s *SwarmService) getServiceLogsResponse(
+	ctx context.Context,
+	id string,
+) (io.ReadCloser, error) {
 	options := container.LogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,

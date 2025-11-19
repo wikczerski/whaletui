@@ -27,7 +27,9 @@ func (b *ModalBuilder) AddButtons(buttons []string) *ModalBuilder {
 }
 
 // SetDoneFunc sets the handler for button clicks
-func (b *ModalBuilder) SetDoneFunc(handler func(buttonIndex int, buttonLabel string)) *ModalBuilder {
+func (b *ModalBuilder) SetDoneFunc(
+	handler func(buttonIndex int, buttonLabel string),
+) *ModalBuilder {
 	b.modal.SetDoneFunc(handler)
 	return b
 }

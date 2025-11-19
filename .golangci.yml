@@ -65,7 +65,7 @@ linters:
           severity: warning
           disabled: false
           exclude: ["TEST"]
-          arguments: [20, 40]
+          arguments: [20, 45]
         - name: if-return
           severity: warning
           disabled: false

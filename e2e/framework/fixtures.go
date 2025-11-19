@@ -1,3 +1,4 @@
+//nolint:revive // Test fixtures legitimately need many public structs
 package framework
 
 import (

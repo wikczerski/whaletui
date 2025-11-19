@@ -59,7 +59,12 @@ func TestSwarmNodeUpdateAvailability(t *testing.T) {
 
 	// Verify Drain state
 	node := dh.GetSwarmNode(nodeID)
-	assert.Equal(t, swarm.NodeAvailabilityDrain, node.Spec.Availability, "Node should be in Drain state")
+	assert.Equal(
+		t,
+		swarm.NodeAvailabilityDrain,
+		node.Spec.Availability,
+		"Node should be in Drain state",
+	)
 
 	// Update back to Active
 	dh.UpdateNodeAvailability(nodeID, swarm.NodeAvailabilityActive)
@@ -67,5 +72,10 @@ func TestSwarmNodeUpdateAvailability(t *testing.T) {
 
 	// Verify Active state
 	node = dh.GetSwarmNode(nodeID)
-	assert.Equal(t, swarm.NodeAvailabilityActive, node.Spec.Availability, "Node should be in Active state")
+	assert.Equal(
+		t,
+		swarm.NodeAvailabilityActive,
+		node.Spec.Availability,
+		"Node should be in Active state",
+	)
 }

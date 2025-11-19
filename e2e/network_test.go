@@ -150,5 +150,10 @@ func TestNetworkEmptyList(t *testing.T) {
 
 	// Verify operation works and default networks exist
 	assert.NotNil(t, networks, "Network list should not be nil")
-	assert.GreaterOrEqual(t, len(networks), 3, "Should have at least default networks (bridge, host, none)")
+	assert.GreaterOrEqual(
+		t,
+		len(networks),
+		3,
+		"Should have at least default networks (bridge, host, none)",
+	)
 }

@@ -720,7 +720,10 @@ func (s *SSHTunnelClient) checkPortInProcNetTCP(port int) bool {
 	// We look for the port in the local_address column (index 2) and state 0A (LISTEN)
 	// Format: sl local_address rem_address st ...
 	// Example: 0: 00000000:1F90 00000000:0000 0A ...
-	cmd := fmt.Sprintf("grep -F ':%s ' /proc/net/tcp | awk '{print $4}' | grep -q '0A' && echo 'found'", hexPort)
+	cmd := fmt.Sprintf(
+		"grep -F ':%s ' /proc/net/tcp | awk '{print $4}' | grep -q '0A' && echo 'found'",
+		hexPort,
+	)
 
 	output, err := session.Output(cmd)
 	return err == nil && strings.Contains(string(output), "found")
