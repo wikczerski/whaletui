@@ -137,7 +137,7 @@ func testKilobytes(t *testing.T) {
 func testMegabytes(t *testing.T) {
 	assert.Equal(t, "1.00 MB", utils.FormatSize(1024*1024))
 	assert.Equal(t, "1.50 MB", utils.FormatSize(1024*1024*3/2))
-	assert.Equal(t, "1024.00 MB", utils.FormatSize(1024*1024*1024-1)) // Adjusted to match actual behavior
+	assert.Equal(t, "1024.00 MB", utils.FormatSize(1024*1024*1024-1))
 }
 
 // testGigabytes tests gigabyte formatting

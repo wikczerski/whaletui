@@ -79,7 +79,10 @@ func (s *ContainerService) GetContainerLogs(ctx context.Context, id string) (str
 }
 
 // GetContainerStats gets container stats
-func (s *ContainerService) GetContainerStats(ctx context.Context, id string) (map[string]any, error) {
+func (s *ContainerService) GetContainerStats(
+	ctx context.Context,
+	id string,
+) (map[string]any, error) {
 	stats, err := s.cli.ContainerStats(ctx, id, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get container stats: %w", err)
@@ -100,13 +103,21 @@ func (s *ContainerService) StartContainer(ctx context.Context, id string) error 
 }
 
 // StopContainer stops a container
-func (s *ContainerService) StopContainer(ctx context.Context, id string, timeout *time.Duration) error {
+func (s *ContainerService) StopContainer(
+	ctx context.Context,
+	id string,
+	timeout *time.Duration,
+) error {
 	opts := utils.BuildStopOptions(timeout)
 	return s.cli.ContainerStop(ctx, id, opts)
 }
 
 // RestartContainer restarts a container
-func (s *ContainerService) RestartContainer(ctx context.Context, id string, timeout *time.Duration) error {
+func (s *ContainerService) RestartContainer(
+	ctx context.Context,
+	id string,
+	timeout *time.Duration,
+) error {
 	opts := utils.BuildStopOptions(timeout)
 	return s.cli.ContainerRestart(ctx, id, opts)
 }
@@ -145,7 +156,10 @@ func (s *ContainerService) ExecContainer(
 }
 
 // AttachContainer attaches to a running container
-func (s *ContainerService) AttachContainer(ctx context.Context, id string) (types.HijackedResponse, error) {
+func (s *ContainerService) AttachContainer(
+	ctx context.Context,
+	id string,
+) (types.HijackedResponse, error) {
 	attachConfig := container.AttachOptions{
 		Stream: true,
 		Stdin:  true,
@@ -168,12 +182,17 @@ func (s *ContainerService) AttachContainer(ctx context.Context, id string) (type
 
 // Helper methods
 
-func (s *ContainerService) getContainerList(ctx context.Context, all bool) ([]container.Summary, error) {
+func (s *ContainerService) getContainerList(
+	ctx context.Context,
+	all bool,
+) ([]container.Summary, error) {
 	opts := container.ListOptions{All: all}
 	return s.cli.ContainerList(ctx, opts)
 }
 
-func (s *ContainerService) convertToContainers(containers []container.Summary) []domaintypes.Container {
+func (s *ContainerService) convertToContainers(
+	containers []container.Summary,
+) []domaintypes.Container {
 	result := make([]domaintypes.Container, 0, len(containers))
 	for i := range containers {
 		cont := &containers[i]
@@ -205,7 +224,11 @@ func (s *ContainerService) readAndFormatLogs(logs io.ReadCloser) string {
 	return strings.Join(logLines, "") // strings package needs to be imported if not already
 }
 
-func (s *ContainerService) readLogsIntoBuffer(logs io.ReadCloser, buffer []byte, logLines *[]string) {
+func (s *ContainerService) readLogsIntoBuffer(
+	logs io.ReadCloser,
+	buffer []byte,
+	logLines *[]string,
+) {
 	for {
 		n, err := logs.Read(buffer)
 		if n > 0 {
@@ -248,7 +271,10 @@ func (s *ContainerService) createExecInstance(
 	return &execResp, nil
 }
 
-func (s *ContainerService) executeAndCollectOutput(ctx context.Context, execID string) (string, error) {
+func (s *ContainerService) executeAndCollectOutput(
+	ctx context.Context,
+	execID string,
+) (string, error) {
 	attachConfig := container.ExecStartOptions{
 		Tty: false,
 	}

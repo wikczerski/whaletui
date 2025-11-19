@@ -229,7 +229,11 @@ func (fw *TUITestFramework) WaitForText(expectedText string, timeout time.Durati
 }
 
 // WaitForTextAt waits for specific text to appear at a position.
-func (fw *TUITestFramework) WaitForTextAt(x, y int, expectedText string, timeout time.Duration) bool {
+func (fw *TUITestFramework) WaitForTextAt(
+	x, y int,
+	expectedText string,
+	timeout time.Duration,
+) bool {
 	fw.t.Helper()
 
 	deadline := time.Now().Add(timeout)
@@ -334,7 +338,8 @@ func (fw *TUITestFramework) DumpScreen() {
 
 // Helper function to check if a string contains a substring.
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && containsHelper(s, substr))
+	return len(s) >= len(substr) &&
+		(s == substr || len(s) > len(substr) && containsHelper(s, substr))
 }
 
 func containsHelper(s, substr string) bool {

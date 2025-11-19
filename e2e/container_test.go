@@ -182,7 +182,12 @@ func TestContainerInspect(t *testing.T) {
 		framework.ContainerFixtures.Nginx.Name,
 		"Container name should match",
 	)
-	assert.Equal(t, framework.ContainerFixtures.Nginx.Image, inspect.Config.Image, "Image should match")
+	assert.Equal(
+		t,
+		framework.ContainerFixtures.Nginx.Image,
+		inspect.Config.Image,
+		"Image should match",
+	)
 }
 
 // TestContainerStates tests containers in different states and color coding.

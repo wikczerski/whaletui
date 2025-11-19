@@ -289,7 +289,11 @@ func (dh *DockerHelper) GetServiceReplicas(serviceID string) uint64 {
 }
 
 // WaitForServiceReplicas waits for a service to reach a specific replica count.
-func (dh *DockerHelper) WaitForServiceReplicas(serviceID string, expectedReplicas uint64, timeout time.Duration) {
+func (dh *DockerHelper) WaitForServiceReplicas(
+	serviceID string,
+	expectedReplicas uint64,
+	timeout time.Duration,
+) {
 	dh.fw.t.Helper()
 
 	dh.fw.WaitForCondition(func() bool {

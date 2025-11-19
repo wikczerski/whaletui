@@ -148,7 +148,10 @@ func (fw *TestFramework) WaitForCondition(
 }
 
 // WaitForConditionWithError waits for a condition and returns error instead of failing.
-func (fw *TestFramework) WaitForConditionWithError(condition func() bool, timeout time.Duration) error {
+func (fw *TestFramework) WaitForConditionWithError(
+	condition func() bool,
+	timeout time.Duration,
+) error {
 	deadline := time.Now().Add(timeout)
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
@@ -257,7 +260,7 @@ func (fw *TestFramework) Sleep(duration time.Duration) {
 // Logf logs a formatted message.
 func (fw *TestFramework) Logf(
 	format string,
-	args ...interface{},
+	args ...any,
 ) {
 	fw.t.Logf(format, args...)
 }

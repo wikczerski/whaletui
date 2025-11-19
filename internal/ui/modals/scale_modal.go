@@ -55,7 +55,11 @@ func (sm *ScaleModal) createForm(onConfirm func(int), onCancel func()) *tview.Fo
 		AddButton("Cancel", onCancel)
 }
 
-func (sm *ScaleModal) createModal(serviceName string, currentReplicas uint64, onCancel func()) *tview.Modal {
+func (sm *ScaleModal) createModal(
+	serviceName string,
+	currentReplicas uint64,
+	onCancel func(),
+) *tview.Modal {
 	return tview.NewModal().
 		SetText(fmt.Sprintf("Scale Service: %s\nCurrent Replicas: %d", serviceName, currentReplicas)).
 		SetDoneFunc(func(_ int, _ string) {

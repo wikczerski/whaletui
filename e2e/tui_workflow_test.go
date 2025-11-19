@@ -51,7 +51,8 @@ func TestTUIContainerListWorkflow(t *testing.T) {
 	fw.StartApp(table)
 
 	// Verify container list is displayed
-	assert.True(t, fw.WaitForText("Containers", 2*time.Second), "Container view title should be visible")
+	assert.True(t, fw.WaitForText("Containers", 2*time.Second),
+		"Container view title should be visible")
 	assert.True(t, fw.VerifyTextContains("web-server"), "Container name should be visible")
 	assert.True(t, fw.VerifyTextContains("nginx:alpine"), "Image name should be visible")
 	assert.True(t, fw.VerifyTextContains("running"), "Container state should be visible")
@@ -184,7 +185,8 @@ func TestTUISearchWorkflow(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 
 	// Verify filtering (redis-cache should still be visible, others filtered out)
-	assert.True(t, fw.VerifyTextContains("redis-cache"), "redis-cache should be visible after search")
+	assert.True(t, fw.VerifyTextContains("redis-cache"),
+		"redis-cache should be visible after search")
 	assert.Equal(t, 1, list.GetItemCount(), "Only 1 item should match")
 }
 
@@ -227,14 +229,16 @@ func TestTUIModalConfirmationWorkflow(t *testing.T) {
 	fw.StartApp(pages)
 
 	// Verify main view
-	assert.True(t, fw.WaitForText("Press 'd' to delete", 2*time.Second), "Main view should be visible")
+	assert.True(t, fw.WaitForText("Press 'd' to delete", 2*time.Second),
+		"Main view should be visible")
 
 	// Press 'd' to trigger delete
 	fw.InjectKeyRune('d')
 	time.Sleep(200 * time.Millisecond)
 
 	// Verify modal is shown
-	assert.True(t, fw.WaitForText("Are you sure", 2*time.Second), "Confirmation modal should appear")
+	assert.True(t, fw.WaitForText("Are you sure", 2*time.Second),
+		"Confirmation modal should appear")
 
 	// Press Enter to confirm (Yes button)
 	fw.InjectKeyPress(tcell.KeyEnter)
@@ -335,7 +339,8 @@ func TestTUIMultiViewNavigation(t *testing.T) {
 	fw.StartApp(pages)
 
 	// Verify initial view (containers)
-	assert.True(t, fw.WaitForText("Containers View", 2*time.Second), "Containers view should be shown")
+	assert.True(t, fw.WaitForText("Containers View", 2*time.Second),
+		"Containers view should be shown")
 
 	// Switch to images
 	pages.SwitchToPage("images")
