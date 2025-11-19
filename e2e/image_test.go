@@ -39,7 +39,7 @@ func TestImageInspect(t *testing.T) {
 	dh.EnsureImage(imageName)
 
 	// Inspect image
-	inspect, _, err := client.ImageInspectWithRaw(ctx, imageName)
+	inspect, err := client.ImageInspect(ctx, imageName)
 	require.NoError(t, err, "Failed to inspect image")
 
 	// Verify inspect data
@@ -64,7 +64,7 @@ func TestImageDelete(t *testing.T) {
 	require.NoError(t, err, "Failed to delete image")
 
 	// Verify image is gone
-	_, _, err = client.ImageInspectWithRaw(ctx, testImage)
+	_, err = client.ImageInspect(ctx, testImage)
 	assert.Error(t, err, "Image should be deleted")
 }
 

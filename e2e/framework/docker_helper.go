@@ -124,7 +124,7 @@ func (dh *DockerHelper) EnsureImage(imageName string) {
 	client := dh.fw.GetDockerClient()
 
 	// Check if image exists
-	_, _, err := client.ImageInspectWithRaw(ctx, imageName)
+	_, err := client.ImageInspect(ctx, imageName)
 	if err == nil {
 		return // Image already exists
 	}
