@@ -199,12 +199,6 @@ func TestProcessCommand(t *testing.T) {
 	assert.False(t, handler.isActive)
 
 	handler.isActive = true
-	mockUI.On("ShowHelp").Once()
-	result = handler.processCommand("help")
-	assert.True(t, result)
-	assert.False(t, handler.isActive)
-
-	handler.isActive = true
 	result = handler.processCommand("unknown")
 	assert.False(t, result)
 	mockUI.AssertNotCalled(t, "ShowError")
@@ -217,7 +211,7 @@ func TestGetAutocomplete(t *testing.T) {
 	handler := NewCommandHandler(mockUI)
 
 	suggestions := handler.getAutocomplete("")
-	assert.Len(t, suggestions, 15)
+	assert.Len(t, suggestions, 11)
 	assert.Contains(t, suggestions, "containers")
 	assert.Contains(t, suggestions, "images")
 	assert.Contains(t, suggestions, "volumes")
@@ -227,7 +221,7 @@ func TestGetAutocomplete(t *testing.T) {
 	assert.Contains(t, suggestions, "quit")
 	assert.Contains(t, suggestions, "q")
 	assert.Contains(t, suggestions, "exit")
-	assert.Contains(t, suggestions, "help")
+	assert.NotContains(t, suggestions, "help")
 	assert.Contains(t, suggestions, "reload")
 	assert.Contains(t, suggestions, "r")
 
@@ -240,7 +234,7 @@ func TestGetAutocomplete(t *testing.T) {
 	assert.Contains(t, suggestions, "containers")
 
 	suggestions = handler.getAutocomplete("s")
-	assert.Len(t, suggestions, 3)
+	assert.Len(t, suggestions, 1)
 	assert.Contains(t, suggestions, "services")
 
 	suggestions = handler.getAutocomplete("xyz")

@@ -11,6 +11,8 @@ import (
 	"github.com/docker/docker/client"
 
 	"github.com/wikczerski/whaletui/internal/config"
+	"github.com/wikczerski/whaletui/internal/docker/services"
+	"github.com/wikczerski/whaletui/internal/docker/utils"
 )
 
 // createDockerClient creates a Docker client with the given configuration
@@ -74,7 +76,7 @@ func handleClientCreationError(cfg *config.Config, log *slog.Logger, err error) 
 func tryWindowsAutoDetection(cfg *config.Config, log *slog.Logger) (*Client, error) {
 	log.Warn("Docker client creation failed, attempting to auto-detect correct host...")
 
-	detectedHost, detectErr := detectWindowsDockerHost(log)
+	detectedHost, detectErr := utils.DetectWindowsDockerHost(log)
 	if detectErr != nil {
 		return nil, fmt.Errorf("failed to create Docker client: %w", detectErr)
 	}
@@ -140,9 +142,14 @@ func handleConnectionFailure(
 // createDockerClientInstance creates a new client instance
 func createDockerClientInstance(cli *client.Client, cfg *config.Config, log *slog.Logger) *Client {
 	return &Client{
-		cli: cli,
-		cfg: cfg,
-		log: log,
+		cli:       cli,
+		cfg:       cfg,
+		log:       log,
+		Container: services.NewContainerService(cli, log),
+		Image:     services.NewImageService(cli, log),
+		Volume:    services.NewVolumeService(cli, log),
+		Network:   services.NewNetworkService(cli, log),
+		Swarm:     services.NewSwarmService(cli, log),
 	}
 }
 

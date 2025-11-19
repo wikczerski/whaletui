@@ -21,8 +21,17 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/wikczerski/whaletui/internal/config"
 	"github.com/wikczerski/whaletui/internal/docker/dockerssh"
+	"github.com/wikczerski/whaletui/internal/docker/services"
+	domaintypes "github.com/wikczerski/whaletui/internal/docker/types"
+	"github.com/wikczerski/whaletui/internal/docker/utils"
 	"github.com/wikczerski/whaletui/internal/logger"
 )
+
+// Type aliases for backward compatibility
+type Container = domaintypes.Container
+type Image = domaintypes.Image
+type Volume = domaintypes.Volume
+type Network = domaintypes.Network
 
 // Client represents a Docker client wrapper
 type Client struct {
@@ -31,6 +40,13 @@ type Client struct {
 	log     *slog.Logger
 	sshConn *dockerssh.SSHConnection
 	sshCtx  *dockerssh.SSHContext
+
+	// Services for domain-specific operations
+	Container *services.ContainerService
+	Image     *services.ImageService
+	Volume    *services.VolumeService
+	Network   *services.NetworkService
+	Swarm     *services.SwarmService
 }
 
 // New creates a new Docker client
@@ -108,7 +124,7 @@ func (c *Client) GetInfo(ctx context.Context) (map[string]any, error) {
 	if err != nil {
 		return nil, fmt.Errorf("docker info failed: %w", err)
 	}
-	return marshalToMap(info)
+	return utils.MarshalToMap(info)
 }
 
 // InspectContainer inspects a container
@@ -122,7 +138,7 @@ func (c *Client) InspectContainer(ctx context.Context, id string) (map[string]an
 		return nil, fmt.Errorf("container inspect failed %s: %w", id, err)
 	}
 
-	return marshalToMap(container)
+	return utils.MarshalToMap(container)
 }
 
 // GetContainerLogs retrieves container logs
@@ -156,7 +172,7 @@ func (c *Client) InspectImage(ctx context.Context, id string) (map[string]any, e
 	if err != nil {
 		return nil, fmt.Errorf("image inspect failed %s: %w", id, err)
 	}
-	return marshalToMap(imageInfo)
+	return utils.MarshalToMap(imageInfo)
 }
 
 // InspectVolume inspects a volume
@@ -165,12 +181,12 @@ func (c *Client) InspectVolume(ctx context.Context, name string) (map[string]any
 	if err != nil {
 		return nil, fmt.Errorf("volume inspect failed %s: %w", name, err)
 	}
-	return marshalToMap(volumeInfo)
+	return utils.MarshalToMap(volumeInfo)
 }
 
 // RemoveVolume removes a volume
 func (c *Client) RemoveVolume(ctx context.Context, name string, force bool) error {
-	if err := validateID(name, "volume name"); err != nil {
+	if err := utils.ValidateID(name, "volume name"); err != nil {
 		return err
 	}
 
@@ -187,7 +203,7 @@ func (c *Client) InspectNetwork(ctx context.Context, id string) (map[string]any,
 	if err != nil {
 		return nil, fmt.Errorf("network inspect failed %s: %w", id, err)
 	}
-	return marshalToMap(networkInfo)
+	return utils.MarshalToMap(networkInfo)
 }
 
 // ListContainers lists all containers
@@ -202,7 +218,7 @@ func (c *Client) ListContainers(ctx context.Context, all bool) ([]Container, err
 	}
 
 	result := c.convertToContainers(containers)
-	sortContainersByCreationTime(result)
+	utils.SortContainersByCreationTime(result)
 	return result, nil
 }
 
@@ -229,7 +245,7 @@ func (c *Client) ListImages(ctx context.Context) ([]Image, error) {
 	}
 
 	result := c.convertToImages(images)
-	sortImagesByCreationTime(result)
+	utils.SortImagesByCreationTime(result)
 	return result, nil
 }
 
@@ -246,7 +262,7 @@ func (c *Client) ListVolumes(ctx context.Context) ([]Volume, error) {
 		result = append(result, volume)
 	}
 
-	sortVolumesByName(result)
+	utils.SortVolumesByName(result)
 	return result, nil
 }
 
@@ -290,13 +306,13 @@ func (c *Client) StartContainer(ctx context.Context, id string) error {
 
 // StopContainer stops a container
 func (c *Client) StopContainer(ctx context.Context, id string, timeout *time.Duration) error {
-	opts := buildStopOptions(timeout)
+	opts := utils.BuildStopOptions(timeout)
 	return c.cli.ContainerStop(ctx, id, opts)
 }
 
 // RestartContainer restarts a container
 func (c *Client) RestartContainer(ctx context.Context, id string, timeout *time.Duration) error {
-	opts := buildStopOptions(timeout)
+	opts := utils.BuildStopOptions(timeout)
 	return c.cli.ContainerRestart(ctx, id, opts)
 }
 
@@ -306,7 +322,7 @@ func (c *Client) RemoveContainer(ctx context.Context, id string, force bool) err
 		Force: force,
 	}
 
-	if err := validateID(id, "container ID"); err != nil {
+	if err := utils.ValidateID(id, "container ID"); err != nil {
 		return err
 	}
 
@@ -351,7 +367,7 @@ func (c *Client) AttachContainer(ctx context.Context, id string) (types.Hijacked
 		Logs:   false,
 	}
 
-	if err := validateID(id, "container ID"); err != nil {
+	if err := utils.ValidateID(id, "container ID"); err != nil {
 		return types.HijackedResponse{}, err
 	}
 
@@ -365,7 +381,7 @@ func (c *Client) AttachContainer(ctx context.Context, id string) (types.Hijacked
 
 // RemoveImage removes an image
 func (c *Client) RemoveImage(ctx context.Context, id string, force bool) error {
-	if err := validateID(id, "image ID"); err != nil {
+	if err := utils.ValidateID(id, "image ID"); err != nil {
 		return err
 	}
 
@@ -384,7 +400,7 @@ func (c *Client) RemoveImage(ctx context.Context, id string, force bool) error {
 
 // RemoveNetwork removes a network
 func (c *Client) RemoveNetwork(ctx context.Context, id string) error {
-	if err := validateID(id, "network ID"); err != nil {
+	if err := utils.ValidateID(id, "network ID"); err != nil {
 		return err
 	}
 
@@ -414,7 +430,7 @@ func (c *Client) InspectSwarmService(ctx context.Context, id string) (swarm.Serv
 		return swarm.Service{}, err
 	}
 
-	if err := validateID(id, "service ID"); err != nil {
+	if err := utils.ValidateID(id, "service ID"); err != nil {
 		return swarm.Service{}, err
 	}
 
@@ -438,7 +454,7 @@ func (c *Client) UpdateSwarmService(
 		return err
 	}
 
-	if err := validateID(id, "service ID"); err != nil {
+	if err := utils.ValidateID(id, "service ID"); err != nil {
 		return err
 	}
 
@@ -460,7 +476,7 @@ func (c *Client) RemoveSwarmService(ctx context.Context, id string) error {
 		return err
 	}
 
-	if err := validateID(id, "service ID"); err != nil {
+	if err := utils.ValidateID(id, "service ID"); err != nil {
 		return err
 	}
 
@@ -501,18 +517,21 @@ func (c *Client) ListSwarmNodes(ctx context.Context) ([]swarm.Node, error) {
 }
 
 // InspectSwarmNode inspects a swarm node
-func (c *Client) InspectSwarmNode(_ context.Context, id string) (swarm.Node, error) {
+func (c *Client) InspectSwarmNode(ctx context.Context, id string) (swarm.Node, error) {
 	if err := c.validateClient(); err != nil {
 		return swarm.Node{}, err
 	}
 
-	if err := validateID(id, "node ID"); err != nil {
+	if err := utils.ValidateID(id, "node ID"); err != nil {
 		return swarm.Node{}, err
 	}
 
-	return swarm.Node{}, errors.New(
-		"NodeInspect method not available in this Docker client version",
-	)
+	node, _, err := c.cli.NodeInspectWithRaw(ctx, id)
+	if err != nil {
+		return swarm.Node{}, fmt.Errorf("failed to inspect swarm node %s: %w", id, err)
+	}
+
+	return node, nil
 }
 
 // UpdateSwarmNode updates a swarm node
@@ -526,7 +545,7 @@ func (c *Client) UpdateSwarmNode(
 		return err
 	}
 
-	if err := validateID(id, "node ID"); err != nil {
+	if err := utils.ValidateID(id, "node ID"); err != nil {
 		return err
 	}
 
@@ -543,7 +562,7 @@ func (c *Client) RemoveSwarmNode(ctx context.Context, id string, force bool) err
 		return err
 	}
 
-	if err := validateID(id, "node ID"); err != nil {
+	if err := utils.ValidateID(id, "node ID"); err != nil {
 		return err
 	}
 
@@ -702,8 +721,8 @@ func (c *Client) convertToImages(images []image.Summary) []Image {
 
 // convertImage converts a single Docker API image to our Image type
 func (c *Client) convertImage(img *image.Summary) Image {
-	repo, tag := parseImageRepository(img.RepoTags)
-	size := formatSize(img.Size)
+	repo, tag := utils.ParseImageRepository(img.RepoTags)
+	size := utils.FormatSize(img.Size)
 	return Image{
 		ID:         img.ID[7:19], // Remove "sha256:" prefix and truncate
 		Repository: repo,
@@ -719,7 +738,7 @@ func (c *Client) validateServiceLogsRequest(id string) error {
 	if err := c.validateClient(); err != nil {
 		return err
 	}
-	return validateID(id, "service ID")
+	return utils.ValidateID(id, "service ID")
 }
 
 // getServiceLogsResponse gets the service logs response from Docker
@@ -781,7 +800,7 @@ func (c *Client) convertToContainers(containers []container.Summary) []Container
 
 // convertContainer converts a single Docker API container to our Container type
 func (c *Client) convertContainer(cont *container.Summary) Container {
-	ports := formatContainerPorts(cont.Ports)
+	ports := utils.FormatContainerPorts(cont.Ports)
 	return Container{
 		ID:      cont.ID[:12],
 		Name:    cont.Names[0][1:], // Remove leading slash

@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/wikczerski/whaletui/internal/shared"
-	"github.com/wikczerski/whaletui/internal/ui/builders"
+	"github.com/wikczerski/whaletui/internal/ui/formatters"
 	"github.com/wikczerski/whaletui/internal/ui/handlers"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 	"github.com/wikczerski/whaletui/internal/ui/utils"
@@ -117,7 +117,7 @@ func (nv *NetworksView) formatNetworkRow(network *shared.Network) []string {
 		network.Name,
 		network.Driver,
 		network.Scope,
-		builders.FormatTime(network.Created),
+		formatters.FormatTime(network.Created),
 	}
 }
 

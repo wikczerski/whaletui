@@ -1,4 +1,4 @@
-package docker
+package types
 
 import "time"
 

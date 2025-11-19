@@ -99,3 +99,71 @@ docker-cleanup:
 	@echo "Removing networks..."
 	-docker network rm test-network-1 test-network-2
 	@echo "Docker testing environment cleanup complete!"
+
+# E2E testing
+e2e-setup: docker-test
+	@echo "E2E test environment ready"
+
+e2e-test: e2e-setup
+	@echo "Running E2E tests..."
+	go test -v -timeout 30m ./e2e/...
+
+e2e-test-verbose: e2e-setup
+	@echo "Running E2E tests with verbose output..."
+	go test -v -timeout 30m -count=1 ./e2e/... -args -test.v
+
+e2e-test-short: e2e-setup
+	@echo "Running E2E tests (short mode)..."
+	go test -v -timeout 10m -short ./e2e/...
+
+e2e-cleanup: docker-cleanup
+	@echo "E2E test environment cleaned up"
+
+e2e-full: e2e-test e2e-cleanup
+	@echo "E2E tests complete with cleanup"
+
+# Run specific e2e test
+e2e-test-container:
+	@echo "Running container tests..."
+	go test -v -timeout 10m ./e2e -run TestContainer
+
+e2e-test-image:
+	@echo "Running image tests..."
+	go test -v -timeout 10m ./e2e -run TestImage
+
+e2e-test-volume:
+	@echo "Running volume tests..."
+	go test -v -timeout 10m ./e2e -run TestVolume
+
+e2e-test-network:
+	@echo "Running network tests..."
+	go test -v -timeout 10m ./e2e -run TestNetwork
+
+e2e-test-swarm:
+	@echo "Running swarm tests..."
+	go test -v -timeout 10m ./e2e -run TestSwarm
+
+e2e-test-workflow:
+	@echo "Running workflow tests..."
+	go test -v -timeout 10m ./e2e -run TestWorkflow
+
+# TUI-specific tests
+e2e-test-tui:
+	@echo "Running TUI interaction tests..."
+	go test -v -timeout 10m ./e2e -run TestTUI
+
+e2e-test-tui-interaction:
+	@echo "Running TUI interaction tests..."
+	go test -v -timeout 10m ./e2e -run TestTUIInteraction
+
+e2e-test-tui-workflow:
+	@echo "Running TUI workflow tests..."
+	go test -v -timeout 10m ./e2e -run TestTUIWorkflow
+
+# E2E test coverage
+e2e-coverage:
+	@echo "Running E2E tests with coverage..."
+	go test -v -timeout 30m -coverprofile=e2e_coverage.out ./e2e/...
+	go tool cover -html=e2e_coverage.out -o e2e_coverage.html
+	@echo "Coverage report generated: e2e_coverage.html"
+

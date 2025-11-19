@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/wikczerski/whaletui/internal/docker/utils"
 )
 
 func TestMarshalToMap(t *testing.T) {
@@ -14,7 +15,7 @@ func TestMarshalToMap(t *testing.T) {
 // testSimpleStruct tests marshaling of a simple struct
 func testSimpleStruct(t *testing.T) {
 	testData := createSimpleTestStruct()
-	result, err := marshalToMap(testData)
+	result, err := utils.MarshalToMap(testData)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
@@ -23,7 +24,7 @@ func testSimpleStruct(t *testing.T) {
 
 // testNilInput tests marshaling of nil input
 func testNilInput(t *testing.T) {
-	result, err := marshalToMap(nil)
+	result, err := utils.MarshalToMap(nil)
 	assert.NoError(t, err)
 	assert.Nil(t, result) // nil input should result in nil output
 }
@@ -54,7 +55,7 @@ func verifySimpleStructResult(t *testing.T, result map[string]any) {
 
 func TestMarshalToMap_ComplexData(t *testing.T) {
 	testData := createNestedTestStruct()
-	result, err := marshalToMap(testData)
+	result, err := utils.MarshalToMap(testData)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
@@ -116,50 +117,50 @@ func TestFormatSizeUtils(t *testing.T) {
 
 // testBytes tests byte formatting
 func testBytes(t *testing.T) {
-	assert.Equal(t, "0.00 B", formatSize(0))
-	assert.Equal(t, "100.00 B", formatSize(100))
-	assert.Equal(t, "1023.00 B", formatSize(1023))
+	assert.Equal(t, "0.00 B", utils.FormatSize(0))
+	assert.Equal(t, "100.00 B", utils.FormatSize(100))
+	assert.Equal(t, "1023.00 B", utils.FormatSize(1023))
 }
 
 // testKilobytes tests kilobyte formatting
 func testKilobytes(t *testing.T) {
-	assert.Equal(t, "1.00 KB", formatSize(1024))
-	assert.Equal(t, "1.50 KB", formatSize(1536))
-	assert.Equal(t, "1024.00 KB", formatSize(1024*1024-1)) // Adjusted to match actual behavior
+	assert.Equal(t, "1.00 KB", utils.FormatSize(1024))
+	assert.Equal(t, "1.50 KB", utils.FormatSize(1536))
+	assert.Equal(t, "1024.00 KB", utils.FormatSize(1024*1024-1)) // Adjusted to match actual behavior
 }
 
 // testMegabytes tests megabyte formatting
 func testMegabytes(t *testing.T) {
-	assert.Equal(t, "1.00 MB", formatSize(1024*1024))
-	assert.Equal(t, "1.50 MB", formatSize(1024*1024*3/2))
-	assert.Equal(t, "1024.00 MB", formatSize(1024*1024*1024-1)) // Adjusted to match actual behavior
+	assert.Equal(t, "1.00 MB", utils.FormatSize(1024*1024))
+	assert.Equal(t, "1.50 MB", utils.FormatSize(1024*1024*3/2))
+	assert.Equal(t, "1024.00 MB", utils.FormatSize(1024*1024*1024-1)) // Adjusted to match actual behavior
 }
 
 // testGigabytes tests gigabyte formatting
 func testGigabytes(t *testing.T) {
-	assert.Equal(t, "1.00 GB", formatSize(1024*1024*1024))
-	assert.Equal(t, "1.50 GB", formatSize(1024*1024*1024*3/2))
+	assert.Equal(t, "1.00 GB", utils.FormatSize(1024*1024*1024))
+	assert.Equal(t, "1.50 GB", utils.FormatSize(1024*1024*1024*3/2))
 	assert.Equal(
 		t,
 		"1024.00 GB",
-		formatSize(1024*1024*1024*1024-1),
+		utils.FormatSize(1024*1024*1024*1024-1),
 	) // Adjusted to match actual behavior
 }
 
 // testTerabytes tests terabyte formatting
 func testTerabytes(t *testing.T) {
-	assert.Equal(t, "1.00 TB", formatSize(1024*1024*1024*1024))
-	assert.Equal(t, "1.50 TB", formatSize(1024*1024*1024*1024*3/2))
+	assert.Equal(t, "1.00 TB", utils.FormatSize(1024*1024*1024*1024))
+	assert.Equal(t, "1.50 TB", utils.FormatSize(1024*1024*1024*1024*3/2))
 }
 
 func TestFormatSize_EdgeCases(t *testing.T) {
 	// Test negative values
-	assert.Equal(t, "-100.00 B", formatSize(-100))
-	assert.Equal(t, "-1024.00 B", formatSize(-1024)) // Adjusted to match actual behavior
+	assert.Equal(t, "-100.00 B", utils.FormatSize(-100))
+	assert.Equal(t, "-1024.00 B", utils.FormatSize(-1024)) // Adjusted to match actual behavior
 
 	// Test very large values
 	veryLarge := int64(1024 * 1024 * 1024 * 1024 * 1024) // 1 PB
-	assert.Equal(t, "1024.00 TB", formatSize(veryLarge))
+	assert.Equal(t, "1024.00 TB", utils.FormatSize(veryLarge))
 }
 
 func TestMarshalToMap_JSONError(t *testing.T) {
@@ -167,7 +168,7 @@ func TestMarshalToMap_JSONError(t *testing.T) {
 	// This is a bit tricky to do, but we can test with a channel
 	ch := make(chan int)
 
-	result, err := marshalToMap(ch)
+	result, err := utils.MarshalToMap(ch)
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "marshal failed")
@@ -175,7 +176,7 @@ func TestMarshalToMap_JSONError(t *testing.T) {
 
 func TestFormatSize_Precision(t *testing.T) {
 	// Test precision formatting
-	assert.Equal(t, "1.23 KB", formatSize(1260))       // 1260 bytes = 1.23 KB
-	assert.Equal(t, "1.50 MB", formatSize(1572864))    // 1572864 bytes = 1.5 MB
-	assert.Equal(t, "2.00 GB", formatSize(2147483648)) // 2 GB
+	assert.Equal(t, "1.23 KB", utils.FormatSize(1260))       // 1260 bytes = 1.23 KB
+	assert.Equal(t, "1.50 MB", utils.FormatSize(1572864))    // 1572864 bytes = 1.5 MB
+	assert.Equal(t, "2.00 GB", utils.FormatSize(2147483648)) // 2 GB
 }

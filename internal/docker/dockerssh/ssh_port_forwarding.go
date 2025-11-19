@@ -175,29 +175,41 @@ func (s *SSHTunnelClient) validateResponse(response string, localPort int) error
 func (s *SSHTunnelClient) checkExistingDockerTCPPort() error {
 	s.log.Info("Checking for existing Docker TCP port on remote machine")
 
-	session, err := s.client.NewSession()
-	if err != nil {
-		return fmt.Errorf("failed to create SSH session: %w", err)
-	}
-	defer func() {
-		if err := session.Close(); err != nil {
-			s.log.Warn("Failed to close SSH session", "error", err)
-		}
-	}()
-
 	// Check for common Docker TCP ports
 	commonPorts := []int{2375, 2376, 2377, 2378, 2379}
 	for _, port := range commonPorts {
-		cmd := fmt.Sprintf("netstat -tln | grep ':%d ' || ss -tln | grep ':%d '", port, port)
-		output, err := session.Output(cmd)
-		if err == nil && len(output) > 0 {
+		// Try standard tools first
+		if err := s.checkPortWithStandardTools(port); err == nil {
 			s.remoteLocalPort = port
 			s.log.Info("Found existing Docker TCP port", "port", port)
+			return nil
+		}
+
+		// Fallback: Check /proc/net/tcp
+		if s.checkPortInProcNetTCP(port) {
+			s.remoteLocalPort = port
+			s.log.Info("Found existing Docker TCP port via /proc/net/tcp", "port", port)
 			return nil
 		}
 	}
 
 	return errors.New("no existing Docker TCP port found")
+}
+
+// checkPortWithStandardTools checks if a port is listening using standard tools
+func (s *SSHTunnelClient) checkPortWithStandardTools(port int) error {
+	session, err := s.client.NewSession()
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	cmd := fmt.Sprintf("netstat -tln | grep ':%d ' || ss -tln | grep ':%d '", port, port)
+	output, err := session.Output(cmd)
+	if err == nil && len(output) > 0 {
+		return nil
+	}
+	return errors.New("port not found")
 }
 
 // createLocalTCPPortOnRemote creates a local TCP port on remote machine using socat/nc/netcat
@@ -410,30 +422,44 @@ done
 
 // findAvailableRemotePort finds an available port on the remote machine
 func (s *SSHTunnelClient) findAvailableRemotePort() (int, error) {
-	session, err := s.client.NewSession()
-	if err != nil {
-		return 0, fmt.Errorf("failed to create SSH session: %w", err)
-	}
-	defer func() {
-		if err := session.Close(); err != nil {
-			s.log.Warn("Failed to close SSH session", "error", err)
-		}
-	}()
-
 	// Try to find an available port starting from 2375, expanding the range
 	for port := 2375; port <= 2400; port++ {
 		// Check if port is NOT in use
-		cmd := fmt.Sprintf(
-			"! (netstat -tln | grep -q ':%d ' || ss -tln | grep -q ':%d ') && echo 'available'",
-			port, port)
-		output, err := session.Output(cmd)
-		if err == nil && strings.Contains(string(output), "available") {
+		// Try standard tools first
+		if s.isPortAvailableWithStandardTools(port) {
 			s.log.Info("Found available port on remote machine", "port", port)
 			return port, nil
+		}
+
+		// Fallback: Check /proc/net/tcp
+		// If checkPortInProcNetTCP returns false, it means the port is NOT in use (or we couldn't read the file)
+		// We assume if we can't read /proc/net/tcp, we can't use this method, but here we want to know if it's FREE.
+		// So we check if it IS in use.
+		if !s.checkPortInProcNetTCP(port) {
+			// Double check that we can actually read /proc/net/tcp
+			if s.canReadProcNetTCP() {
+				s.log.Info("Found available port on remote machine via /proc/net/tcp", "port", port)
+				return port, nil
+			}
 		}
 	}
 
 	return 0, errors.New("no available ports found in range 2375-2400")
+}
+
+// isPortAvailableWithStandardTools checks if a port is available using standard tools
+func (s *SSHTunnelClient) isPortAvailableWithStandardTools(port int) bool {
+	session, err := s.client.NewSession()
+	if err != nil {
+		return false
+	}
+	defer session.Close()
+
+	cmd := fmt.Sprintf(
+		"! (netstat -tln | grep -q ':%d ' || ss -tln | grep -q ':%d ') && echo 'available'",
+		port, port)
+	output, err := session.Output(cmd)
+	return err == nil && strings.Contains(string(output), "available")
 }
 
 // tryCreateTCPPort attempts to create a TCP port using the specified method
@@ -470,36 +496,57 @@ func (s *SSHTunnelClient) executeTCPPortCommand(method, cmd string) error {
 
 // verifyTCPPortCreation verifies that the TCP port was created successfully
 func (s *SSHTunnelClient) verifyTCPPortCreation() error {
+	// Try multiple verification methods
+	if pid, err := s.verifyWithStandardTools(); err == nil {
+		s.remotePID = pid
+		return nil
+	}
+
+	// Fallback: Check /proc/net/tcp
+	if s.checkPortInProcNetTCP(s.remoteLocalPort) {
+		s.log.Info("TCP port verification successful via /proc/net/tcp",
+			"port", s.remoteLocalPort)
+
+		// Try to get PID if possible, but don't fail if we can't
+		if pid, err := s.getRemoteProcessPID(); err == nil {
+			s.remotePID = pid
+		}
+		return nil
+	}
+
+	return fmt.Errorf(
+		"failed to verify TCP port creation - port %d not listening",
+		s.remoteLocalPort)
+}
+
+// verifyWithStandardTools verifies TCP port creation using standard tools
+func (s *SSHTunnelClient) verifyWithStandardTools() (string, error) {
 	verifySession, err := s.client.NewSession()
 	if err != nil {
-		return fmt.Errorf("failed to create verification session: %w", err)
+		return "", err
 	}
-	defer func() {
-		if err := verifySession.Close(); err != nil {
-			s.log.Warn("Failed to close verification session", "error", err)
-		}
-	}()
+	defer verifySession.Close()
 
-	// Try multiple verification methods
 	verifyCmd := fmt.Sprintf(
 		"netstat -tln | grep ':%d ' || ss -tln | grep ':%d ' || lsof -i :%d",
 		s.remoteLocalPort, s.remoteLocalPort, s.remoteLocalPort)
 	output, err := verifySession.Output(verifyCmd)
-	if err != nil || len(output) == 0 {
-		return fmt.Errorf(
-			"failed to verify TCP port creation - port %d not listening",
-			s.remoteLocalPort)
+	if err == nil && len(output) > 0 {
+		s.log.Info("TCP port verification successful",
+			"port", s.remoteLocalPort,
+			"output", string(output))
+		return s.getRemoteProcessPID()
 	}
-
-	s.log.Info("TCP port verification successful",
-		"port", s.remoteLocalPort,
-		"output", string(output))
-
-	return s.getRemoteProcessPID(verifySession)
+	return "", errors.New("verification failed")
 }
 
 // getRemoteProcessPID gets the PID of the remote process for cleanup
-func (s *SSHTunnelClient) getRemoteProcessPID(session *ssh.Session) error {
+func (s *SSHTunnelClient) getRemoteProcessPID() (string, error) {
+	session, err := s.client.NewSession()
+	if err != nil {
+		return "", err
+	}
+	defer session.Close()
 	// Try multiple methods to find the process PID
 	pidMethods := []string{
 		fmt.Sprintf("lsof -ti:%d", s.remoteLocalPort),
@@ -513,19 +560,33 @@ func (s *SSHTunnelClient) getRemoteProcessPID(session *ssh.Session) error {
 	}
 
 	for _, pidCmd := range pidMethods {
-		pidOutput, err := session.Output(pidCmd)
+		// We need a new session for each command because Output closes it
+		// But here we are inside a loop.
+		// Wait, I created one session at the top of getRemoteProcessPID.
+		// session.Output(pidCmd) will close it!
+		// So the loop will fail after the first iteration!
+		// I need to create a session INSIDE the loop.
+
+		cmdSession, err := s.client.NewSession()
+		if err != nil {
+			continue
+		}
+
+		pidOutput, err := cmdSession.Output(pidCmd)
+		cmdSession.Close()
+
 		if err == nil && len(strings.TrimSpace(string(pidOutput))) > 0 {
-			s.remotePID = strings.TrimSpace(string(pidOutput))
-			if s.remotePID != "" && s.remotePID != "unknown" {
-				s.log.Info("Found remote process PID", "pid", s.remotePID, "method", pidCmd)
-				return nil
+			pid := strings.TrimSpace(string(pidOutput))
+			if pid != "" && pid != "unknown" {
+				s.log.Info("Found remote process PID", "pid", pid, "method", pidCmd)
+				return pid, nil
 			}
 		}
 	}
 
 	s.remotePID = "unknown"
 	s.log.Warn("Could not find remote process PID")
-	return nil
+	return "unknown", nil
 }
 
 // handleTunnelConnections handles incoming connections and forwards them via SSH tunnel
@@ -642,4 +703,38 @@ func (s *SSHTunnelClient) cleanupRemoteProcess() error {
 
 	s.log.Info("Completed cleanup of remote processes", "port", s.remoteLocalPort)
 	return nil
+}
+
+// checkPortInProcNetTCP checks if a port is listening in /proc/net/tcp
+func (s *SSHTunnelClient) checkPortInProcNetTCP(port int) bool {
+	session, err := s.client.NewSession()
+	if err != nil {
+		return false
+	}
+	defer session.Close()
+
+	// Convert port to hex string (uppercase)
+	hexPort := fmt.Sprintf("%04X", port)
+
+	// Command to check /proc/net/tcp
+	// We look for the port in the local_address column (index 2) and state 0A (LISTEN)
+	// Format: sl local_address rem_address st ...
+	// Example: 0: 00000000:1F90 00000000:0000 0A ...
+	cmd := fmt.Sprintf("grep -F ':%s ' /proc/net/tcp | awk '{print $4}' | grep -q '0A' && echo 'found'", hexPort)
+
+	output, err := session.Output(cmd)
+	return err == nil && strings.Contains(string(output), "found")
+}
+
+// canReadProcNetTCP checks if /proc/net/tcp is readable
+func (s *SSHTunnelClient) canReadProcNetTCP() bool {
+	session, err := s.client.NewSession()
+	if err != nil {
+		return false
+	}
+	defer session.Close()
+
+	cmd := "test -r /proc/net/tcp && echo 'readable'"
+	output, err := session.Output(cmd)
+	return err == nil && strings.Contains(string(output), "readable")
 }

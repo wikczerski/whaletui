@@ -1,0 +1,10 @@
+{
+    "colors": {
+        "primary": "#00ff00",
+        "secondary": "#ff00ff",
+        "background": "#000000",
+        "text": "#ffffff",
+        "border": "#00ffff",
+        "header": "#ffff00"
+    }
+}

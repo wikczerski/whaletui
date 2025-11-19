@@ -324,7 +324,7 @@ func (ch *CommandHandler) getAutocomplete(currentText string) []string {
 	suggestions := []string{
 		"containers", "images", "volumes", "networks",
 		"services", "nodes",
-		"quit", "q", "exit", "help", "reload", "r",
+		"quit", "q", "exit", "reload", "r",
 	}
 
 	var matches []string

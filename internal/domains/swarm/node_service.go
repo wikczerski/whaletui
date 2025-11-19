@@ -78,7 +78,7 @@ func (n *NodeService) UpdateNodeAvailability(ctx context.Context, id, availabili
 		return err
 	}
 
-	n.updateNodeSpecAvailability(node, availability)
+	n.updateNodeSpecAvailability(&node, availability)
 
 	if err := n.client.UpdateSwarmNode(ctx, id, node.Version, node.Spec); err != nil {
 		return fmt.Errorf("failed to update node availability: %w", err)
@@ -163,7 +163,7 @@ func (n *NodeService) validateAvailability(availability string) error {
 }
 
 // updateNodeSpecAvailability updates the node spec availability
-func (n *NodeService) updateNodeSpecAvailability(node swarm.Node, availability string) {
+func (n *NodeService) updateNodeSpecAvailability(node *swarm.Node, availability string) {
 	switch availability {
 	case "active":
 		node.Spec.Availability = swarm.NodeAvailabilityActive

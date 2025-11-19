@@ -9,8 +9,8 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/wikczerski/whaletui/internal/logger"
 	"github.com/wikczerski/whaletui/internal/shared"
-	"github.com/wikczerski/whaletui/internal/ui/builders"
 	"github.com/wikczerski/whaletui/internal/ui/constants"
+	"github.com/wikczerski/whaletui/internal/ui/formatters"
 	"github.com/wikczerski/whaletui/internal/ui/handlers"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 	"github.com/wikczerski/whaletui/internal/ui/utils"
@@ -154,7 +154,7 @@ func (cv *ContainersView) formatContainerRow(container *shared.Container) []stri
 		container.Status,
 		container.State,
 		ports,
-		builders.FormatTime(container.Created),
+		formatters.FormatTime(container.Created),
 	}
 }
 

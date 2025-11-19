@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/wikczerski/whaletui/internal/shared"
-	"github.com/wikczerski/whaletui/internal/ui/builders"
+	"github.com/wikczerski/whaletui/internal/ui/formatters"
 	"github.com/wikczerski/whaletui/internal/ui/handlers"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 	"github.com/wikczerski/whaletui/internal/ui/utils"
@@ -105,7 +105,7 @@ func (iv *ImagesView) formatImageRow(image *shared.Image) []string {
 		repo,
 		tag,
 		image.Size,
-		builders.FormatTime(image.Created),
+		formatters.FormatTime(image.Created),
 		"0", // shared.Image doesn't have Containers field
 	}
 }

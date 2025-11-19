@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/wikczerski/whaletui/internal/shared"
-	"github.com/wikczerski/whaletui/internal/ui/builders"
+	"github.com/wikczerski/whaletui/internal/ui/formatters"
 	"github.com/wikczerski/whaletui/internal/ui/handlers"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
 	"github.com/wikczerski/whaletui/internal/ui/utils"
@@ -131,7 +131,7 @@ func (vv *VolumesView) formatVolumeRow(volume *shared.Volume) []string {
 		volume.Name,
 		volume.Driver,
 		volume.Mountpoint,
-		builders.FormatTime(volume.CreatedAt),
+		formatters.FormatTime(volume.CreatedAt),
 		volume.Size,
 	}
 }

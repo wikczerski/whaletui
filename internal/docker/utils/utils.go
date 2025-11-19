@@ -1,4 +1,4 @@
-package docker
+package utils
 
 import (
 	"context"
@@ -13,10 +13,11 @@ import (
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
+	"github.com/wikczerski/whaletui/internal/docker/types"
 )
 
-// marshalToMap converts any value to a map[string]any using JSON marshaling
-func marshalToMap(v any) (map[string]any, error) {
+// MarshalToMap converts any value to a map[string]any using JSON marshaling
+func MarshalToMap(v any) (map[string]any, error) {
 	data, err := json.Marshal(v)
 	if err != nil {
 		return nil, fmt.Errorf("marshal failed: %w", err)
@@ -30,8 +31,8 @@ func marshalToMap(v any) (map[string]any, error) {
 	return result, nil
 }
 
-// formatSize formats a size in bytes to a human-readable string
-func formatSize(size int64) string {
+// FormatSize formats a size in bytes to a human-readable string
+func FormatSize(size int64) string {
 	sizeInfo := getSizeInfo(size)
 	return fmt.Sprintf("%.2f %s", sizeInfo.value, sizeInfo.unit)
 }
@@ -65,8 +66,8 @@ func getSizeInfo(size int64) sizeInfo {
 	}
 }
 
-// detectWindowsDockerHost attempts to find the correct Docker host on Windows
-func detectWindowsDockerHost(log *slog.Logger) (string, error) {
+// DetectWindowsDockerHost attempts to find the correct Docker host on Windows
+func DetectWindowsDockerHost(log *slog.Logger) (string, error) {
 	if runtime.GOOS != "windows" {
 		return "", errors.New("not on Windows")
 	}
@@ -128,8 +129,8 @@ func closeClientSafely(cli *client.Client, log *slog.Logger) {
 	}
 }
 
-// formatContainerPorts formats container ports into a readable string
-func formatContainerPorts(ports []container.Port) string {
+// FormatContainerPorts formats container ports into a readable string
+func FormatContainerPorts(ports []container.Port) string {
 	if len(ports) == 0 {
 		return ""
 	}
@@ -149,15 +150,15 @@ func formatContainerPorts(ports []container.Port) string {
 	return strings.Join(formattedPorts, ", ")
 }
 
-// sortContainersByCreationTime sorts containers by creation time (newest first)
-func sortContainersByCreationTime(containers []Container) {
+// SortContainersByCreationTime sorts containers by creation time (newest first)
+func SortContainersByCreationTime(containers []types.Container) {
 	sort.Slice(containers, func(i, j int) bool {
 		return containers[i].Created.After(containers[j].Created)
 	})
 }
 
-// parseImageRepository parses repository and tag from image repoTags
-func parseImageRepository(repoTags []string) (repository, tag string) {
+// ParseImageRepository parses repository and tag from image repoTags
+func ParseImageRepository(repoTags []string) (repository, tag string) {
 	if len(repoTags) == 0 || repoTags[0] == "<none>:<none>" {
 		return "<none>", "<none>"
 	}
@@ -169,22 +170,22 @@ func parseImageRepository(repoTags []string) (repository, tag string) {
 	return repoTags[0], "<none>"
 }
 
-// sortImagesByCreationTime sorts images by creation time (newest first)
-func sortImagesByCreationTime(images []Image) {
+// SortImagesByCreationTime sorts images by creation time (newest first)
+func SortImagesByCreationTime(images []types.Image) {
 	sort.Slice(images, func(i, j int) bool {
 		return images[i].Created.After(images[j].Created)
 	})
 }
 
-// sortVolumesByName sorts volumes by name
-func sortVolumesByName(volumes []Volume) {
+// SortVolumesByName sorts volumes by name
+func SortVolumesByName(volumes []types.Volume) {
 	sort.Slice(volumes, func(i, j int) bool {
 		return volumes[i].Name < volumes[j].Name
 	})
 }
 
-// buildStopOptions builds stop options with optional timeout
-func buildStopOptions(timeout *time.Duration) container.StopOptions {
+// BuildStopOptions builds stop options with optional timeout
+func BuildStopOptions(timeout *time.Duration) container.StopOptions {
 	opts := container.StopOptions{}
 	if timeout != nil {
 		opts.Signal = "SIGTERM"
@@ -194,8 +195,8 @@ func buildStopOptions(timeout *time.Duration) container.StopOptions {
 	return opts
 }
 
-// validateID validates that an ID is not empty
-func validateID(id, idType string) error {
+// ValidateID validates that an ID is not empty
+func ValidateID(id, idType string) error {
 	if id == "" {
 		return fmt.Errorf("%s cannot be empty", idType)
 	}
