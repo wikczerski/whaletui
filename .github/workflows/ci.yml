@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        go-version: [1.25.0]
+        go-version: [1.25.3]
 
     steps:
       - name: Checkout code
@@ -69,7 +69,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.25.0'
+          go-version: '1.25.3'
 
       - name: Cache Go modules
         uses: actions/cache@v3
@@ -118,7 +118,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.25.0'
+          go-version: '1.25.3'
 
       - name: Cache Go modules
         uses: actions/cache@v3
@@ -173,7 +173,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.25.0'
+          go-version: '1.25.3'
 
       - name: Configure Go environment for better network resilience
         run: |

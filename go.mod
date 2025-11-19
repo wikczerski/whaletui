@@ -1,9 +1,10 @@
 module github.com/wikczerski/whaletui
 
-go 1.25.0
+go 1.25.3
 
 require (
 	github.com/docker/docker v28.5.1+incompatible
+	github.com/docker/go-connections v0.5.0
 	github.com/gdamore/tcell/v2 v2.9.0
 	github.com/rivo/tview v0.42.0
 	github.com/spf13/cobra v1.10.1
@@ -20,7 +21,6 @@ require (
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
-	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
