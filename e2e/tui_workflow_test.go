@@ -269,7 +269,10 @@ func TestTUIDetailsViewWorkflow(t *testing.T) {
 			details := tview.NewTextView()
 			details.SetBorder(true)
 			details.SetTitle(fmt.Sprintf(" Details: %s ", itemName))
-			details.SetText(fmt.Sprintf("Container: %s\nStatus: Running\nImage: nginx:alpine\nPorts: 80:8080", itemName))
+			details.SetText(fmt.Sprintf(
+				"Container: %s\nStatus: Running\nImage: nginx:alpine\nPorts: 80:8080",
+				itemName,
+			))
 
 			// Set up Backspace to return
 			details.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {

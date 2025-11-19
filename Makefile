@@ -166,4 +166,3 @@ e2e-coverage:
 	go test -v -timeout 30m -coverprofile=e2e_coverage.out ./e2e/...
 	go tool cover -html=e2e_coverage.out -o e2e_coverage.html
 	@echo "Coverage report generated: e2e_coverage.html"
-

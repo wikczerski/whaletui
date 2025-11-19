@@ -2,6 +2,7 @@ package swarm
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -26,7 +27,7 @@ func NewServicesPresenter(serviceService *ServiceService, log *slog.Logger) *Ser
 // ValidateService validates that a service is not nil
 func (p *ServicesPresenter) ValidateService(service *shared.SwarmService) error {
 	if service == nil {
-		return fmt.Errorf("no service selected")
+		return errors.New("no service selected")
 	}
 	return nil
 }
@@ -152,64 +153,6 @@ func (p *ServicesPresenter) ExecuteScaleFallback(
 	}
 }
 
-// checkServiceStatus checks the service status
-func (p *ServicesPresenter) checkServiceStatus(
-	ctx context.Context,
-	service *shared.SwarmService,
-) (string, error) {
-	serviceInfo, err := p.serviceService.InspectService(ctx, service.ID)
-	if err != nil {
-		return "", fmt.Errorf("failed to check service status: %w", err)
-	}
-
-	return fmt.Sprintf("Service '%s' Status:\n\n"+
-		"Current Replicas: %v\n"+
-		"Status: %v\n"+
-		"Last Error: %v",
-		service.Name, serviceInfo["Replicas"], serviceInfo["Status"], serviceInfo["LastError"]), nil
-}
-
-// getServiceLogsPreview gets a preview of service logs
-func (p *ServicesPresenter) getServiceLogsPreview(
-	ctx context.Context,
-	service *shared.SwarmService,
-) (string, error) {
-	logs, err := p.serviceService.GetServiceLogs(ctx, service.ID)
-	if err != nil {
-		return "", fmt.Errorf("failed to get service logs: %w", err)
-	}
-
-	logPreview := logs
-	if len(logs) > 500 {
-		logPreview = logs[:500] + "\n\n... (truncated, logs too long for preview)"
-	}
-	return fmt.Sprintf("Service '%s' Logs:\n\n%s", service.Name, logPreview), nil
-}
-
-// getServiceDetails gets detailed service information
-func (p *ServicesPresenter) getServiceDetails(
-	ctx context.Context,
-	service *shared.SwarmService,
-) (string, error) {
-	serviceInfo, err := p.serviceService.InspectService(ctx, service.ID)
-	if err != nil {
-		return "", fmt.Errorf("failed to get service details: %w", err)
-	}
-
-	return fmt.Sprintf("Service '%s' Details:\n\n"+
-		"ID: %s\n"+
-		"Image: %s\n"+
-		"Mode: %s\n"+
-		"Replicas: %v\n"+
-		"Status: %v\n"+
-		"Created: %s\n"+
-		"Updated: %s",
-		service.Name, shared.TruncName(service.ID, 12), service.Image, service.Mode,
-		serviceInfo["Replicas"], serviceInfo["Status"],
-		service.CreatedAt.Format("2006-01-02 15:04:05"),
-		service.UpdatedAt.Format("2006-01-02 15:04:05")), nil
-}
-
 // RemoveService removes a service
 func (p *ServicesPresenter) RemoveService(ctx context.Context, serviceID string) error {
 	return p.serviceService.RemoveService(ctx, serviceID)
@@ -285,4 +228,62 @@ func (p *ServicesPresenter) FormatRemoveError(serviceName string, err error) str
 		serviceName,
 		err,
 	)
+}
+
+// checkServiceStatus checks the service status
+func (p *ServicesPresenter) checkServiceStatus(
+	ctx context.Context,
+	service *shared.SwarmService,
+) (string, error) {
+	serviceInfo, err := p.serviceService.InspectService(ctx, service.ID)
+	if err != nil {
+		return "", fmt.Errorf("failed to check service status: %w", err)
+	}
+
+	return fmt.Sprintf("Service '%s' Status:\n\n"+
+		"Current Replicas: %v\n"+
+		"Status: %v\n"+
+		"Last Error: %v",
+		service.Name, serviceInfo["Replicas"], serviceInfo["Status"], serviceInfo["LastError"]), nil
+}
+
+// getServiceLogsPreview gets a preview of service logs
+func (p *ServicesPresenter) getServiceLogsPreview(
+	ctx context.Context,
+	service *shared.SwarmService,
+) (string, error) {
+	logs, err := p.serviceService.GetServiceLogs(ctx, service.ID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get service logs: %w", err)
+	}
+
+	logPreview := logs
+	if len(logs) > 500 {
+		logPreview = logs[:500] + "\n\n... (truncated, logs too long for preview)"
+	}
+	return fmt.Sprintf("Service '%s' Logs:\n\n%s", service.Name, logPreview), nil
+}
+
+// getServiceDetails gets detailed service information
+func (p *ServicesPresenter) getServiceDetails(
+	ctx context.Context,
+	service *shared.SwarmService,
+) (string, error) {
+	serviceInfo, err := p.serviceService.InspectService(ctx, service.ID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get service details: %w", err)
+	}
+
+	return fmt.Sprintf("Service '%s' Details:\n\n"+
+		"ID: %s\n"+
+		"Image: %s\n"+
+		"Mode: %s\n"+
+		"Replicas: %v\n"+
+		"Status: %v\n"+
+		"Created: %s\n"+
+		"Updated: %s",
+		service.Name, shared.TruncName(service.ID, 12), service.Image, service.Mode,
+		serviceInfo["Replicas"], serviceInfo["Status"],
+		service.CreatedAt.Format("2006-01-02 15:04:05"),
+		service.UpdatedAt.Format("2006-01-02 15:04:05")), nil
 }

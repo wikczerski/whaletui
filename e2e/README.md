@@ -150,15 +150,15 @@ func TestFeatureName(t *testing.T) {
     // Setup
     fw := framework.NewTestFramework(t)
     defer fw.TearDown()
-    
+
     // Create test fixtures
     containerID := fw.CreateTestContainer("test-container", "nginx:alpine")
-    
+
     // Execute test
     fw.NavigateToView("containers")
     fw.SelectTableRow(containerID)
     fw.PressKey('s') // Start container
-    
+
     // Verify
     fw.WaitForContainerState(containerID, "running")
     fw.VerifyTableRowColor(containerID, "green")

@@ -154,7 +154,8 @@ func (mm *ModalManager) performAutomaticRetry(
 	// Show progress modal
 	progressModal := modals.NewProgressModal(operation, func() {
 		mm.closeModalAndRestoreFocus("retry_progress_modal")
-		// Should we cancel the goroutine? The original code didn't seem to support cancellation of the goroutine itself easily.
+		// Should we cancel the goroutine?
+		// The original code didn't seem to support cancellation of the goroutine itself easily.
 		// It just closed the modal.
 	})
 

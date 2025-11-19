@@ -3,7 +3,7 @@ package framework
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"testing"
 	"time"
 
@@ -152,7 +152,7 @@ func (fw *TestFramework) WaitForConditionWithError(condition func() bool, timeou
 		}
 
 		if time.Now().After(deadline) {
-			return fmt.Errorf("timeout waiting for condition")
+			return errors.New("timeout waiting for condition")
 		}
 
 		<-ticker.C

@@ -27,7 +27,11 @@ func NewDockerHelper(fw *TestFramework) *DockerHelper {
 }
 
 // CreateTestContainer creates a container for testing.
-func (dh *DockerHelper) CreateTestContainer(name, imageName string, config *container.Config, hostConfig *container.HostConfig) string {
+func (dh *DockerHelper) CreateTestContainer(
+	name, imageName string,
+	config *container.Config,
+	hostConfig *container.HostConfig,
+) string {
 	dh.fw.t.Helper()
 
 	ctx := dh.fw.GetContext()
@@ -128,7 +132,7 @@ func (dh *DockerHelper) EnsureImage(imageName string) {
 	// Pull image
 	reader, err := client.ImagePull(ctx, imageName, image.PullOptions{})
 	require.NoError(dh.fw.t, err, "Failed to pull image")
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	// Wait for pull to complete
 	_, err = io.Copy(io.Discard, reader)
@@ -220,7 +224,7 @@ func (dh *DockerHelper) CreateTestService(name, imageName string, replicas uint6
 		},
 	}
 
-	resp, err := client.ServiceCreate(ctx, serviceSpec, types.ServiceCreateOptions{})
+	resp, err := client.ServiceCreate(ctx, serviceSpec, swarm.ServiceCreateOptions{})
 	require.NoError(dh.fw.t, err, "Failed to create service")
 
 	// Register for cleanup
@@ -248,7 +252,7 @@ func (dh *DockerHelper) ScaleService(serviceID string, replicas uint64) {
 	client := dh.fw.GetDockerClient()
 
 	// Get current service spec
-	service, _, err := client.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
+	service, _, err := client.ServiceInspectWithRaw(ctx, serviceID, swarm.ServiceInspectOptions{})
 	require.NoError(dh.fw.t, err, "Failed to inspect service")
 
 	// Update replicas
@@ -266,7 +270,7 @@ func (dh *DockerHelper) GetServiceReplicas(serviceID string) uint64 {
 	ctx := dh.fw.GetContext()
 	client := dh.fw.GetDockerClient()
 
-	service, _, err := client.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
+	service, _, err := client.ServiceInspectWithRaw(ctx, serviceID, swarm.ServiceInspectOptions{})
 	require.NoError(dh.fw.t, err, "Failed to inspect service")
 
 	if service.Spec.Mode.Replicated != nil && service.Spec.Mode.Replicated.Replicas != nil {
@@ -287,7 +291,7 @@ func (dh *DockerHelper) WaitForServiceReplicas(serviceID string, expectedReplica
 }
 
 // ListContainers lists all containers.
-func (dh *DockerHelper) ListContainers(all bool) []types.Container {
+func (dh *DockerHelper) ListContainers(all bool) []container.Summary {
 	dh.fw.t.Helper()
 
 	ctx := dh.fw.GetContext()
@@ -328,7 +332,7 @@ func (dh *DockerHelper) CleanupAll() {
 }
 
 // FindContainerByName finds a container by name.
-func (dh *DockerHelper) FindContainerByName(name string) *types.Container {
+func (dh *DockerHelper) FindContainerByName(name string) *container.Summary {
 	dh.fw.t.Helper()
 
 	ctx := dh.fw.GetContext()

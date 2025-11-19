@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/swarm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/wikczerski/whaletui/e2e/framework"
@@ -30,7 +31,7 @@ func TestSwarmServiceList(t *testing.T) {
 	)
 
 	// List services
-	services, err := client.ServiceList(ctx, types.ServiceListOptions{})
+	services, err := client.ServiceList(ctx, swarm.ServiceListOptions{})
 	require.NoError(t, err, "Failed to list services")
 
 	// Verify services exist
@@ -114,7 +115,7 @@ func TestSwarmServiceRemove(t *testing.T) {
 	dh.RemoveService(serviceID)
 
 	// Verify service is gone
-	_, _, err := client.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
+	_, _, err := client.ServiceInspectWithRaw(ctx, serviceID, swarm.ServiceInspectOptions{})
 	assert.Error(t, err, "Service should be removed")
 }
 
@@ -130,7 +131,7 @@ func TestSwarmServiceInspect(t *testing.T) {
 	serviceID := dh.CreateTestService(serviceName, framework.ImageFixtures.Nginx, 2)
 
 	// Inspect service
-	service, _, err := client.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
+	service, _, err := client.ServiceInspectWithRaw(ctx, serviceID, swarm.ServiceInspectOptions{})
 	require.NoError(t, err, "Failed to inspect service")
 
 	// Verify inspect data
@@ -154,7 +155,7 @@ func TestSwarmServiceUpdate(t *testing.T) {
 	)
 
 	// Get current service spec
-	service, _, err := client.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
+	service, _, err := client.ServiceInspectWithRaw(ctx, serviceID, swarm.ServiceInspectOptions{})
 	require.NoError(t, err, "Failed to inspect service")
 
 	// Update service (scale to 2)

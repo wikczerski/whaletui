@@ -202,7 +202,7 @@ func (s *SSHTunnelClient) checkPortWithStandardTools(port int) error {
 	if err != nil {
 		return err
 	}
-	defer session.Close()
+	defer func() { _ = session.Close() }()
 
 	cmd := fmt.Sprintf("netstat -tln | grep ':%d ' || ss -tln | grep ':%d '", port, port)
 	output, err := session.Output(cmd)
@@ -453,7 +453,7 @@ func (s *SSHTunnelClient) isPortAvailableWithStandardTools(port int) bool {
 	if err != nil {
 		return false
 	}
-	defer session.Close()
+	defer func() { _ = session.Close() }()
 
 	cmd := fmt.Sprintf(
 		"! (netstat -tln | grep -q ':%d ' || ss -tln | grep -q ':%d ') && echo 'available'",
@@ -525,7 +525,7 @@ func (s *SSHTunnelClient) verifyWithStandardTools() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer verifySession.Close()
+	defer func() { _ = verifySession.Close() }()
 
 	verifyCmd := fmt.Sprintf(
 		"netstat -tln | grep ':%d ' || ss -tln | grep ':%d ' || lsof -i :%d",
@@ -546,7 +546,7 @@ func (s *SSHTunnelClient) getRemoteProcessPID() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer session.Close()
+	defer func() { _ = session.Close() }()
 	// Try multiple methods to find the process PID
 	pidMethods := []string{
 		fmt.Sprintf("lsof -ti:%d", s.remoteLocalPort),
@@ -573,7 +573,7 @@ func (s *SSHTunnelClient) getRemoteProcessPID() (string, error) {
 		}
 
 		pidOutput, err := cmdSession.Output(pidCmd)
-		cmdSession.Close()
+		_ = cmdSession.Close()
 
 		if err == nil && len(strings.TrimSpace(string(pidOutput))) > 0 {
 			pid := strings.TrimSpace(string(pidOutput))
@@ -711,7 +711,7 @@ func (s *SSHTunnelClient) checkPortInProcNetTCP(port int) bool {
 	if err != nil {
 		return false
 	}
-	defer session.Close()
+	defer func() { _ = session.Close() }()
 
 	// Convert port to hex string (uppercase)
 	hexPort := fmt.Sprintf("%04X", port)
@@ -732,7 +732,7 @@ func (s *SSHTunnelClient) canReadProcNetTCP() bool {
 	if err != nil {
 		return false
 	}
-	defer session.Close()
+	defer func() { _ = session.Close() }()
 
 	cmd := "test -r /proc/net/tcp && echo 'readable'"
 	output, err := session.Output(cmd)

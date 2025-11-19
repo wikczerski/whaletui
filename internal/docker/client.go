@@ -28,10 +28,12 @@ import (
 )
 
 // Type aliases for backward compatibility
-type Container = domaintypes.Container
-type Image = domaintypes.Image
-type Volume = domaintypes.Volume
-type Network = domaintypes.Network
+type (
+	Container = domaintypes.Container
+	Image     = domaintypes.Image
+	Volume    = domaintypes.Volume
+	Network   = domaintypes.Network
+)
 
 // Client represents a Docker client wrapper
 type Client struct {

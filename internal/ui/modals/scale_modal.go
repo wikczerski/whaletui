@@ -25,48 +25,50 @@ func NewScaleModal(
 ) *tview.Flex {
 	sm := &ScaleModal{}
 
-	// Create input field
-	sm.inputField = tview.NewInputField().
+	sm.inputField = sm.createInputField(currentReplicas)
+	sm.form = sm.createForm(onConfirm, onCancel)
+	sm.modal = sm.createModal(serviceName, currentReplicas, onCancel)
+	sm.flex = sm.createLayout(onCancel)
+
+	return sm.flex
+}
+
+func (sm *ScaleModal) createInputField(currentReplicas uint64) *tview.InputField {
+	return tview.NewInputField().
 		SetLabel("Replicas: ").
 		SetText(fmt.Sprintf("%d", currentReplicas)).
 		SetFieldWidth(10).
 		SetAcceptanceFunc(tview.InputFieldInteger)
+}
 
-	// Create form
-	sm.form = tview.NewForm().
+func (sm *ScaleModal) createForm(onConfirm func(int), onCancel func()) *tview.Form {
+	return tview.NewForm().
 		AddFormItem(sm.inputField).
 		AddButton("Scale", func() {
 			replicasStr := sm.inputField.GetText()
 			replicas, err := strconv.Atoi(replicasStr)
 			if err != nil || replicas < 0 {
-				// In a real scenario we might want to show an error here,
-				// but for now we'll just return and let the manager handle validation if needed
-				// or we could pass an error handler.
-				// For this refactor, we'll assume valid input or let the caller handle it.
-				// However, the original code showed an error modal.
-				// We'll just call onConfirm with the value and let the caller validate/show error
-				// OR we can keep the validation here if we had access to ShowError.
-				// To keep it simple and decoupled, we'll just parse here.
 				return
 			}
 			onConfirm(replicas)
 		}).
 		AddButton("Cancel", onCancel)
+}
 
-	// Create modal
-	sm.modal = tview.NewModal().
+func (sm *ScaleModal) createModal(serviceName string, currentReplicas uint64, onCancel func()) *tview.Modal {
+	return tview.NewModal().
 		SetText(fmt.Sprintf("Scale Service: %s\nCurrent Replicas: %d", serviceName, currentReplicas)).
 		SetDoneFunc(func(_ int, _ string) {
 			onCancel()
 		})
+}
 
-	// Create flex container
-	sm.flex = tview.NewFlex().SetDirection(tview.FlexRow).
+func (sm *ScaleModal) createLayout(onCancel func()) *tview.Flex {
+	flex := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(sm.modal, 0, 1, false).
 		AddItem(sm.form, 0, 1, true)
 
-	// Add keyboard handling
-	sm.flex.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+	flex.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEscape {
 			onCancel()
 			return nil
@@ -74,5 +76,5 @@ func NewScaleModal(
 		return event
 	})
 
-	return sm.flex
+	return flex
 }

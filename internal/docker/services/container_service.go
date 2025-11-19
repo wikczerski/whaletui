@@ -84,7 +84,8 @@ func (s *ContainerService) GetContainerStats(ctx context.Context, id string) (ma
 		}
 	}()
 
-	return utils.MarshalToMap(stats.Body) // Note: original used decodeStatsResponse, but MarshalToMap might work if it was just JSON decoding
+	// Note: original used decodeStatsResponse, but MarshalToMap might work if it was just JSON decoding
+	return utils.MarshalToMap(stats.Body)
 }
 
 // StartContainer starts a container
