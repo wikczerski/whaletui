@@ -3,7 +3,7 @@ module github.com/wikczerski/whaletui
 go 1.25.3
 
 require (
-	github.com/docker/docker v28.5.1+incompatible
+	github.com/docker/docker v28.5.2+incompatible
 	github.com/docker/go-connections v0.5.0
 	github.com/gdamore/tcell/v2 v2.9.0
 	github.com/rivo/tview v0.42.0
