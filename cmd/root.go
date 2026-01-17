@@ -3,9 +3,7 @@ package cmd
 import (
 	"log/slog"
 	"os"
-	"os/signal"
 	"strings"
-	"syscall"
 
 	"github.com/spf13/cobra"
 	"github.com/wikczerski/whaletui/internal/app"
@@ -183,34 +181,6 @@ func logConnectionInfo(cfg *config.Config, log *slog.Logger) {
 		log.Info("Connecting to remote Docker host", "host", cfg.RemoteHost)
 	} else {
 		log.Info("Connecting to local Docker instance")
-	}
-}
-
-func runApplicationWithShutdown(application *app.App, log *slog.Logger) error {
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-
-	uiShutdownCh := application.GetUI().GetShutdownChan()
-
-	go func() {
-		if err := application.Run(); err != nil {
-			log.Error("App run failed", "error", err)
-		}
-	}()
-
-	waitForShutdownSignal(sigCh, uiShutdownCh, log)
-	cleanupAndShutdown(application)
-
-	return nil
-}
-
-// waitForShutdownSignal waits for shutdown signals
-func waitForShutdownSignal(sigCh chan os.Signal, uiShutdownCh chan struct{}, log *slog.Logger) {
-	select {
-	case <-sigCh:
-		log.Info("Received shutdown signal, shutting down gracefully...")
-	case <-uiShutdownCh:
-		log.Info("Received UI shutdown signal, shutting down gracefully...")
 	}
 }
 

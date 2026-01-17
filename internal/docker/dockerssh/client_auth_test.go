@@ -36,7 +36,7 @@ func TestNewSSHClientWithAuth(t *testing.T) {
 			port:     "22",
 			user:     "testuser",
 			keyPath:  "",
-			password: "placeholder",
+			password: "dummy-test-password-for-unit-tests",
 			wantErr:  false,
 		},
 		{
@@ -45,7 +45,7 @@ func TestNewSSHClientWithAuth(t *testing.T) {
 			port:     "22",
 			user:     "testuser",
 			keyPath:  "/path/to/key",
-			password: "placeholder",
+			password: "dummy-test-password-for-unit-tests",
 			wantErr:  false,
 		},
 	}

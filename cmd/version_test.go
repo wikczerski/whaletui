@@ -80,15 +80,10 @@ func TestVersionCommandIntegration(t *testing.T) {
 }
 
 func TestVersionCommandRunFunction(t *testing.T) {
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("Version command Run function panicked: %v", r)
-		}
-	}()
-
-	if versionCmd.Run != nil {
-		t.Log("Version command Run function exists and can be called")
+	if versionCmd.Run == nil {
+		t.Fatal("Version command Run function should not be nil")
 	}
+	// Run function is verified in integration tests to avoid stdout interference
 }
 
 // Helper function to check if a string contains a substring

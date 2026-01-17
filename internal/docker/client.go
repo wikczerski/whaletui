@@ -8,14 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"sort"
 	"time"
 
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/wikczerski/whaletui/internal/config"
 	"github.com/wikczerski/whaletui/internal/docker/dockerssh"
@@ -129,204 +124,122 @@ func (c *Client) GetInfo(ctx context.Context) (map[string]any, error) {
 
 // InspectContainer inspects a container
 func (c *Client) InspectContainer(ctx context.Context, id string) (map[string]any, error) {
-	if c.cli == nil {
-		return nil, errors.New("docker client not initialized")
+	if c.Container == nil {
+		return nil, fmt.Errorf("container service not initialized")
 	}
-
-	container, err := c.cli.ContainerInspect(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("container inspect failed %s: %w", id, err)
-	}
-
-	return utils.MarshalToMap(container)
+	return c.Container.InspectContainer(ctx, id)
 }
 
 // GetContainerLogs retrieves container logs
 func (c *Client) GetContainerLogs(ctx context.Context, id string) (string, error) {
-	if c.cli == nil {
-		return "", errors.New("docker client not initialized")
+	if c.Container == nil {
+		return "", fmt.Errorf("container service not initialized")
 	}
-
-	logs, err := c.cli.ContainerLogs(ctx, id, container.LogsOptions{
-		ShowStdout: true,
-		ShowStderr: true,
-		Timestamps: true,
-		Follow:     false,
-		Tail:       "100",
-	})
-	if err != nil {
-		return "", fmt.Errorf("container logs failed %s: %w", id, err)
-	}
-	defer func() {
-		if err := logs.Close(); err != nil {
-			c.log.Warn("Failed to close logs", "error", err)
-		}
-	}()
-
-	return c.readAndFormatLogs(logs), nil
+	return c.Container.GetContainerLogs(ctx, id)
 }
 
 // InspectImage inspects an image
 func (c *Client) InspectImage(ctx context.Context, id string) (map[string]any, error) {
-	imageInfo, err := c.cli.ImageInspect(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("image inspect failed %s: %w", id, err)
+	if c.Image == nil {
+		return nil, fmt.Errorf("image service not initialized")
 	}
-	return utils.MarshalToMap(imageInfo)
+	return c.Image.InspectImage(ctx, id)
 }
 
 // InspectVolume inspects a volume
 func (c *Client) InspectVolume(ctx context.Context, name string) (map[string]any, error) {
-	volumeInfo, err := c.cli.VolumeInspect(ctx, name)
-	if err != nil {
-		return nil, fmt.Errorf("volume inspect failed %s: %w", name, err)
+	if c.Volume == nil {
+		return nil, fmt.Errorf("volume service not initialized")
 	}
-	return utils.MarshalToMap(volumeInfo)
+	return c.Volume.InspectVolume(ctx, name)
 }
 
 // RemoveVolume removes a volume
 func (c *Client) RemoveVolume(ctx context.Context, name string, force bool) error {
-	if err := utils.ValidateID(name, "volume name"); err != nil {
-		return err
+	if c.Volume == nil {
+		return fmt.Errorf("volume service not initialized")
 	}
-
-	if err := c.cli.VolumeRemove(ctx, name, force); err != nil {
-		return fmt.Errorf("failed to remove volume %s: %w", name, err)
-	}
-
-	return nil
+	return c.Volume.RemoveVolume(ctx, name, force)
 }
 
 // InspectNetwork inspects a network
 func (c *Client) InspectNetwork(ctx context.Context, id string) (map[string]any, error) {
-	networkInfo, err := c.cli.NetworkInspect(ctx, id, network.InspectOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("network inspect failed %s: %w", id, err)
+	if c.Network == nil {
+		return nil, fmt.Errorf("network service not initialized")
 	}
-	return utils.MarshalToMap(networkInfo)
+	return c.Network.InspectNetwork(ctx, id)
 }
 
 // ListContainers lists all containers
 func (c *Client) ListContainers(ctx context.Context, all bool) ([]Container, error) {
-	if c.cli == nil {
-		return nil, errors.New("docker client not initialized")
+	if c.Container == nil {
+		return nil, fmt.Errorf("container service not initialized")
 	}
-
-	containers, err := c.getContainerList(ctx, all)
-	if err != nil {
-		return nil, err
-	}
-
-	result := c.convertToContainers(containers)
-	utils.SortContainersByCreationTime(result)
-	return result, nil
+	return c.Container.ListContainers(ctx, all)
 }
 
 // GetContainerStats gets container stats
 func (c *Client) GetContainerStats(ctx context.Context, id string) (map[string]any, error) {
-	stats, err := c.cli.ContainerStats(ctx, id, false)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get container stats: %w", err)
+	if c.Container == nil {
+		return nil, fmt.Errorf("container service not initialized")
 	}
-	defer func() {
-		if err := stats.Body.Close(); err != nil {
-			c.log.Warn("Failed to close stats body", "error", err)
-		}
-	}()
-
-	return c.decodeStatsResponse(stats.Body)
+	return c.Container.GetContainerStats(ctx, id)
 }
 
 // ListImages lists all images
 func (c *Client) ListImages(ctx context.Context) ([]Image, error) {
-	images, err := c.getImageList(ctx)
-	if err != nil {
-		return nil, err
+	if c.Image == nil {
+		return nil, fmt.Errorf("image service not initialized")
 	}
-
-	result := c.convertToImages(images)
-	utils.SortImagesByCreationTime(result)
-	return result, nil
+	return c.Image.ListImages(ctx)
 }
 
 // ListVolumes lists all volumes
 func (c *Client) ListVolumes(ctx context.Context) ([]Volume, error) {
-	vols, err := c.cli.VolumeList(ctx, volume.ListOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list volumes: %w", err)
+	if c.Volume == nil {
+		return nil, fmt.Errorf("volume service not initialized")
 	}
-
-	result := make([]Volume, 0, len(vols.Volumes))
-	for _, vol := range vols.Volumes {
-		volume := c.createVolumeFromAPI(vol)
-		result = append(result, volume)
-	}
-
-	utils.SortVolumesByName(result)
-	return result, nil
+	return c.Volume.ListVolumes(ctx)
 }
 
 // ListNetworks lists all networks
 func (c *Client) ListNetworks(ctx context.Context) ([]Network, error) {
-	networks, err := c.cli.NetworkList(ctx, network.ListOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list networks: %w", err)
+	if c.Network == nil {
+		return nil, fmt.Errorf("network service not initialized")
 	}
-
-	result := make([]Network, 0, len(networks))
-	for i := range networks {
-		net := &networks[i]
-		result = append(result, Network{
-			ID:         net.ID[:12],
-			Name:       net.Name,
-			Driver:     net.Driver,
-			Scope:      net.Scope,
-			Created:    net.Created,
-			Internal:   net.Internal,
-			Attachable: net.Attachable,
-			Ingress:    net.Ingress,
-			IPv6:       net.EnableIPv6,
-			EnableIPv6: net.EnableIPv6,
-			Labels:     net.Labels,
-			Containers: len(net.Containers),
-		})
-	}
-
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].Name < result[j].Name
-	})
-
-	return result, nil
+	return c.Network.ListNetworks(ctx)
 }
 
 // StartContainer starts a container
 func (c *Client) StartContainer(ctx context.Context, id string) error {
-	return c.cli.ContainerStart(ctx, id, container.StartOptions{})
+	if c.Container == nil {
+		return fmt.Errorf("container service not initialized")
+	}
+	return c.Container.StartContainer(ctx, id)
 }
 
 // StopContainer stops a container
 func (c *Client) StopContainer(ctx context.Context, id string, timeout *time.Duration) error {
-	opts := utils.BuildStopOptions(timeout)
-	return c.cli.ContainerStop(ctx, id, opts)
+	if c.Container == nil {
+		return fmt.Errorf("container service not initialized")
+	}
+	return c.Container.StopContainer(ctx, id, timeout)
 }
 
 // RestartContainer restarts a container
 func (c *Client) RestartContainer(ctx context.Context, id string, timeout *time.Duration) error {
-	opts := utils.BuildStopOptions(timeout)
-	return c.cli.ContainerRestart(ctx, id, opts)
+	if c.Container == nil {
+		return fmt.Errorf("container service not initialized")
+	}
+	return c.Container.RestartContainer(ctx, id, timeout)
 }
 
 // RemoveContainer removes a container
 func (c *Client) RemoveContainer(ctx context.Context, id string, force bool) error {
-	opts := container.RemoveOptions{
-		Force: force,
+	if c.Container == nil {
+		return fmt.Errorf("container service not initialized")
 	}
-
-	if err := utils.ValidateID(id, "container ID"); err != nil {
-		return err
-	}
-
-	return c.cli.ContainerRemove(ctx, id, opts)
+	return c.Container.RemoveContainer(ctx, id, force)
 }
 
 // ExecContainer executes a command in a running container and returns the output
@@ -334,86 +247,34 @@ func (c *Client) ExecContainer(
 	ctx context.Context,
 	id string,
 	command []string,
-	_ bool,
+	tty bool,
 ) (string, error) {
-	if err := c.validateClient(); err != nil {
-		return "", err
+	if c.Container == nil {
+		return "", fmt.Errorf("container service not initialized")
 	}
-
-	execResp, err := c.createExecInstance(ctx, id, command)
-	if err != nil {
-		return "", err
-	}
-
-	output, err := c.executeAndCollectOutput(ctx, execResp.ID)
-	if err != nil {
-		return "", err
-	}
-
-	return output, nil
+	return c.Container.ExecContainer(ctx, id, command, tty)
 }
 
 // AttachContainer attaches to a running container
 func (c *Client) AttachContainer(ctx context.Context, id string) (types.HijackedResponse, error) {
-	if err := c.validateClient(); err != nil {
-		return types.HijackedResponse{}, err
+	if c.Container == nil {
+		return types.HijackedResponse{}, fmt.Errorf("container service not initialized")
 	}
-
-	attachConfig := container.AttachOptions{
-		Stream: true,
-		Stdin:  true,
-		Stdout: true,
-		Stderr: true,
-		Logs:   false,
-	}
-
-	if err := utils.ValidateID(id, "container ID"); err != nil {
-		return types.HijackedResponse{}, err
-	}
-
-	response, err := c.cli.ContainerAttach(ctx, id, attachConfig)
-	if err != nil {
-		return types.HijackedResponse{}, fmt.Errorf("failed to attach to container: %w", err)
-	}
-
-	return response, nil
+	return c.Container.AttachContainer(ctx, id)
 }
 
 // RemoveImage removes an image
 func (c *Client) RemoveImage(ctx context.Context, id string, force bool) error {
-	if err := utils.ValidateID(id, "image ID"); err != nil {
-		return err
+	if c.Image == nil {
+		return fmt.Errorf("image service not initialized")
 	}
-
-	opts := image.RemoveOptions{
-		Force:         force,
-		PruneChildren: true, // Remove dependent images by default
-	}
-
-	_, err := c.cli.ImageRemove(ctx, id, opts)
-	if err != nil {
-		return fmt.Errorf("failed to remove image %s: %w", id, err)
-	}
-
-	return nil
+	return c.Image.RemoveImage(ctx, id, force)
 }
 
 // RemoveNetwork removes a network
 func (c *Client) RemoveNetwork(ctx context.Context, id string) error {
-	if err := utils.ValidateID(id, "network ID"); err != nil {
-		return err
+	if c.Network == nil {
+		return fmt.Errorf("network service not initialized")
 	}
-
-	if err := c.cli.NetworkRemove(ctx, id); err != nil {
-		return fmt.Errorf("failed to remove network %s: %w", id, err)
-	}
-	return nil
-}
-
-// validateClient validates that the Docker client is initialized
-func (c *Client) validateClient() error {
-	if c.cli != nil {
-		return nil
-	}
-	return errors.New("docker client is not initialized")
+	return c.Network.RemoveNetwork(ctx, id)
 }

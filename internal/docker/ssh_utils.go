@@ -11,6 +11,7 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/wikczerski/whaletui/internal/config"
 	"github.com/wikczerski/whaletui/internal/docker/dockerssh"
+	"github.com/wikczerski/whaletui/internal/docker/services"
 )
 
 // extractHostFromURL extracts the host from a Docker URL or SSH connection string
@@ -222,13 +223,20 @@ func createClient(
 		"host", host,
 		"localProxy", localProxyHost)
 
-	return &Client{
-		cli:     dockerCli,
-		cfg:     cfg,
-		log:     log,
-		sshConn: sshConn,
-		sshCtx:  nil, // Not using direct SSH context
+	client := &Client{
+		cli:       dockerCli,
+		cfg:       cfg,
+		log:       log,
+		sshConn:   sshConn,
+		sshCtx:    nil, // Not using direct SSH context
+		Container: services.NewContainerService(dockerCli, log),
+		Image:     services.NewImageService(dockerCli, log),
+		Volume:    services.NewVolumeService(dockerCli, log),
+		Network:   services.NewNetworkService(dockerCli, log),
+		Swarm:     services.NewSwarmService(dockerCli, log),
 	}
+
+	return client
 }
 
 // trySSHConnectionFromConfig is a simplified version for the client factory
