@@ -142,8 +142,8 @@ func TestRootCmdIntegration(t *testing.T) {
 func TestIsDockerConnectionError(t *testing.T) {
 	// Test various Docker connection error patterns
 	tests := []struct {
-		name     string
 		err      error
+		name     string
 		expected bool
 	}{
 		{

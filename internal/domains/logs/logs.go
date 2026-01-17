@@ -16,13 +16,13 @@ import (
 
 // View represents a view for displaying logs from any Docker resource
 type View struct {
-	ResourceType string
-	ResourceID   string
-	ResourceName string
 	ui           interfaces.UIInterface
 	view         *tview.Flex
 	logsText     *tview.TextView
 	themeManager *config.ThemeManager
+	ResourceType string
+	ResourceID   string
+	ResourceName string
 }
 
 // NewView creates a new logs view for any resource type

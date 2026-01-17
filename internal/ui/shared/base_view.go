@@ -17,33 +17,27 @@ import (
 
 // BaseView provides common functionality for all Docker resource views
 type BaseView[T any] struct {
-	ui       interfaces.SharedUIInterface
-	view     *tview.Flex
-	table    *tview.Table
-	items    []T
-	headers  []string
-	viewName string
-	log      *slog.Logger
-
-	// Search functionality
-	searchTerm     string
-	filteredItems  []T
-	originalItems  []T // Store original items separately from current display
-	isSearchActive bool
-
-	// Callbacks for specific behavior
+	ui                  interfaces.SharedUIInterface
+	log                 *slog.Logger
+	table               *tview.Table
+	formatter           *utils.TableFormatter
+	GetActions          func() map[rune]string
+	view                *tview.Flex
+	GetRowColor         func(item T) tcell.Color
+	ShowDetailsCallback func(item T)
+	HandleKeyPress      func(key rune, item T)
+	GetItemName         func(item T) string
+	GetItemID           func(item T) string
 	ListItems           func(ctx context.Context) ([]T, error)
 	FormatRow           func(item T) []string
-	GetRowColor         func(item T) tcell.Color // Optional: custom row colors
-	GetItemID           func(item T) string
-	GetItemName         func(item T) string
-	HandleKeyPress      func(key rune, item T)
-	ShowDetailsCallback func(item T)
-	GetActions          func() map[rune]string
-
-	// Character limits support
-	columnTypes []string
-	formatter   *utils.TableFormatter
+	viewName            string
+	searchTerm          string
+	originalItems       []T
+	filteredItems       []T
+	headers             []string
+	columnTypes         []string
+	items               []T
+	isSearchActive      bool
 }
 
 // NewBaseView creates a new base view with common functionality

@@ -5,8 +5,8 @@ import "fmt"
 
 // DockerError represents a Docker-related error
 type DockerError struct {
-	Operation string
 	Err       error
+	Operation string
 }
 
 // NewDockerError creates a new Docker error

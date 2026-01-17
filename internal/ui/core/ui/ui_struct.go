@@ -21,52 +21,38 @@ import (
 
 // UI represents the main UI
 type UI struct {
-	app            *tview.Application
-	pages          *tview.Pages
-	mainFlex       *tview.Flex
-	statusBar      *tview.TextView
-	viewContainer  *tview.Flex
-	services       interfaces.ServiceFactoryInterface
-	log            *slog.Logger
-	shutdownChan   chan struct{}
-	inDetailsMode  bool            // Track if we're in details view mode
-	inLogsMode     bool            // Track if we're viewing container logs
-	currentActions map[rune]string // Track current available actions
-
-	// Theme management
-	themeManager *config.ThemeManager
-
-	// Abstracted managers
-	viewRegistry   *core.ViewRegistry
-	headerManager  interfaces.HeaderManagerInterface
-	commandHandler *handlers.CommandHandler
-	searchHandler  *handlers.SearchHandler
-	modalManager   interfaces.ModalManagerInterface
-
-	// Individual views
-	containersView *container.ContainersView
-	imagesView     *image.ImagesView
-	volumesView    *volume.VolumesView
-	networksView   *network.NetworksView
-	logsView       *logs.View
-	shellView      *shell.View
-
-	// Swarm views
-	swarmServicesView *swarm.ServicesView
+	services          interfaces.ServiceFactoryInterface
+	modalManager      interfaces.ModalManagerInterface
+	headerManager     interfaces.HeaderManagerInterface
 	swarmNodesView    *swarm.NodesView
-
-	// Component builders
-	componentBuilder *builders.ComponentBuilder
-	viewBuilder      *builders.ViewBuilder
-	tableBuilder     *builders.TableBuilder
-
-	// Flags for refresh cycles
-	isRefreshing bool
-
-	// UI components
-	headerSection *tview.Flex
-	commandInput  *tview.InputField
-	searchInput   *tview.InputField
+	shellView         *shell.View
+	statusBar         *tview.TextView
+	log               *slog.Logger
+	shutdownChan      chan struct{}
+	searchInput       *tview.InputField
+	commandInput      *tview.InputField
+	currentActions    map[rune]string
+	themeManager      *config.ThemeManager
+	viewRegistry      *core.ViewRegistry
+	mainFlex          *tview.Flex
+	commandHandler    *handlers.CommandHandler
+	searchHandler     *handlers.SearchHandler
+	pages             *tview.Pages
+	viewContainer     *tview.Flex
+	volumesView       *volume.VolumesView
+	containersView    *container.ContainersView
+	networksView      *network.NetworksView
+	logsView          *logs.View
+	imagesView        *image.ImagesView
+	swarmServicesView *swarm.ServicesView
+	app               *tview.Application
+	componentBuilder  *builders.ComponentBuilder
+	viewBuilder       *builders.ViewBuilder
+	tableBuilder      *builders.TableBuilder
+	headerSection     *tview.Flex
+	isRefreshing      bool
+	inLogsMode        bool
+	inDetailsMode     bool
 }
 
 // New creates a new UI

@@ -66,8 +66,8 @@ func TestApp_Run(t *testing.T) {
 
 func TestApp_ConfigValidation(t *testing.T) {
 	testCases := []struct {
-		name        string
 		config      *config.Config
+		name        string
 		expectError bool
 	}{
 		{

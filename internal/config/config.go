@@ -13,16 +13,16 @@ import (
 
 // Config represents the application configuration
 type Config struct {
-	RefreshInterval int    `json:"refresh_interval"`
 	LogLevel        string `json:"log_level"`
 	LogFilePath     string `json:"log_file_path,omitempty"`
 	DockerHost      string `json:"docker_host"`
 	Theme           string `json:"theme"`
 	RemoteHost      string `json:"remote_host,omitempty"`
 	RemoteUser      string `json:"remote_user,omitempty"`
-	RemotePort      int    `json:"remote_port,omitempty"`
 	SSHKeyPath      string `json:"ssh_key_path,omitempty"`
 	SSHPassword     string `json:"ssh_password,omitempty"`
+	RefreshInterval int    `json:"refresh_interval"`
+	RemotePort      int    `json:"remote_port,omitempty"`
 }
 
 // DefaultConfig returns the default configuration

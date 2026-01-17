@@ -4,13 +4,13 @@ import "github.com/rivo/tview"
 
 // ViewInfo holds information about a UI view
 type ViewInfo struct {
-	Name       string
-	Title      string
-	Shortcut   rune
 	View       tview.Primitive
 	Refresh    func()
+	Name       string
+	Title      string
 	Actions    string
 	Navigation string
+	Shortcut   rune
 }
 
 // ViewRegistry manages all available views and their metadata

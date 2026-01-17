@@ -10,20 +10,18 @@ import (
 
 // View represents an interactive shell view for container interaction
 type View struct {
-	containerID   string
-	containerName string
-	ui            interfaces.UIInterface
-	view          *tview.Flex
-	outputView    *tview.TextView
-	inputField    *tview.InputField
-	onExit        func()
-	execFunc      func(context.Context, string, []string, bool) (string, error)
-
-	commandHistory []string
-	historyIndex   int
-	currentInput   string
-
+	ui              interfaces.UIInterface
+	onExit          func()
+	view            *tview.Flex
+	outputView      *tview.TextView
+	inputField      *tview.InputField
+	execFunc        func(context.Context, string, []string, bool) (string, error)
+	containerName   string
+	containerID     string
+	currentInput    string
+	commandHistory  []string
 	multiLineBuffer []string
+	historyIndex    int
 	isMultiLine     bool
 }
 

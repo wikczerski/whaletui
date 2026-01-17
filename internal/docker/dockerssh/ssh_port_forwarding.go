@@ -12,13 +12,13 @@ import (
 
 // SSHTunnelClient handles SSH tunneling with local TCP port creation on remote machine
 type SSHTunnelClient struct {
+	listener         net.Listener
 	client           *ssh.Client
 	log              *slog.Logger
-	listener         net.Listener
+	remotePID        string
+	connectionMethod string
 	remoteLocalPort  int
 	localPort        int
-	remotePID        string
-	connectionMethod string // Track which method was used (primary or fallback)
 }
 
 // NewSSHTunnelClient creates a new SSH tunnel client

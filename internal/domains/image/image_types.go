@@ -5,14 +5,14 @@ import "time"
 
 // Config represents image configuration
 type Config struct {
+	ExposedPorts map[string]struct{} `json:"exposed_ports"`
+	Volumes      map[string]struct{} `json:"volumes"`
+	Labels       map[string]string   `json:"labels"`
 	User         string              `json:"user"`
 	WorkingDir   string              `json:"working_dir"`
 	Entrypoint   []string            `json:"entrypoint"`
 	Cmd          []string            `json:"cmd"`
 	Environment  []string            `json:"environment"`
-	ExposedPorts map[string]struct{} `json:"exposed_ports"`
-	Volumes      map[string]struct{} `json:"volumes"`
-	Labels       map[string]string   `json:"labels"`
 }
 
 // History represents image layer history

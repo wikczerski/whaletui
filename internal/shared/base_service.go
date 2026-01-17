@@ -12,12 +12,10 @@ import (
 // BaseService provides common functionality for all Docker resource services
 type BaseService[T any] struct {
 	client       *docker.Client
+	ListFunc     func(*docker.Client, context.Context) ([]T, error)
+	RemoveFunc   func(*docker.Client, context.Context, string, bool) error
+	InspectFunc  func(*docker.Client, context.Context, string) (map[string]any, error)
 	resourceName string
-
-	// Callbacks for specific behavior
-	ListFunc    func(*docker.Client, context.Context) ([]T, error)
-	RemoveFunc  func(*docker.Client, context.Context, string, bool) error
-	InspectFunc func(*docker.Client, context.Context, string) (map[string]any, error)
 }
 
 // NewBaseService creates a new base service with common functionality

@@ -471,16 +471,16 @@ func TestEmptyStructs(t *testing.T) {
 	emptyCommit := Commit{}
 
 	testCases := []struct {
-		name string
 		data any
+		name string
 	}{
-		{"ContainerDetails", &emptyContainerDetails},
-		{"Mount", &emptyMount},
-		{"NetworkSettings", &emptyNetworkSettings},
-		{"Port", &emptyPort},
-		{"DockerInfo", &emptyDockerInfo},
-		{"Plugins", &emptyPlugins},
-		{"Commit", &emptyCommit},
+		{&emptyContainerDetails, "ContainerDetails"},
+		{&emptyMount, "Mount"},
+		{&emptyNetworkSettings, "NetworkSettings"},
+		{&emptyPort, "Port"},
+		{&emptyDockerInfo, "DockerInfo"},
+		{&emptyPlugins, "Plugins"},
+		{&emptyCommit, "Commit"},
 	}
 
 	for _, tc := range testCases {

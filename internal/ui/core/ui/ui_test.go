@@ -18,10 +18,10 @@ import (
 
 func TestNew(t *testing.T) {
 	tests := []struct {
-		name           string
-		serviceFactory *mocks.MockServiceFactoryInterface
 		headerManager  interfaces.HeaderManagerInterface
 		modalManager   interfaces.ModalManagerInterface
+		serviceFactory *mocks.MockServiceFactoryInterface
+		name           string
 		expectError    bool
 		expectNilUI    bool
 	}{

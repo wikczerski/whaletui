@@ -16,9 +16,9 @@ import (
 type SearchHandler struct {
 	*BaseInputHandler
 	searchInput    *tview.InputField
-	lastSearchTerm string // Store the last search term for restoration
-	isExitingInput bool   // Flag to prevent SetChangedFunc from clearing search during exit
 	log            *slog.Logger
+	lastSearchTerm string
+	isExitingInput bool
 }
 
 // NewSearchHandler creates a new search handler

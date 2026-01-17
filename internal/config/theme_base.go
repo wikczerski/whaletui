@@ -24,11 +24,11 @@ func mergeStringFields(dst, src any) {
 
 // ThemeConfig holds the color theme configuration
 type ThemeConfig struct {
-	Colors        ThemeColors        `json:"colors"        yaml:"colors"`
+	TableLimits   TableLimits        `json:"tableLimits"   yaml:"tableLimits"`
 	Shell         ShellTheme         `json:"shell"         yaml:"shell"`
+	Colors        ThemeColors        `json:"colors"        yaml:"colors"`
 	ContainerExec ContainerExecTheme `json:"containerExec" yaml:"containerExec"`
 	CommandMode   CommandModeTheme   `json:"commandMode"   yaml:"commandMode"`
-	TableLimits   TableLimits        `json:"tableLimits"   yaml:"tableLimits"`
 }
 
 // MergeWith merges this config with another, copying non-empty values

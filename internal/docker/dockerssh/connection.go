@@ -11,15 +11,15 @@ import (
 
 // SSHConnection represents an active SSH connection
 type SSHConnection struct {
+	listener       net.Listener
 	client         *ssh.Client
 	session        *ssh.Session
-	localPort      int
-	remoteHost     string
-	remotePort     int
 	log            *slog.Logger
-	listener       net.Listener     // Add listener for port forwarding
-	connectionType string           // Type of connection method used
-	tunnelClient   *SSHTunnelClient // SSH tunnel client for tunnel connections
+	tunnelClient   *SSHTunnelClient
+	remoteHost     string
+	connectionType string
+	localPort      int
+	remotePort     int
 }
 
 // GetLocalProxyHost returns the local host:port for the Docker proxy

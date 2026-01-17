@@ -16,8 +16,8 @@ func TestParseSSHHost(t *testing.T) {
 		expectedUser  string
 		expectedHost  string
 		expectedPort  string
-		expectError   bool
 		errorContains string
+		expectError   bool
 	}{
 		{
 			name:         "UserAtHost",

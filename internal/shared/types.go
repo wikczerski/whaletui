@@ -7,31 +7,31 @@ import (
 
 // Container represents a Docker container
 type Container struct {
+	Created     time.Time         `json:"created"`
+	Labels      map[string]string `json:"labels"`
 	ID          string            `json:"id"`
 	Name        string            `json:"name"`
 	Image       string            `json:"image"`
 	Status      string            `json:"status"`
-	Created     time.Time         `json:"created"`
-	Ports       []string          `json:"ports"`
-	SizeRw      int64             `json:"size_rw"`
-	SizeRootFs  int64             `json:"size_root_fs"`
-	Labels      map[string]string `json:"labels"`
 	State       string            `json:"state"`
 	NetworkMode string            `json:"network_mode"`
+	Ports       []string          `json:"ports"`
 	Mounts      []string          `json:"mounts"`
+	SizeRw      int64             `json:"size_rw"`
+	SizeRootFs  int64             `json:"size_root_fs"`
 }
 
 // ContainerDetails represents detailed container information
 type ContainerDetails struct {
-	Container
+	Labels          map[string]string `json:"labels"`
+	NetworkSettings NetworkSettings   `json:"network_settings"`
 	Command         string            `json:"command"`
-	Args            []string          `json:"args"`
 	WorkingDir      string            `json:"working_dir"`
+	Args            []string          `json:"args"`
 	Entrypoint      []string          `json:"entrypoint"`
 	Environment     []string          `json:"environment"`
-	Labels          map[string]string `json:"labels"`
 	Mounts          []Mount           `json:"mounts"`
-	NetworkSettings NetworkSettings   `json:"network_settings"`
+	Container
 }
 
 // Mount represents a container mount
@@ -44,10 +44,10 @@ type Mount struct {
 
 // NetworkSettings represents container network configuration
 type NetworkSettings struct {
-	IPAddress string             `json:"ip_address"`
-	Gateway   string             `json:"gateway"`
 	Ports     map[string][]Port  `json:"ports"`
 	Networks  map[string]Network `json:"networks"`
+	IPAddress string             `json:"ip_address"`
+	Gateway   string             `json:"gateway"`
 }
 
 // Port represents a port binding
@@ -58,38 +58,38 @@ type Port struct {
 
 // Image represents a Docker image
 type Image struct {
-	ID          string            `json:"id"`
-	RepoTags    []string          `json:"repo_tags"`
 	Created     time.Time         `json:"created"`
+	Labels      map[string]string `json:"labels"`
+	ID          string            `json:"id"`
 	Size        string            `json:"size"`
+	ParentID    string            `json:"parent_id"`
+	RepoTags    []string          `json:"repo_tags"`
 	SharedSize  int64             `json:"shared_size"`
 	VirtualSize int64             `json:"virtual_size"`
-	Labels      map[string]string `json:"labels"`
-	ParentID    string            `json:"parent_id"`
 }
 
 // ImageDetails represents detailed image information
 type ImageDetails struct {
-	Image
+	Labels       map[string]string `json:"labels"`
 	Architecture string            `json:"architecture"`
 	OS           string            `json:"os"`
 	Author       string            `json:"author"`
 	Comment      string            `json:"comment"`
 	Config       ImageConfig       `json:"config"`
 	History      []ImageHistory    `json:"history"`
-	Labels       map[string]string `json:"labels"`
+	Image
 }
 
 // ImageConfig represents image configuration
 type ImageConfig struct {
+	ExposedPorts map[string]struct{} `json:"exposed_ports"`
+	Volumes      map[string]struct{} `json:"volumes"`
+	Labels       map[string]string   `json:"labels"`
 	User         string              `json:"user"`
 	WorkingDir   string              `json:"working_dir"`
 	Entrypoint   []string            `json:"entrypoint"`
 	Cmd          []string            `json:"cmd"`
 	Environment  []string            `json:"environment"`
-	ExposedPorts map[string]struct{} `json:"exposed_ports"`
-	Volumes      map[string]struct{} `json:"volumes"`
-	Labels       map[string]string   `json:"labels"`
 }
 
 // ImageHistory represents image layer history
@@ -114,12 +114,15 @@ type Volume struct {
 
 // VolumeDetails represents detailed volume information
 type VolumeDetails struct {
-	Volume
 	Status map[string]any `json:"status"`
+	Volume
 }
 
 // Network represents a Docker network
 type Network struct {
+	Created    time.Time         `json:"created"`
+	Options    map[string]string `json:"options"`
+	Labels     map[string]string `json:"labels"`
 	ID         string            `json:"id"`
 	Name       string            `json:"name"`
 	Driver     string            `json:"driver"`
@@ -129,9 +132,6 @@ type Network struct {
 	Attachable bool              `json:"attachable"`
 	Ingress    bool              `json:"ingress"`
 	EnableIPv6 bool              `json:"enable_ipv6"`
-	Options    map[string]string `json:"options"`
-	Labels     map[string]string `json:"labels"`
-	Created    time.Time         `json:"created"`
 }
 
 // IPAM represents IP Address Management configuration
@@ -150,19 +150,19 @@ type IPAMConfig struct {
 
 // NetworkDetails represents detailed network information
 type NetworkDetails struct {
-	Network
 	Containers map[string]NetworkContainer `json:"containers"`
+	Network
 }
 
 // NetworkContainer represents a container in a network
 type NetworkContainer struct {
+	Labels      map[string]string `json:"labels"`
+	DriverOpts  map[string]string `json:"driver_opts"`
+	IPAMConfig  map[string]string `json:"ipam_config"`
 	Name        string            `json:"name"`
 	EndpointID  string            `json:"endpoint_id"`
 	MacAddress  string            `json:"mac_address"`
 	IPv4Address string            `json:"ipv4_address"`
 	IPv6Address string            `json:"ipv6_address"`
-	Labels      map[string]string `json:"labels"`
 	NetworkID   string            `json:"network_id"`
-	DriverOpts  map[string]string `json:"driver_opts"`
-	IPAMConfig  map[string]string `json:"ipam_config"`
 }

@@ -36,7 +36,7 @@ func TestNewSSHClientWithAuth(t *testing.T) {
 			port:     "22",
 			user:     "testuser",
 			keyPath:  "",
-			password: "dummy-test-password-for-unit-tests",
+			password: getTestPassword(),
 			wantErr:  false,
 		},
 		{
@@ -45,7 +45,7 @@ func TestNewSSHClientWithAuth(t *testing.T) {
 			port:     "22",
 			user:     "testuser",
 			keyPath:  "/path/to/key",
-			password: "dummy-test-password-for-unit-tests",
+			password: getTestPassword(),
 			wantErr:  false,
 		},
 	}
@@ -142,4 +142,11 @@ func TestAddSSHKeyAuth_NoCustomKeyPath(t *testing.T) {
 		}
 	}
 	// If there's no error, that's also acceptable (SSH keys were found)
+}
+
+func getTestPassword() string {
+	if pwd := os.Getenv("SSH_TEST_PASSWORD"); pwd != "" {
+		return pwd
+	}
+	return "dummy-test-password-for-unit-tests"
 }

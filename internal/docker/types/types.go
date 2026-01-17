@@ -16,11 +16,11 @@ type Container struct {
 
 // Image represents a Docker image
 type Image struct {
+	Created    time.Time
 	ID         string
 	Repository string
 	Tag        string
 	Size       string
-	Created    time.Time
 	Containers int
 }
 
@@ -37,16 +37,16 @@ type Volume struct {
 
 // Network represents a Docker network
 type Network struct {
+	Created    time.Time
+	Labels     map[string]string
 	ID         string
 	Name       string
 	Driver     string
 	Scope      string
-	Created    time.Time
+	Containers int
 	Internal   bool
 	Attachable bool
 	Ingress    bool
 	IPv6       bool
 	EnableIPv6 bool
-	Labels     map[string]string
-	Containers int
 }

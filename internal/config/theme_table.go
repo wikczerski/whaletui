@@ -2,29 +2,14 @@ package config
 
 // ColumnConfig defines configuration for a single table column
 type ColumnConfig struct {
-	// Character limit for the column (0 = no limit)
-	Limit int `json:"limit,omitempty" yaml:"limit,omitempty"`
-
-	// Width of the column (0 = auto, >0 = fixed width in characters)
-	Width int `json:"width,omitempty" yaml:"width,omitempty"`
-
-	// Width as percentage of available terminal width (0-100, takes precedence over Width)
-	WidthPercent int `json:"width_percent,omitempty" yaml:"width_percent,omitempty"`
-
-	// Minimum width in characters (applied when using WidthPercent)
-	MinWidth int `json:"min_width,omitempty" yaml:"min_width,omitempty"`
-
-	// Maximum width in characters (applied when using WidthPercent)
-	MaxWidth int `json:"max_width,omitempty" yaml:"max_width,omitempty"`
-
-	// Whether the column is visible (true = visible, false = hidden)
-	Visible bool `json:"visible,omitempty" yaml:"visible,omitempty"`
-
-	// Alignment override for this column ("left", "right", "center")
-	Alignment string `json:"alignment,omitempty" yaml:"alignment,omitempty"`
-
-	// Display name for the column (if different from the key)
-	DisplayName string `json:"display_name,omitempty" yaml:"display_name,omitempty"`
+	Alignment    string `json:"alignment,omitempty" yaml:"alignment,omitempty"`
+	DisplayName  string `json:"display_name,omitempty" yaml:"display_name,omitempty"`
+	Limit        int    `json:"limit,omitempty" yaml:"limit,omitempty"`
+	Width        int    `json:"width,omitempty" yaml:"width,omitempty"`
+	WidthPercent int    `json:"width_percent,omitempty" yaml:"width_percent,omitempty"`
+	MinWidth     int    `json:"min_width,omitempty" yaml:"min_width,omitempty"`
+	MaxWidth     int    `json:"max_width,omitempty" yaml:"max_width,omitempty"`
+	Visible      bool   `json:"visible,omitempty" yaml:"visible,omitempty"`
 }
 
 // MergeWith merges this ColumnConfig with another, copying non-zero/empty values
