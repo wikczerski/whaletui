@@ -290,11 +290,13 @@ func (bv *BaseView[T]) handleActionKey(event *tcell.EventKey, item T) *tcell.Eve
 
 // updateItemsAndTable updates the items and refreshes the table display
 func (bv *BaseView[T]) updateItemsAndTable(items []T) {
+	// Capture current selection before updating items
+	selectedID := bv.saveSelection()
+
 	// Store items first to ensure they're available for selection
 	bv.items = items
 
 	// Always store as original items when not in search mode
-	// This ensures we have the original data for filtering
 	if !bv.isSearchActive {
 		bv.originalItems = make([]T, len(items))
 		copy(bv.originalItems, items)
@@ -310,23 +312,60 @@ func (bv *BaseView[T]) updateItemsAndTable(items []T) {
 	bv.table.SetFixed(1, 0)
 
 	// Ensure headers are always visible
-	if bv.formatter != nil && len(bv.columnTypes) > 0 {
-		builders.NewTableBuilder().SetupHeadersWithConfigForView(
-			bv.table, bv.headers, bv.columnTypes, bv.formatter, bv.viewName)
-	} else {
-		builders.NewTableBuilder().SetupHeaders(bv.table, bv.headers)
-	}
+	bv.setupTableHeaders()
 
 	// Only populate rows if we have items and a formatter
 	if bv.FormatRow != nil && len(items) > 0 {
 		bv.populateTableRows(items)
 	}
 
-	// Ensure proper selection state
-	bv.selectFirstRowIfAvailable(items)
+	// Restore selection
+	bv.restoreSelection(selectedID, items)
 
 	// Note: Don't call table.Draw(nil) manually - tview handles drawing automatically
 	// This prevents the panic and ensures proper UI updates
+}
+
+// saveSelection saves the current selection ID
+func (bv *BaseView[T]) saveSelection() string {
+	if bv.GetItemID != nil {
+		row, _ := bv.table.GetSelection()
+		// Check against OLD items
+		if row > 0 && row <= len(bv.items) {
+			return bv.GetItemID(bv.items[row-1])
+		}
+	}
+	return ""
+}
+
+// restoreSelection restores the selection based on saved ID
+func (bv *BaseView[T]) restoreSelection(selectedID string, items []T) {
+	restored := false
+	if selectedID != "" {
+		for i, item := range items {
+			if bv.GetItemID != nil && bv.GetItemID(item) == selectedID {
+				// i+1 because of header
+				bv.table.Select(i+1, 0)
+				restored = true
+				break
+			}
+		}
+	}
+
+	// Ensure proper selection state if not restored
+	if !restored {
+		bv.selectFirstRowIfAvailable(items)
+	}
+}
+
+// setupTableHeaders sets up the table headers
+func (bv *BaseView[T]) setupTableHeaders() {
+	if bv.formatter != nil && len(bv.columnTypes) > 0 {
+		builders.NewTableBuilder().SetupHeadersWithConfigForView(
+			bv.table, bv.headers, bv.columnTypes, bv.formatter, bv.viewName)
+	} else {
+		builders.NewTableBuilder().SetupHeaders(bv.table, bv.headers)
+	}
 }
 
 // populateTableRows populates the table with formatted row data
