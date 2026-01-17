@@ -15,21 +15,24 @@ type volumeService struct {
 // NewVolumeService creates a new volume service
 func NewVolumeService(client *docker.Client) interfaces.VolumeService {
 	base := shared.NewBaseService[shared.Volume](client, "volume")
-	base.ListFunc = createListVolumesFunc()
-	base.InspectFunc = createInspectVolumeFunc()
-	base.RemoveFunc = createRemoveVolumeFunc()
-	return &volumeService{BaseService: base}
-}
 
-// createListVolumesFunc creates the function for listing volumes
-func createListVolumesFunc() func(*docker.Client, context.Context) ([]shared.Volume, error) {
-	return func(client *docker.Client, ctx context.Context) ([]shared.Volume, error) {
+	base.ListFunc = func(client *docker.Client, ctx context.Context) ([]shared.Volume, error) {
 		dockerVolumes, err := client.ListVolumes(ctx)
 		if err != nil {
 			return nil, err
 		}
 		return convertDockerVolumes(dockerVolumes), nil
 	}
+
+	base.InspectFunc = func(client *docker.Client, ctx context.Context, name string) (map[string]any, error) {
+		return client.InspectVolume(ctx, name)
+	}
+
+	base.RemoveFunc = func(client *docker.Client, ctx context.Context, name string, force bool) error {
+		return client.RemoveVolume(ctx, name, force)
+	}
+
+	return &volumeService{BaseService: base}
 }
 
 // convertDockerVolumes converts Docker volume types to shared types
@@ -48,20 +51,6 @@ func convertDockerVolumes(dockerVolumes []docker.Volume) []shared.Volume {
 		}
 	}
 	return result
-}
-
-// createInspectVolumeFunc creates the function for inspecting volumes
-func createInspectVolumeFunc() func(*docker.Client, context.Context, string) (map[string]any, error) {
-	return func(client *docker.Client, ctx context.Context, name string) (map[string]any, error) {
-		return client.InspectVolume(ctx, name)
-	}
-}
-
-// createRemoveVolumeFunc creates the function for removing volumes
-func createRemoveVolumeFunc() func(*docker.Client, context.Context, string, bool) error {
-	return func(client *docker.Client, ctx context.Context, name string, force bool) error {
-		return client.RemoveVolume(ctx, name, force)
-	}
 }
 
 func (s *volumeService) ListVolumes(ctx context.Context) ([]shared.Volume, error) {
