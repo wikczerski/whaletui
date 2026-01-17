@@ -1,5 +1,0 @@
-*.log
-*.out
-coverage/
-*.test
-*.prof
