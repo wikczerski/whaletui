@@ -11,12 +11,17 @@ import (
 // LogsService implements logs operations
 type logsService struct {
 	containerService interfaces.ContainerService
+	swarmService     interfaces.SwarmServiceService
 }
 
 // NewLogsService creates a new logs service
-func NewLogsService(containerService interfaces.ContainerService) interfaces.LogsService {
+func NewLogsService(
+	containerService interfaces.ContainerService,
+	swarmService interfaces.SwarmServiceService,
+) interfaces.LogsService {
 	return &logsService{
 		containerService: containerService,
+		swarmService:     swarmService,
 	}
 }
 
@@ -32,8 +37,10 @@ func (s *logsService) GetLogs(
 		}
 		return s.containerService.GetContainerLogs(ctx, resourceID)
 	case "service":
-		// TODO: Implement service logs when Docker service support is added
-		return "", errors.New("service logs not yet implemented")
+		if s.swarmService == nil {
+			return "", errors.New("swarm service not available")
+		}
+		return s.swarmService.GetServiceLogs(ctx, resourceID)
 	default:
 		return "", fmt.Errorf("unsupported resource type: %s", resourceType)
 	}

@@ -22,26 +22,26 @@ func NewContainerService(client *docker.Client) interfaces.ContainerService {
 	base := shared.NewBaseService[shared.Container](client, "container")
 	ops := shared.NewCommonOperations(client)
 
-	base.ListFunc = createListFunction()
-	base.RemoveFunc = createRemoveFunction()
-	base.InspectFunc = createInspectFunction()
+	base.ListFunc = func(client *docker.Client, ctx context.Context) ([]shared.Container, error) {
+		dockerContainers, err := client.ListContainers(ctx, true)
+		if err != nil {
+			return nil, err
+		}
+		return convertDockerContainers(dockerContainers), nil
+	}
+
+	base.RemoveFunc = func(client *docker.Client, ctx context.Context, id string, force bool) error {
+		return client.RemoveContainer(ctx, id, force)
+	}
+
+	base.InspectFunc = func(client *docker.Client, ctx context.Context, id string) (map[string]any, error) {
+		return client.InspectContainer(ctx, id)
+	}
 
 	return &containerService{
 		BaseService: base,
 		operations:  ops,
 		log:         logger.GetLogger(),
-	}
-}
-
-// createListFunction creates the list function for containers
-func createListFunction() func(client *docker.Client, ctx context.Context) ([]shared.Container, error) {
-	return func(client *docker.Client, ctx context.Context) ([]shared.Container, error) {
-		dockerContainers, err := client.ListContainers(ctx, true)
-		if err != nil {
-			return nil, err
-		}
-
-		return convertDockerContainers(dockerContainers), nil
 	}
 }
 
@@ -69,20 +69,6 @@ func convertDockerContainer(dockerContainer docker.Container) shared.Container {
 		State:       dockerContainer.State,
 		NetworkMode: "",
 		Mounts:      []string{},
-	}
-}
-
-// createRemoveFunction creates the remove function for containers
-func createRemoveFunction() func(client *docker.Client, ctx context.Context, id string, force bool) error {
-	return func(client *docker.Client, ctx context.Context, id string, force bool) error {
-		return client.RemoveContainer(ctx, id, force)
-	}
-}
-
-// createInspectFunction creates the inspect function for containers
-func createInspectFunction() func(client *docker.Client, ctx context.Context, id string) (map[string]any, error) {
-	return func(client *docker.Client, ctx context.Context, id string) (map[string]any, error) {
-		return client.InspectContainer(ctx, id)
 	}
 }
 

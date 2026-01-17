@@ -444,33 +444,14 @@ func (v *NodesView) handleNodeRemovalSuccess(selectedNode *shared.SwarmNode) {
 }
 
 // handleAction handles action key presses for swarm nodes
-func (v *NodesView) handleAction(key rune, node *shared.SwarmNode) {
+func (v *NodesView) handleAction(key rune, _ *shared.SwarmNode) {
 	ctx := context.Background()
 
 	switch key {
 	case 'i':
-		// TODO: Implement inspect functionality
-		v.log.Info("Inspect action not yet implemented")
+		v.handleInspectAction(ctx)
 	case 'a':
-		selectedNode := v.GetSelectedItem()
-		if selectedNode == nil {
-			v.log.Warn("No node selected for availability update")
-			return
-		}
-
-		nodeService := v.GetUI().GetSwarmNodeService()
-		if nodeService == nil {
-			v.log.Warn("Swarm node service not available")
-			return
-		}
-
-		swarmNodeService, ok := nodeService.(*NodeService)
-		if !ok {
-			v.log.Warn("Swarm node service type assertion failed")
-			return
-		}
-
-		v.showAvailabilityUpdateModal(ctx, selectedNode, swarmNodeService)
+		v.handleUpdateAvailabilityAction(ctx)
 	case 'r':
 		if _, err := v.handleRemove(ctx); err != nil {
 			v.log.Error("Failed to handle remove action", "error", err)
@@ -480,6 +461,45 @@ func (v *NodesView) handleAction(key rune, node *shared.SwarmNode) {
 	default:
 		v.log.Warn("Unknown action key", "key", string(key))
 	}
+}
+
+// handleInspectAction handles the inspect action
+func (v *NodesView) handleInspectAction(ctx context.Context) {
+	selectedNode := v.GetSelectedItem()
+	if selectedNode == nil {
+		v.log.Warn("No node selected for inspection")
+		return
+	}
+	v.inspectNode(ctx, selectedNode)
+}
+
+// handleUpdateAvailabilityAction handles the update availability action
+func (v *NodesView) handleUpdateAvailabilityAction(ctx context.Context) {
+	selectedNode := v.GetSelectedItem()
+	if selectedNode == nil {
+		v.log.Warn("No node selected for availability update")
+		return
+	}
+
+	nodeService := v.GetUI().GetSwarmNodeService()
+	if nodeService == nil {
+		v.log.Warn("Swarm node service not available")
+		return
+	}
+
+	swarmNodeService, ok := nodeService.(*NodeService)
+	if !ok {
+		v.log.Warn("Swarm node service type assertion failed")
+		return
+	}
+
+	v.showAvailabilityUpdateModal(ctx, selectedNode, swarmNodeService)
+}
+
+// inspectNode performs node inspection and shows details
+func (v *NodesView) inspectNode(ctx context.Context, node *shared.SwarmNode) {
+	nodeInfo, err := v.nodeService.InspectNode(ctx, node.ID)
+	v.ShowItemDetails(*node, nodeInfo, err)
 }
 
 // setupCharacterLimits sets up character limits for table columns

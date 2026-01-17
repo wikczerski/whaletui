@@ -54,32 +54,6 @@ func (vv *VolumesView) setupActionCallbacks() {
 	vv.GetActions = vv.getVolumeActions
 }
 
-// createDeleteVolumeFunction creates a function to delete a volume
-func (vv *VolumesView) createDeleteVolumeFunction(name string) func() error {
-	return func() error {
-		services := vv.GetUI().GetServicesAny()
-		if services == nil {
-			return errors.New("volume service not available")
-		}
-
-		// Type assertion to get the service factory
-		if serviceFactory, ok := services.(interface{ GetVolumeService() any }); ok {
-			if volumeService := serviceFactory.GetVolumeService(); volumeService != nil {
-				// Type assertion to get the RemoveVolume method
-				if removeService, ok := volumeService.(interface {
-					RemoveVolume(context.Context, string, bool) error
-				}); ok {
-					ctx := context.Background()
-					// Force removal to handle cases where volume might be in use
-					return removeService.RemoveVolume(ctx, name, true)
-				}
-			}
-		}
-
-		return errors.New("volume service not available")
-	}
-}
-
 func (vv *VolumesView) listVolumes(ctx context.Context) ([]shared.Volume, error) {
 	services := vv.GetUI().GetServicesAny()
 	if services == nil {
@@ -218,7 +192,28 @@ func (vv *VolumesView) getVolumeInspectService(services any) interface {
 func (vv *VolumesView) deleteVolume(name string) {
 	vv.executor.ExecuteWithConfirmation(
 		fmt.Sprintf("Delete volume %s?", name),
-		vv.createDeleteVolumeFunction(name),
+		func() error {
+			services := vv.GetUI().GetServicesAny()
+			if services == nil {
+				return errors.New("volume service not available")
+			}
+
+			// Type assertion to get the service factory
+			if serviceFactory, ok := services.(interface{ GetVolumeService() any }); ok {
+				if volumeService := serviceFactory.GetVolumeService(); volumeService != nil {
+					// Type assertion to get the RemoveVolume method
+					if removeService, ok := volumeService.(interface {
+						RemoveVolume(context.Context, string, bool) error
+					}); ok {
+						ctx := context.Background()
+						// Force removal to handle cases where volume might be in use
+						return removeService.RemoveVolume(ctx, name, true)
+					}
+				}
+			}
+
+			return errors.New("volume service not available")
+		},
 		func() { vv.Refresh() },
 	)
 }

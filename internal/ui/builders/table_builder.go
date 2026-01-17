@@ -229,11 +229,13 @@ func (tb *TableBuilder) SetupRowWithLimitsForViewWithTerminalSize(
 	}
 }
 
-// getTerminalWidth gets the terminal width (simplified approach for now)
+// getTerminalWidth gets the terminal width
 func (tb *TableBuilder) getTerminalWidth(table *tview.Table) int {
-	// For now, use a reasonable default terminal width
-	// TODO: Implement proper terminal width detection
-	return 120
+	_, _, width, _ := table.GetRect()
+	if width > 0 {
+		return width
+	}
+	return 120 // Default if not yet visible
 }
 
 // applyHeaderWidth applies width configuration to a header cell

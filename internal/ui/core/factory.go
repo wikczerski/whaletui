@@ -65,7 +65,7 @@ func NewServiceFactory(client *docker.Client) *ServiceFactory {
 		VolumeService:       uiServices.volume,
 		NetworkService:      uiServices.network,
 		DockerInfoService:   dockerInfoService,
-		LogsService:         logs.NewLogsService(containerService),
+		LogsService:         logs.NewLogsService(containerService, swarmServices.service),
 		SwarmServiceService: swarmServices.service,
 		SwarmNodeService:    swarmServices.node,
 		currentService:      constants.ViewContainers, // Default to container service

@@ -10,7 +10,7 @@ import (
 
 func TestNewLogsService(t *testing.T) {
 	mockContainerService := sharedmocks.NewMockContainerService(t)
-	logsService := NewLogsService(mockContainerService)
+	logsService := NewLogsService(mockContainerService, nil)
 
 	assert.NotNil(t, logsService)
 }
@@ -21,7 +21,7 @@ func TestLogsService_GetLogs_Container(t *testing.T) {
 		GetContainerLogs(context.Background(), "test-container-id").
 		Return("test logs", nil)
 
-	logsService := NewLogsService(mockContainerService)
+	logsService := NewLogsService(mockContainerService, nil)
 
 	ctx := context.Background()
 
@@ -34,7 +34,7 @@ func TestLogsService_GetLogs_Container(t *testing.T) {
 
 func TestLogsService_GetLogs_UnsupportedResourceType(t *testing.T) {
 	mockContainerService := sharedmocks.NewMockContainerService(t)
-	logsService := NewLogsService(mockContainerService)
+	logsService := NewLogsService(mockContainerService, nil)
 
 	ctx := context.Background()
 
@@ -48,7 +48,7 @@ func TestLogsService_GetLogs_UnsupportedResourceType(t *testing.T) {
 
 func TestLogsService_GetActions(t *testing.T) {
 	mockContainerService := sharedmocks.NewMockContainerService(t)
-	logsService := NewLogsService(mockContainerService)
+	logsService := NewLogsService(mockContainerService, nil)
 
 	actions := logsService.GetActions()
 
@@ -65,10 +65,28 @@ func TestLogsService_GetActions(t *testing.T) {
 
 func TestLogsService_GetActionsString(t *testing.T) {
 	mockContainerService := sharedmocks.NewMockContainerService(t)
-	logsService := NewLogsService(mockContainerService)
+	logsService := NewLogsService(mockContainerService, nil)
 
 	actionsString := logsService.GetActionsString()
 
 	expectedString := "<f> Follow logs\n<t> Tail logs\n<s> Save logs\n<c> Clear logs\n<w> Wrap text"
 	assert.Equal(t, expectedString, actionsString)
+}
+
+func TestLogsService_GetLogs_Service(t *testing.T) {
+	mockContainerService := sharedmocks.NewMockContainerService(t)
+	mockSwarmService := sharedmocks.NewMockSwarmServiceService(t)
+	mockSwarmService.EXPECT().
+		GetServiceLogs(context.Background(), "test-service-id").
+		Return("service logs", nil)
+
+	logsService := NewLogsService(mockContainerService, mockSwarmService)
+
+	ctx := context.Background()
+
+	// Test service logs
+	logs, err := logsService.GetLogs(ctx, "service", "test-service-id")
+
+	assert.NoError(t, err)
+	assert.Equal(t, "service logs", logs)
 }
