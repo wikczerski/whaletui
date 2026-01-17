@@ -8,8 +8,9 @@ import (
 	"context"
 	"time"
 
-	mock "github.com/stretchr/testify/mock"
 	"github.com/wikczerski/whaletui/internal/shared"
+
+	mock "github.com/stretchr/testify/mock"
 )
 
 // NewMockContainerService creates a new instance of MockContainerService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

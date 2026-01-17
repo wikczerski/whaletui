@@ -1,4 +1,3 @@
-// Package image provides Docker image management functionality for WhaleTUI.
 package image
 
 import (
@@ -10,12 +9,12 @@ type Image = shared.Image
 
 // Details represents detailed image information
 type Details struct {
-	Image
-	Architecture string            `json:"architecture"`
-	OS           string            `json:"os"`
-	Author       string            `json:"author"`
-	Comment      string            `json:"comment"`
-	Config       Config            `json:"config"`
-	History      []History         `json:"history"`
+	ID           string            `json:"id"`
+	RepoTags     []string          `json:"repo_tags"`
+	Created      int64             `json:"created"`
+	Size         int64             `json:"size"`
 	Labels       map[string]string `json:"labels"`
+	Config       map[string]any    `json:"config"`
+	Architecture string            `json:"architecture"`
+	Os           string            `json:"os"`
 }

@@ -425,6 +425,14 @@ func (sf *ServiceFactory) SetCurrentService(serviceName string) {
 }
 
 // getServiceByType returns the service based on the service type
+func (sf *ServiceFactory) GetCurrentService() any {
+	if sf == nil {
+		return nil
+	}
+	return sf.getServiceByType(sf.currentService)
+}
+
+// getServiceByType returns the service based on the service type
 func (sf *ServiceFactory) getServiceByType(serviceType string) any {
 	// Map of service types to their corresponding services
 	serviceMap := map[string]any{

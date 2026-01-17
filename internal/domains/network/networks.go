@@ -8,19 +8,20 @@ import (
 	"github.com/wikczerski/whaletui/internal/ui/formatters"
 	"github.com/wikczerski/whaletui/internal/ui/handlers"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
+	uishared "github.com/wikczerski/whaletui/internal/ui/shared"
 	"github.com/wikczerski/whaletui/internal/ui/utils"
 )
 
 // NetworksView displays and manages Docker networks
 type NetworksView struct {
-	*shared.BaseView[shared.Network]
+	*uishared.BaseView[shared.Network]
 	handlers *handlers.ActionHandlers
 }
 
 // NewNetworksView creates a new networks view
 func NewNetworksView(ui interfaces.UIInterface) *NetworksView {
 	headers := []string{"ID", "Name", "Driver", "Scope", "Created"}
-	baseView := shared.NewBaseView[shared.Network](ui, "networks", headers)
+	baseView := uishared.NewBaseView[shared.Network](ui, "networks", headers)
 
 	nv := &NetworksView{
 		BaseView: baseView,

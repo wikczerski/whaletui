@@ -13,12 +13,13 @@ import (
 	"github.com/wikczerski/whaletui/internal/ui/formatters"
 	"github.com/wikczerski/whaletui/internal/ui/handlers"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
+	uishared "github.com/wikczerski/whaletui/internal/ui/shared"
 	"github.com/wikczerski/whaletui/internal/ui/utils"
 )
 
 // ContainersView displays and manages Docker containers
 type ContainersView struct {
-	*shared.BaseView[shared.Container]
+	*uishared.BaseView[shared.Container]
 	executor *handlers.OperationExecutor
 	handlers *handlers.ActionHandlers
 	log      *slog.Logger
@@ -27,7 +28,7 @@ type ContainersView struct {
 // NewContainersView creates a new containers view
 func NewContainersView(ui interfaces.UIInterface) *ContainersView {
 	headers := []string{"ID", "Name", "Image", "Status", "State", "Ports", "Created"}
-	baseView := shared.NewBaseView[shared.Container](ui, "containers", headers)
+	baseView := uishared.NewBaseView[shared.Container](ui, "containers", headers)
 
 	cv := &ContainersView{
 		BaseView: baseView,

@@ -9,12 +9,13 @@ import (
 	"github.com/wikczerski/whaletui/internal/logger"
 	"github.com/wikczerski/whaletui/internal/shared"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
+	uishared "github.com/wikczerski/whaletui/internal/ui/shared"
 	"github.com/wikczerski/whaletui/internal/ui/utils"
 )
 
 // ServicesView represents the swarm services view
 type ServicesView struct {
-	*shared.BaseView[shared.SwarmService]
+	*uishared.BaseView[shared.SwarmService]
 	presenter     *ServicesPresenter
 	modalManager  interfaces.ModalManagerInterface
 	headerManager interfaces.HeaderManagerInterface
@@ -23,13 +24,13 @@ type ServicesView struct {
 
 // NewServicesView creates a new swarm services view
 func NewServicesView(
-	ui shared.SharedUIInterface,
+	ui interfaces.SharedUIInterface,
 	serviceService *ServiceService,
 	modalManager interfaces.ModalManagerInterface,
 	headerManager interfaces.HeaderManagerInterface,
 ) *ServicesView {
 	headers := []string{"ID", "Name", "Image", "Mode", "Replicas", "Status", "Created"}
-	baseView := shared.NewBaseView[shared.SwarmService](ui, "swarm services", headers)
+	baseView := uishared.NewBaseView[shared.SwarmService](ui, "swarm services", headers)
 
 	presenter := NewServicesPresenter(serviceService, logger.GetLogger())
 
@@ -392,7 +393,7 @@ func (v *ServicesView) getActions() map[rune]string {
 }
 
 // setupCharacterLimits sets up character limits for table columns
-func (v *ServicesView) setupCharacterLimits(ui shared.SharedUIInterface) {
+func (v *ServicesView) setupCharacterLimits(ui interfaces.SharedUIInterface) {
 	// Define column types for swarm services table: ID, Name, Image, Mode, Replicas, Status, Created
 	columnTypes := []string{"id", "name", "image", "mode", "replicas", "status", "created"}
 	v.SetColumnTypes(columnTypes)

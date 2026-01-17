@@ -9,19 +9,20 @@ import (
 	"github.com/wikczerski/whaletui/internal/ui/formatters"
 	"github.com/wikczerski/whaletui/internal/ui/handlers"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
+	uishared "github.com/wikczerski/whaletui/internal/ui/shared"
 	"github.com/wikczerski/whaletui/internal/ui/utils"
 )
 
 // VolumesView displays and manages Docker volumes
 type VolumesView struct {
-	*shared.BaseView[shared.Volume]
+	*uishared.BaseView[shared.Volume]
 	executor *handlers.OperationExecutor
 }
 
 // NewVolumesView creates a new volumes view
 func NewVolumesView(ui interfaces.UIInterface) *VolumesView {
 	headers := []string{"Name", "Driver", "Mountpoint", "Created", "Size"}
-	baseView := shared.NewBaseView[shared.Volume](ui, "volumes", headers)
+	baseView := uishared.NewBaseView[shared.Volume](ui, "volumes", headers)
 
 	vv := &VolumesView{
 		BaseView: baseView,

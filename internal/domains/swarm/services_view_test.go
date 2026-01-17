@@ -8,6 +8,7 @@ import (
 	"github.com/wikczerski/whaletui/internal/config"
 	uimocks "github.com/wikczerski/whaletui/internal/mocks/ui"
 	"github.com/wikczerski/whaletui/internal/shared"
+	uishared "github.com/wikczerski/whaletui/internal/ui/shared"
 )
 
 // TestNewServicesView tests the creation of a new services view
@@ -144,7 +145,7 @@ func TestServicesView_GetServiceName(t *testing.T) {
 func TestServicesView_SearchState(t *testing.T) {
 	// Create a test view instance with proper initialization
 	view := &ServicesView{}
-	view.BaseView = shared.NewBaseView[shared.SwarmService](
+	view.BaseView = uishared.NewBaseView[shared.SwarmService](
 		nil, "Test Services", []string{"ID", "Name"},
 	)
 
@@ -167,7 +168,7 @@ func TestServicesView_SearchState(t *testing.T) {
 func TestServicesView_SearchWithMockData(t *testing.T) {
 	// Create a test view instance with proper initialization
 	view := &ServicesView{}
-	view.BaseView = shared.NewBaseView[shared.SwarmService](
+	view.BaseView = uishared.NewBaseView[shared.SwarmService](
 		nil, "Test Services", []string{"ID", "Name", "Image", "Mode", "Status"},
 	)
 

@@ -6,6 +6,7 @@ package mocks
 
 import (
 	"github.com/rivo/tview"
+
 	mock "github.com/stretchr/testify/mock"
 )
 

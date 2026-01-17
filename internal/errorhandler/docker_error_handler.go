@@ -7,13 +7,15 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/wikczerski/whaletui/internal/app"
 	"github.com/wikczerski/whaletui/internal/config"
 	"github.com/wikczerski/whaletui/internal/logger"
 )
 
 // AppRunner defines the function signature for running the application
-type AppRunner func(application *app.App, log *slog.Logger) error
+type AppRunner func(application any, log *slog.Logger) error
+
+// AppFactory defines the function signature for creating a new application
+type AppFactory func(cfg *config.Config) (any, error)
 
 // UserInteractor defines the interface for user interaction
 type UserInteractor interface {
@@ -26,12 +28,14 @@ type DockerErrorHandler struct {
 	cfg         *config.Config
 	interaction UserInteractor
 	appRunner   AppRunner
+	appFactory  AppFactory
 }
 
 func NewDockerErrorHandler(
 	err error,
 	cfg *config.Config,
 	appRunner AppRunner,
+	appFactory AppFactory,
 	interaction UserInteractor,
 ) *DockerErrorHandler {
 	return &DockerErrorHandler{
@@ -39,6 +43,7 @@ func NewDockerErrorHandler(
 		cfg:         cfg,
 		interaction: interaction,
 		appRunner:   appRunner,
+		appFactory:  appFactory,
 	}
 }
 
@@ -131,7 +136,7 @@ func (h *DockerErrorHandler) attemptRetry() error {
 	fmt.Println("Retrying connection...")
 	time.Sleep(2 * time.Second)
 
-	application, retryErr := app.New(h.cfg)
+	application, retryErr := h.appFactory(h.cfg)
 	if retryErr == nil {
 		fmt.Println("✅ Connection successful! Starting whaletui...")
 		time.Sleep(1 * time.Second)

@@ -30,6 +30,7 @@ type ServiceFactoryInterface interface {
 	GetLogsService() LogsService
 	GetSwarmServiceService() any
 	GetSwarmNodeService() any
+	GetCurrentService() any
 	SetCurrentService(serviceName string)
 	IsServiceAvailable(serviceName string) bool
 	IsContainerServiceAvailable() bool

@@ -18,7 +18,7 @@ func TestDockerErrorHandlerCreation(t *testing.T) {
 	cfg := &config.Config{}
 	err := errors.New("test error")
 
-	handler := NewDockerErrorHandler(err, cfg, nil, &mockInteractor{})
+	handler := NewDockerErrorHandler(err, cfg, nil, nil, &mockInteractor{})
 	assert.NotNil(t, handler)
 	assert.Equal(t, err, handler.err)
 	assert.Equal(t, cfg, handler.cfg)

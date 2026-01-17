@@ -9,19 +9,20 @@ import (
 	"github.com/wikczerski/whaletui/internal/ui/formatters"
 	"github.com/wikczerski/whaletui/internal/ui/handlers"
 	"github.com/wikczerski/whaletui/internal/ui/interfaces"
+	uishared "github.com/wikczerski/whaletui/internal/ui/shared"
 	"github.com/wikczerski/whaletui/internal/ui/utils"
 )
 
 // ImagesView displays and manages Docker images
 type ImagesView struct {
-	*shared.BaseView[shared.Image]
+	*uishared.BaseView[shared.Image]
 	handlers *handlers.ActionHandlers
 }
 
 // NewImagesView creates a new images view
 func NewImagesView(ui interfaces.UIInterface) *ImagesView {
 	headers := []string{"ID", "Repository", "Tag", "Size", "Created", "Containers"}
-	baseView := shared.NewBaseView[shared.Image](ui, "images", headers)
+	baseView := uishared.NewBaseView[shared.Image](ui, "images", headers)
 
 	iv := &ImagesView{
 		BaseView: baseView,

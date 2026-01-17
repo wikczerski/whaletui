@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/wikczerski/whaletui/internal/shared"
+	uishared "github.com/wikczerski/whaletui/internal/ui/shared"
 )
 
 // TestNodesView_FormatNodeRow tests the formatNodeRow method without requiring full view construction
@@ -98,7 +99,7 @@ func TestNodesView_Constructor(t *testing.T) {
 func TestNodesView_SearchState(t *testing.T) {
 	// Create a test view instance with proper initialization
 	view := &NodesView{}
-	view.BaseView = shared.NewBaseView[shared.SwarmNode](
+	view.BaseView = uishared.NewBaseView[shared.SwarmNode](
 		nil, "Test Nodes", []string{"ID", "Hostname"},
 	)
 
@@ -121,7 +122,7 @@ func TestNodesView_SearchState(t *testing.T) {
 func TestNodesView_SearchWithMockData(t *testing.T) {
 	// Create a test view instance with proper initialization
 	view := &NodesView{}
-	view.BaseView = shared.NewBaseView[shared.SwarmNode](
+	view.BaseView = uishared.NewBaseView[shared.SwarmNode](
 		nil, "Test Nodes", []string{"ID", "Hostname", "Role", "Status"},
 	)
 

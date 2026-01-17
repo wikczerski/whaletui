@@ -129,6 +129,52 @@ func (_c *MockServiceFactoryInterface_GetDockerInfoService_Call) RunAndReturn(ru
 	return _c
 }
 
+// GetCurrentService provides a mock function for the type MockServiceFactoryInterface
+func (_mock *MockServiceFactoryInterface) GetCurrentService() any {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetCurrentService")
+	}
+
+	var r0 any
+	if returnFunc, ok := ret.Get(0).(func() any); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(any)
+		}
+	}
+	return r0
+}
+
+// MockServiceFactoryInterface_GetCurrentService_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetCurrentService'
+type MockServiceFactoryInterface_GetCurrentService_Call struct {
+	*mock.Call
+}
+
+// GetCurrentService is a helper method to define mock.On call
+func (_e *MockServiceFactoryInterface_Expecter) GetCurrentService() *MockServiceFactoryInterface_GetCurrentService_Call {
+	return &MockServiceFactoryInterface_GetCurrentService_Call{Call: _e.mock.On("GetCurrentService")}
+}
+
+func (_c *MockServiceFactoryInterface_GetCurrentService_Call) Run(run func()) *MockServiceFactoryInterface_GetCurrentService_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockServiceFactoryInterface_GetCurrentService_Call) Return(_a0 any) *MockServiceFactoryInterface_GetCurrentService_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockServiceFactoryInterface_GetCurrentService_Call) RunAndReturn(run func() any) *MockServiceFactoryInterface_GetCurrentService_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetImageService provides a mock function for the type MockServiceFactoryInterface
 func (_mock *MockServiceFactoryInterface) GetImageService() interfaces.ImageService {
 	ret := _mock.Called()

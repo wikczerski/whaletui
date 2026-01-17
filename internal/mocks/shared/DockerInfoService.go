@@ -7,8 +7,9 @@ package mocks
 import (
 	"context"
 
-	mock "github.com/stretchr/testify/mock"
 	"github.com/wikczerski/whaletui/internal/shared"
+
+	mock "github.com/stretchr/testify/mock"
 )
 
 // NewMockDockerInfoService creates a new instance of MockDockerInfoService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

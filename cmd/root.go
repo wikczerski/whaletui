@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"strings"
@@ -167,10 +168,22 @@ func isDockerConnectionError(err error) bool {
 
 // handleDockerConnectionError provides user-friendly error handling for Docker connection issues
 func handleDockerConnectionError(err error, cfg *config.Config) error {
+	runner := func(application any, log *slog.Logger) error {
+		if appInstance, ok := application.(*app.App); ok {
+			return runApplicationWithShutdown(appInstance, log)
+		}
+		return fmt.Errorf("invalid application type: %T", application)
+	}
+
+	factory := func(cfg *config.Config) (any, error) {
+		return app.New(cfg)
+	}
+
 	handler := errorhandler.NewDockerErrorHandler(
 		err,
 		cfg,
-		errorhandler.AppRunner(runApplicationWithShutdown),
+		runner,
+		factory,
 		UserInteraction{},
 	)
 	return handler.Handle()
