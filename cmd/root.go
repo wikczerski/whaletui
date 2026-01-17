@@ -3,7 +3,6 @@ package cmd
 import (
 	"log/slog"
 	"os"
-	"os/exec"
 	"os/signal"
 	"strings"
 	"syscall"
@@ -11,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/wikczerski/whaletui/internal/app"
 	"github.com/wikczerski/whaletui/internal/config"
+	"github.com/wikczerski/whaletui/internal/errorhandler"
 	"github.com/wikczerski/whaletui/internal/logger"
 	"github.com/wikczerski/whaletui/internal/ui/constants"
 )
@@ -169,18 +169,13 @@ func isDockerConnectionError(err error) bool {
 
 // handleDockerConnectionError provides user-friendly error handling for Docker connection issues
 func handleDockerConnectionError(err error, cfg *config.Config) error {
-	errorHandler := newDockerErrorHandler(err, cfg, runApplicationWithShutdown)
-	return errorHandler.handle()
-}
-
-// isDockerRunning checks if Docker is running on the local system
-func isDockerRunning() bool {
-	// Try to run a simple Docker command to check if it's accessible
-	cmd := exec.Command("docker", "version", "--format", "{{.Server.Version}}")
-	cmd.Stdout = nil
-	cmd.Stderr = nil
-
-	return cmd.Run() == nil
+	handler := errorhandler.NewDockerErrorHandler(
+		err,
+		cfg,
+		errorhandler.AppRunner(runApplicationWithShutdown),
+		UserInteraction{},
+	)
+	return handler.Handle()
 }
 
 func logConnectionInfo(cfg *config.Config, log *slog.Logger) {

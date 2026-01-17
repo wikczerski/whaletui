@@ -1,4 +1,4 @@
-package cmd
+package errorhandler
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func (h *dockerErrorHandler) showGeneralHelp() {
+func (h *DockerErrorHandler) showGeneralHelp() {
 	fmt.Println()
 	fmt.Println("For more help:")
 	fmt.Println("  • Check the logs: whaletui --log-level DEBUG")
@@ -15,7 +15,7 @@ func (h *dockerErrorHandler) showGeneralHelp() {
 	fmt.Println()
 }
 
-func (h *dockerErrorHandler) showSpecificErrorGuidance() {
+func (h *DockerErrorHandler) showSpecificErrorGuidance() {
 	errStr := h.err.Error()
 	switch {
 	case strings.Contains(errStr, "permission denied"):
@@ -27,7 +27,7 @@ func (h *dockerErrorHandler) showSpecificErrorGuidance() {
 	}
 }
 
-func (h *dockerErrorHandler) showPermissionErrorHelp() {
+func (h *DockerErrorHandler) showPermissionErrorHelp() {
 	fmt.Println()
 	fmt.Println("Permission denied error detected:")
 	fmt.Println("• Check if your user has access to Docker")
@@ -35,7 +35,7 @@ func (h *dockerErrorHandler) showPermissionErrorHelp() {
 	fmt.Println("• Log out and log back in after adding to docker group")
 }
 
-func (h *dockerErrorHandler) showConnectionRefusedHelp() {
+func (h *DockerErrorHandler) showConnectionRefusedHelp() {
 	fmt.Println()
 	fmt.Println("Connection refused error detected:")
 	fmt.Println("• Docker daemon is not listening on the expected port/socket")
@@ -43,7 +43,7 @@ func (h *dockerErrorHandler) showConnectionRefusedHelp() {
 	fmt.Println("• Verify Docker socket permissions")
 }
 
-func (h *dockerErrorHandler) showTimeoutErrorHelp() {
+func (h *DockerErrorHandler) showTimeoutErrorHelp() {
 	fmt.Println()
 	fmt.Println("Timeout error detected:")
 	fmt.Println("• Docker daemon might be overloaded")
@@ -51,20 +51,20 @@ func (h *dockerErrorHandler) showTimeoutErrorHelp() {
 	fmt.Println("• Try increasing Docker daemon timeout")
 }
 
-func (h *dockerErrorHandler) showRemoteHelp() {
+func (h *DockerErrorHandler) showRemoteHelp() {
 	h.showRemoteHelpHeader()
 	h.showRemoteHelpChecklist()
 	h.showRemoteHelpSuggestions()
 }
 
 // showRemoteHelpHeader shows the remote help header
-func (h *dockerErrorHandler) showRemoteHelpHeader() {
+func (h *DockerErrorHandler) showRemoteHelpHeader() {
 	fmt.Printf("Unable to connect to remote Docker host: %s\n", h.cfg.RemoteHost)
 	fmt.Println()
 }
 
 // showRemoteHelpChecklist shows the remote help checklist
-func (h *dockerErrorHandler) showRemoteHelpChecklist() {
+func (h *DockerErrorHandler) showRemoteHelpChecklist() {
 	fmt.Println("Please check:")
 	fmt.Println("• The remote host is accessible")
 	fmt.Println("• Docker daemon is running on the remote host")
@@ -75,14 +75,14 @@ func (h *dockerErrorHandler) showRemoteHelpChecklist() {
 }
 
 // showRemoteHelpSuggestions shows the remote help suggestions
-func (h *dockerErrorHandler) showRemoteHelpSuggestions() {
+func (h *DockerErrorHandler) showRemoteHelpSuggestions() {
 	fmt.Println("You can try:")
 	fmt.Printf("  whaletui connect --host %s --user <username>\n", h.cfg.RemoteHost)
 	fmt.Println("  • Test SSH connection: ssh <username>@<host>")
 	fmt.Println("  • Test Docker connection: docker -H <host> ps")
 }
 
-func (h *dockerErrorHandler) showLocalHelp() {
+func (h *DockerErrorHandler) showLocalHelp() {
 	fmt.Println("Unable to connect to local Docker daemon")
 	fmt.Println()
 
@@ -92,8 +92,8 @@ func (h *dockerErrorHandler) showLocalHelp() {
 	h.showLocalSuggestions()
 }
 
-func (h *dockerErrorHandler) showDockerStatus() {
-	if isDockerRunning() {
+func (h *DockerErrorHandler) showDockerStatus() {
+	if IsDockerRunning() {
 		fmt.Println("⚠️  Docker appears to be running but connection failed")
 		fmt.Println("This might be a permission issue or Docker socket problem")
 	} else {
@@ -101,7 +101,7 @@ func (h *dockerErrorHandler) showDockerStatus() {
 	}
 }
 
-func (h *dockerErrorHandler) showGeneralChecks() {
+func (h *DockerErrorHandler) showGeneralChecks() {
 	fmt.Println()
 	fmt.Println("Please check:")
 	fmt.Println("• Docker Desktop is running (Windows/macOS)")
@@ -110,7 +110,7 @@ func (h *dockerErrorHandler) showGeneralChecks() {
 	fmt.Println("• Docker socket is accessible")
 }
 
-func (h *dockerErrorHandler) showOSSpecificChecks() {
+func (h *DockerErrorHandler) showOSSpecificChecks() {
 	switch runtime.GOOS {
 	case "windows":
 		h.showWindowsChecks()
@@ -121,7 +121,7 @@ func (h *dockerErrorHandler) showOSSpecificChecks() {
 	}
 }
 
-func (h *dockerErrorHandler) showWindowsChecks() {
+func (h *DockerErrorHandler) showWindowsChecks() {
 	fmt.Println()
 	fmt.Println("Windows-specific checks:")
 	fmt.Println("• Docker Desktop is installed and running")
@@ -131,7 +131,7 @@ func (h *dockerErrorHandler) showWindowsChecks() {
 	fmt.Println("• Try restarting Docker Desktop")
 }
 
-func (h *dockerErrorHandler) showLinuxChecks() {
+func (h *DockerErrorHandler) showLinuxChecks() {
 	fmt.Println()
 	fmt.Println("Linux-specific checks:")
 	fmt.Println("• Docker daemon is running: sudo systemctl status docker")
@@ -140,7 +140,7 @@ func (h *dockerErrorHandler) showLinuxChecks() {
 	fmt.Println("• Try: sudo systemctl start docker")
 }
 
-func (h *dockerErrorHandler) showMacOSChecks() {
+func (h *DockerErrorHandler) showMacOSChecks() {
 	fmt.Println()
 	fmt.Println("macOS-specific checks:")
 	fmt.Println("• Docker Desktop is installed and running")
@@ -149,7 +149,7 @@ func (h *dockerErrorHandler) showMacOSChecks() {
 	fmt.Println("• Try restarting Docker Desktop")
 }
 
-func (h *dockerErrorHandler) showLocalSuggestions() {
+func (h *DockerErrorHandler) showLocalSuggestions() {
 	fmt.Println()
 	fmt.Println("You can try:")
 	fmt.Println("  • Starting Docker Desktop")
@@ -158,14 +158,14 @@ func (h *dockerErrorHandler) showLocalSuggestions() {
 	fmt.Println("  • Connecting to a remote host: whaletui connect --host <host> --user <username>")
 }
 
-func (h *dockerErrorHandler) showRemoteOption() {
+func (h *DockerErrorHandler) showRemoteOption() {
 	fmt.Println()
-	if h.interaction.askYesNo("Would you like to try connecting to a remote host instead?") {
+	if h.interaction.AskYesNo("Would you like to try connecting to a remote host instead?") {
 		h.showRemoteConnectionExamples()
 	}
 }
 
-func (h *dockerErrorHandler) showRemoteConnectionExamples() {
+func (h *DockerErrorHandler) showRemoteConnectionExamples() {
 	fmt.Println()
 	fmt.Println("To connect to a remote Docker host:")
 	fmt.Println("  whaletui connect --host <host> --user <username>")
@@ -175,5 +175,5 @@ func (h *dockerErrorHandler) showRemoteConnectionExamples() {
 	fmt.Println("  whaletui connect --host ssh://admin@192.168.1.100")
 	fmt.Println("  whaletui connect --host tcp://192.168.1.100:2375")
 	fmt.Println()
-	h.interaction.waitForEnter()
+	h.interaction.WaitForEnter()
 }

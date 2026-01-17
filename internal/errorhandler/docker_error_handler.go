@@ -1,4 +1,4 @@
-package cmd
+package errorhandler
 
 import (
 	"fmt"
@@ -15,23 +15,34 @@ import (
 // AppRunner defines the function signature for running the application
 type AppRunner func(application *app.App, log *slog.Logger) error
 
-type dockerErrorHandler struct {
+// UserInteractor defines the interface for user interaction
+type UserInteractor interface {
+	AskYesNo(question string) bool
+	WaitForEnter()
+}
+
+type DockerErrorHandler struct {
 	err         error
 	cfg         *config.Config
-	interaction UserInteraction
+	interaction UserInteractor
 	appRunner   AppRunner
 }
 
-func newDockerErrorHandler(err error, cfg *config.Config, appRunner AppRunner) *dockerErrorHandler {
-	return &dockerErrorHandler{
+func NewDockerErrorHandler(
+	err error,
+	cfg *config.Config,
+	appRunner AppRunner,
+	interaction UserInteractor,
+) *DockerErrorHandler {
+	return &DockerErrorHandler{
 		err:         err,
 		cfg:         cfg,
-		interaction: UserInteraction{},
+		interaction: interaction,
 		appRunner:   appRunner,
 	}
 }
 
-func (h *dockerErrorHandler) handle() error {
+func (h *DockerErrorHandler) Handle() error {
 	h.prepareTerminal()
 	h.showErrorHeader()
 
@@ -47,14 +58,14 @@ func (h *dockerErrorHandler) handle() error {
 }
 
 // handleErrorDetails handles the error details display
-func (h *dockerErrorHandler) handleErrorDetails() {
+func (h *DockerErrorHandler) handleErrorDetails() {
 	if h.askForDetails() {
 		h.showDetailedError()
 	}
 }
 
 // handleConnectionType handles different connection types
-func (h *dockerErrorHandler) handleConnectionType() {
+func (h *DockerErrorHandler) handleConnectionType() {
 	if h.isRemoteConnection() {
 		h.showRemoteHelp()
 	} else {
@@ -67,7 +78,7 @@ func (h *dockerErrorHandler) handleConnectionType() {
 	}
 }
 
-func (h *dockerErrorHandler) prepareTerminal() {
+func (h *DockerErrorHandler) prepareTerminal() {
 	logger.SetTUIMode(false)
 	if _, err := fmt.Fprint(os.Stdout, "\033[2J\033[H"); err != nil {
 		// Log the error but continue since this is just terminal clearing
@@ -75,7 +86,7 @@ func (h *dockerErrorHandler) prepareTerminal() {
 	}
 }
 
-func (h *dockerErrorHandler) showErrorHeader() {
+func (h *DockerErrorHandler) showErrorHeader() {
 	fmt.Println("❌ Docker Connection Failed")
 	fmt.Println("==========================")
 	fmt.Println()
@@ -83,19 +94,19 @@ func (h *dockerErrorHandler) showErrorHeader() {
 	fmt.Println()
 }
 
-func (h *dockerErrorHandler) askForDetails() bool {
-	return h.interaction.askYesNo("Show detailed error information?")
+func (h *DockerErrorHandler) askForDetails() bool {
+	return h.interaction.AskYesNo("Show detailed error information?")
 }
 
-func (h *dockerErrorHandler) askForRetry() bool {
-	return h.interaction.askYesNo("Would you like to retry?")
+func (h *DockerErrorHandler) askForRetry() bool {
+	return h.interaction.AskYesNo("Would you like to retry?")
 }
 
-func (h *dockerErrorHandler) isRemoteConnection() bool {
+func (h *DockerErrorHandler) isRemoteConnection() bool {
 	return h.cfg.RemoteHost != ""
 }
 
-func (h *dockerErrorHandler) showDetailedError() {
+func (h *DockerErrorHandler) showDetailedError() {
 	fmt.Println()
 	fmt.Println("Detailed error information:")
 	fmt.Println("==========================")
@@ -107,7 +118,7 @@ func (h *dockerErrorHandler) showDetailedError() {
 	fmt.Println()
 }
 
-func (h *dockerErrorHandler) showExitErrorDetails() {
+func (h *DockerErrorHandler) showExitErrorDetails() {
 	if dockerErr, ok := h.err.(*exec.ExitError); ok {
 		fmt.Printf("Exit code: %d\n", dockerErr.ExitCode())
 		if len(dockerErr.Stderr) > 0 {
@@ -116,7 +127,7 @@ func (h *dockerErrorHandler) showExitErrorDetails() {
 	}
 }
 
-func (h *dockerErrorHandler) attemptRetry() error {
+func (h *DockerErrorHandler) attemptRetry() error {
 	fmt.Println("Retrying connection...")
 	time.Sleep(2 * time.Second)
 
@@ -128,10 +139,10 @@ func (h *dockerErrorHandler) attemptRetry() error {
 	}
 
 	fmt.Printf("❌ Retry failed: %v\n", retryErr)
-	h.interaction.waitForEnter()
+	h.interaction.WaitForEnter()
 	return retryErr
 }
 
-func (h *dockerErrorHandler) waitForExit() {
-	h.interaction.waitForEnter()
+func (h *DockerErrorHandler) waitForExit() {
+	h.interaction.WaitForEnter()
 }

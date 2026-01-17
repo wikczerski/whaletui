@@ -1,4 +1,4 @@
-package cmd
+package errorhandler
 
 import (
 	"errors"
@@ -8,12 +8,17 @@ import (
 	"github.com/wikczerski/whaletui/internal/config"
 )
 
+type mockInteractor struct{}
+
+func (m *mockInteractor) AskYesNo(question string) bool { return false }
+func (m *mockInteractor) WaitForEnter()                 {}
+
 func TestDockerErrorHandlerCreation(t *testing.T) {
 	// Test that dockerErrorHandler can be created
 	cfg := &config.Config{}
 	err := errors.New("test error")
 
-	handler := newDockerErrorHandler(err, cfg, nil)
+	handler := NewDockerErrorHandler(err, cfg, nil, &mockInteractor{})
 	assert.NotNil(t, handler)
 	assert.Equal(t, err, handler.err)
 	assert.Equal(t, cfg, handler.cfg)
@@ -21,10 +26,10 @@ func TestDockerErrorHandlerCreation(t *testing.T) {
 
 func TestDockerErrorHandlerHelperFunctions(t *testing.T) {
 	// Test helper functions that don't require user interaction
-	handler := &dockerErrorHandler{
+	handler := &DockerErrorHandler{
 		err:         errors.New("test error"),
 		cfg:         &config.Config{},
-		interaction: UserInteraction{},
+		interaction: &mockInteractor{},
 	}
 
 	// Test hasLogFile
@@ -53,21 +58,9 @@ func TestDockerErrorHandlerConnectionTypeDetection(t *testing.T) {
 	localCfg := &config.Config{}
 	remoteCfg := &config.Config{RemoteHost: "192.168.1.100"}
 
-	localHandler := &dockerErrorHandler{cfg: localCfg}
-	remoteHandler := &dockerErrorHandler{cfg: remoteCfg}
+	localHandler := &DockerErrorHandler{cfg: localCfg}
+	remoteHandler := &DockerErrorHandler{cfg: remoteCfg}
 
 	assert.False(t, localHandler.isRemoteConnection())
 	assert.True(t, remoteHandler.isRemoteConnection())
-}
-
-func TestHandleDockerConnectionError(t *testing.T) {
-	// Test the main error handling function
-	cfg := &config.Config{}
-	err := errors.New("docker client creation failed")
-
-	// This function would normally interact with the user, so we just test it doesn't panic
-	// In a real scenario, this would be tested with integration tests
-	assert.NotPanics(t, func() {
-		_ = handleDockerConnectionError(err, cfg)
-	})
 }

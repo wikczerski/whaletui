@@ -1,4 +1,4 @@
-package cmd
+package errorhandler
 
 import (
 	"fmt"
@@ -9,34 +9,34 @@ import (
 	"github.com/wikczerski/whaletui/internal/logger"
 )
 
-func (h *dockerErrorHandler) showLogOption() {
+func (h *DockerErrorHandler) showLogOption() {
 	logFilePath := logger.GetLogFilePath()
 	if h.hasLogFile(logFilePath) {
 		fmt.Printf("Recent logs are available at: %s\n", logFilePath)
-		if h.interaction.askYesNo("Would you like to view recent logs?") {
+		if h.interaction.AskYesNo("Would you like to view recent logs?") {
 			h.showRecentLogs(logFilePath)
 		}
 	}
 }
 
-func (h *dockerErrorHandler) hasLogFile(logFilePath string) bool {
+func (h *DockerErrorHandler) hasLogFile(logFilePath string) bool {
 	return logFilePath != ""
 }
 
-func (h *dockerErrorHandler) showRecentLogs(logFilePath string) {
+func (h *DockerErrorHandler) showRecentLogs(logFilePath string) {
 	h.showRecentLogsHeader()
 	h.validateAndReadLogFile(logFilePath)
 }
 
 // showRecentLogsHeader shows the recent logs header
-func (h *dockerErrorHandler) showRecentLogsHeader() {
+func (h *DockerErrorHandler) showRecentLogsHeader() {
 	fmt.Println()
 	fmt.Println("Recent logs:")
 	fmt.Println("============")
 }
 
 // validateAndReadLogFile validates and reads the log file
-func (h *dockerErrorHandler) validateAndReadLogFile(logFilePath string) {
+func (h *DockerErrorHandler) validateAndReadLogFile(logFilePath string) {
 	if !h.isValidLogFilePath(logFilePath) {
 		h.showInvalidLogPathMessage()
 		return
@@ -47,7 +47,7 @@ func (h *dockerErrorHandler) validateAndReadLogFile(logFilePath string) {
 }
 
 // isValidLogFilePath checks if the log file path is valid
-func (h *dockerErrorHandler) isValidLogFilePath(logFilePath string) bool {
+func (h *DockerErrorHandler) isValidLogFilePath(logFilePath string) bool {
 	// Clean the path to remove any directory traversal attempts
 	cleanPath := filepath.Clean(logFilePath)
 
@@ -66,13 +66,13 @@ func (h *dockerErrorHandler) isValidLogFilePath(logFilePath string) bool {
 }
 
 // showInvalidLogPathMessage shows the invalid log path message
-func (h *dockerErrorHandler) showInvalidLogPathMessage() {
+func (h *DockerErrorHandler) showInvalidLogPathMessage() {
 	fmt.Println("Invalid log file path")
 	fmt.Println()
 }
 
 // readAndDisplayLogFile reads and displays the log file
-func (h *dockerErrorHandler) readAndDisplayLogFile(logFilePath string) {
+func (h *DockerErrorHandler) readAndDisplayLogFile(logFilePath string) {
 	// nolint:gosec // Path is validated by isValidLogFilePath before this function is called
 	logContent, readErr := os.ReadFile(logFilePath)
 	if h.canReadLogFile(readErr) {
@@ -82,11 +82,11 @@ func (h *dockerErrorHandler) readAndDisplayLogFile(logFilePath string) {
 	}
 }
 
-func (h *dockerErrorHandler) canReadLogFile(err error) bool {
+func (h *DockerErrorHandler) canReadLogFile(err error) bool {
 	return err == nil
 }
 
-func (h *dockerErrorHandler) displayLastLogLines(content string) {
+func (h *DockerErrorHandler) displayLastLogLines(content string) {
 	lines := strings.Split(content, "\n")
 	start := h.calculateLogStartIndex(len(lines))
 
@@ -97,7 +97,7 @@ func (h *dockerErrorHandler) displayLastLogLines(content string) {
 	}
 }
 
-func (h *dockerErrorHandler) calculateLogStartIndex(totalLines int) int {
+func (h *DockerErrorHandler) calculateLogStartIndex(totalLines int) int {
 	const maxLogLines = 20
 	start := totalLines - maxLogLines
 	if h.isValidStartIndex(start) {
@@ -106,10 +106,10 @@ func (h *dockerErrorHandler) calculateLogStartIndex(totalLines int) int {
 	return 0
 }
 
-func (h *dockerErrorHandler) isValidStartIndex(start int) bool {
+func (h *DockerErrorHandler) isValidStartIndex(start int) bool {
 	return start >= 0
 }
 
-func (h *dockerErrorHandler) isValidLogLine(line string) bool {
+func (h *DockerErrorHandler) isValidLogLine(line string) bool {
 	return line != ""
 }
