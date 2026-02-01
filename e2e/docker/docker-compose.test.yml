@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  whaletui-test:
+    build:
+      context: ../..
+      dockerfile: e2e/docker/Dockerfile.test
+    container_name: whaletui-e2e-test
+    privileged: true
+    volumes:
+      - whaletui-test-data:/app/test-data
+      - whaletui-screenshots:/app/screenshots
+      - whaletui-reports:/app/reports
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - PYTHONPATH=/app/e2e
+      - DOCKER_BUILDKIT=1
+      - DOCKER_TLS_CERTDIR=
+    working_dir: /app/e2e
+    command: /app/docker/run_tests_in_docker.sh
+    networks:
+      - whaletui-test-network
+    restart: "no"
+
+  # Note: Test services are now created dynamically inside the DinD environment
+  # by the test data generator, providing complete isolation from host Docker
+
+volumes:
+  whaletui-test-data:
+    driver: local
+  whaletui-screenshots:
+    driver: local
+  whaletui-reports:
+    driver: local
+
+networks:
+  whaletui-test-network:
+    driver: bridge

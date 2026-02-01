@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  whaletui-test:
+    image: whaletui-e2e-test-isolated
+    container_name: whaletui-e2e-test-volume
+    privileged: true
+    volumes:
+      # Mount the entire project as a volume for live code changes
+      - ../../:/app/whaletui:ro
+      - ./:/app/e2e:ro
+      # Mount test artifacts as writable volumes
+      - whaletui-test-data:/app/test-data
+      - whaletui-screenshots:/app/screenshots
+      - whaletui-reports:/app/reports
+      - whaletui-logs:/app/logs
+    environment:
+      - DOCKER_TLS_CERTDIR=
+      - PYTHONPATH=/app/e2e
+      - DOCKER_BUILDKIT=1
+    working_dir: /app/e2e
+    command: /app/start-dind.sh
+    networks:
+      - whaletui-test-network
+    restart: "no"
+
+volumes:
+  whaletui-test-data:
+    driver: local
+  whaletui-screenshots:
+    driver: local
+  whaletui-reports:
+    driver: local
+  whaletui-logs:
+    driver: local
+
+networks:
+  whaletui-test-network:
+    driver: bridge
